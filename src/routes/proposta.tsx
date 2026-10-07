@@ -34,6 +34,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
+  const [aiFailed, setAiFailed] = useState(false);
 
   if (!p) {
     return (
@@ -51,8 +52,10 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
   const cliente = p.s.cliente?.trim();
-  const destino = p.s.destino.split(",")[0];
+  const destino = (p.s.destino ?? "").split(",")[0] ?? "";
   const hero = hotels.find((h) => h.image)?.image;
+  const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+  const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
   const wa = `https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(
@@ -71,7 +74,11 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
       </header>
 
       <section className="relative overflow-hidden bg-navy">
-        {hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+        {!aiFailed ? (
+          <img src={aiHero} alt="" onError={() => setAiFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
         <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
           <div className="text-xs font-semibold tracking-[0.25em] opacity-90">SUA PRÓXIMA VIAGEM</div>

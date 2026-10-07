@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PropostaRouteImport } from './routes/proposta'
 import { Route as PCodeRouteImport } from './routes/p/$code'
+import { Route as ApiPublicDestinationImageSlugRouteImport } from './routes/api/public/destination-image/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -28,35 +29,51 @@ const PCodeRoute = PCodeRouteImport.update({
   path: '/p/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicDestinationImageSlugRoute =
+  ApiPublicDestinationImageSlugRouteImport.update({
+    id: '/api/public/destination-image/$slug',
+    path: '/api/public/destination-image/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/proposta': typeof PropostaRoute
   '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/proposta': typeof PropostaRoute
   '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/proposta': typeof PropostaRoute
   '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/proposta' | '/p/$code'
+  fullPaths:
+    '/' | '/proposta' | '/p/$code' | '/api/public/destination-image/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/proposta' | '/p/$code'
-  id: '__root__' | '/' | '/proposta' | '/p/$code'
+  to: '/' | '/proposta' | '/p/$code' | '/api/public/destination-image/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/proposta'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PropostaRoute: typeof PropostaRoute
   PCodeRoute: typeof PCodeRoute
+  ApiPublicDestinationImageSlugRoute: typeof ApiPublicDestinationImageSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -82,6 +99,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/destination-image/$slug': {
+      id: '/api/public/destination-image/$slug'
+      path: '/api/public/destination-image/$slug'
+      fullPath: '/api/public/destination-image/$slug'
+      preLoaderRoute: typeof ApiPublicDestinationImageSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -89,6 +113,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PropostaRoute: PropostaRoute,
   PCodeRoute: PCodeRoute,
+  ApiPublicDestinationImageSlugRoute: ApiPublicDestinationImageSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

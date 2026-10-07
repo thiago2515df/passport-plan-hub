@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      destination_images: {
+        Row: {
+          content: string
+          created_at: string
+          slug: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          slug: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          slug?: string
+        }
+        Relationships: []
+      }
       proposals: {
         Row: {
           code: string
