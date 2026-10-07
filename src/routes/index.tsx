@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
-import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, iataOf, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
+import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
@@ -81,9 +81,9 @@ function Index() {
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
     setErr(""); setLoading(true); setSel([]); setLink("");
     if (transport.mode === "air") {
-      const from = iataOf(s.origem), to = iataOf(destIata);
+      const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(s.destino);
       setPickF({});
-      if (!from || !to) { setOutF({ list: [], loading: false, error: "Informe o aeroporto de origem como 'Brasília (BSB)' e o código do aeroporto de destino." }); setBackF(empty); }
+      if (!from || !to) { setOutF({ list: [], loading: false, error: "Não reconheci o aeroporto da origem ou do destino. Escreva a origem como 'Brasília (BSB)' ou preencha o campo do aeroporto de destino." }); setBackF(empty); }
       else {
         const run = (a: string, b: string, date: string, set: (l: Leg) => void) => { set({ list: [], loading: true }); findFlights({ data: { from: a, to: b, date, adults, children: kids.length } }).then(r => set({ list: r.flights, loading: false, error: r.error ?? (r.flights.length ? undefined : "Nenhum voo encontrado.") })).catch(e => set({ list: [], loading: false, error: (e as Error).message })); };
         run(from, to, s.checkin, setOutF); run(to, from, s.checkout, setBackF);
