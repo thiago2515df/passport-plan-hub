@@ -8,6 +8,12 @@ import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
+import { Calendar as DayPicker } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
+const toD = (iso: string) => new Date(iso + "T12:00");
+const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -98,14 +104,24 @@ function Index() {
       </aside>
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[2fr_1fr_1fr_1.3fr_1.1fr_auto] md:items-end">
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
+          <label className="text-sm">Origem<div className={field + " mt-2"}><Plane className="h-4 w-4" /><input placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onChange={e => setS({ ...s, origem: e.target.value })} /></div></label>
           <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>
             {sugs.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
               {sugs.map((d, i) => <button type="button" key={d.id + i} disabled={uploading} onClick={() => { setDestId(d.id); changeDestination(d.name); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
             </div>}
           </label>
-          <label className="text-sm">Check-in<div className={field + " mt-2"}><Calendar className="h-4 w-4" /><input type="date" className="w-full bg-transparent outline-none" value={s.checkin} onChange={e => setS({ ...s, checkin: e.target.value })} /></div></label>
-          <label className="text-sm">Check-out<div className={field + " mt-2"}><Calendar className="h-4 w-4" /><input type="date" className="w-full bg-transparent outline-none" value={s.checkout} onChange={e => setS({ ...s, checkout: e.target.value })} /></div></label>
+          <div className="text-sm">Ida e volta
+            <Popover>
+              <PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <DayPicker mode="range" numberOfMonths={2} defaultMonth={toD(s.checkin)} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: toD(s.checkout) }}
+                  onSelect={(r) => { if (!r?.from) return; const from = isoD(r.from); const to = r.to && r.to > r.from ? isoD(r.to) : isoD(new Date(r.from.getTime() + 86400000)); setS({ ...s, checkin: from, checkout: to }); }}
+                  className="pointer-events-auto p-3" />
+                <p className="px-3 pb-3 text-xs text-muted-foreground">Clique na ida e depois na volta. {nights} {nights === 1 ? "noite" : "noites"}.</p>
+              </PopoverContent>
+            </Popover>
+          </div>
           <details className="relative text-sm"><summary className="list-none">Quartos e hóspedes<div className={field + " mt-2 cursor-pointer"}><Users className="h-4 w-4" />{hosp}</div></summary>
             <div className="absolute z-20 mt-1 w-64 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lg">
               <div className="flex justify-between">Quartos<input type="number" min={1} max={9} className={num} value={rooms} onChange={e => setRooms(Math.max(1, Math.min(9, +e.target.value)))} /></div>
@@ -180,7 +196,6 @@ function Index() {
                   </div>); })}
               </div>
               <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-              <input placeholder="Cidade de origem (ex.: Brasília)" value={s.origem ?? ""} onChange={e => { setLink(""); setS({ ...s, origem: e.target.value }); }} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
               <Button disabled={!sel.length || uploading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : "Gerar link"}</Button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
