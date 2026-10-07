@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
-import { AGENCY_WHATSAPP, brl, decodeProposal, nightsBetween, type Hotel } from "@/lib/hotels";
+import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, packageTotal, type Hotel } from "@/lib/hotels";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
-import { TransportPanel } from "@/components/TransportPanel";
+import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/proposta")({
@@ -49,9 +49,10 @@ function Proposta() {
   const cliente = p.s.cliente?.trim();
   const destino = p.s.destino.split(",")[0];
   const hero = hotels.find((h) => h.image)?.image;
+  const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
   const wa = `https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(
-    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(pick.total)})` : ""}.`,
+    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(packageTotal(pick.total, p.s.transport))}${hasTransport ? ", com passagem" : ""})` : ""}.`,
   )}`;
 
   return (
@@ -103,12 +104,14 @@ function Proposta() {
 
         {tab === 0 && (
           <>
+            {hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport!.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport!} /></div>}
             <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Escolha sua hospedagem</h2>
-            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.</p>
+            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosen === i;
+                const included = [hasTransport ? (p.s.transport!.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã"].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
@@ -124,9 +127,13 @@ function Proposta() {
                       </div>
                       {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
                       {room && <div className="mt-2 text-xs text-muted-foreground">{room}</div>}
+                      <ul className="mt-3 space-y-1 text-sm">
+                        <li className="text-xs font-semibold text-muted-foreground">O que está incluso</li>
+                        {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{x}</li>)}
+                      </ul>
                       <div className="mt-3 border-t border-border pt-3">
-                        <div className="text-xs text-muted-foreground">{brl(h.nightly)} / noite · {nights} {nights === 1 ? "noite" : "noites"}</div>
-                        <div className="text-2xl font-black">{brl(h.total)}</div>
+                        <div className="text-xs text-muted-foreground">{hasTransport ? `Pacote completo · ${p.s.hospedes}` : `${brl(h.nightly)} / noite · ${nights} ${nights === 1 ? "noite" : "noites"}`}</div>
+                        <div className="text-2xl font-black">{brl(packageTotal(h.total, p.s.transport))}</div>
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
@@ -154,7 +161,7 @@ function Proposta() {
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
+            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(packageTotal(pick.total, p.s.transport))}</div></div>
             <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Confirmar no WhatsApp</a>
           </div>
         </div>
