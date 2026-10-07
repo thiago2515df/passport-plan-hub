@@ -49,7 +49,7 @@ export const makeTransport = (mode: TransportMode, destination: string): Transpo
 };
 
 /** WhatsApp da agência (só dígitos, com DDI 55). Troque pelo número real. */
-export const AGENCY_WHATSAPP = "5561999999999";
+export const AGENCY_WHATSAPP = "5561992267062";
 
 export const nightsBetween = (a: string, b: string) =>
   Math.max(1, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
