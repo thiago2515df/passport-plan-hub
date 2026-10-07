@@ -228,8 +228,17 @@ function Index() {
                     <div className="text-[11px] text-muted-foreground">{h.address}</div>
                     <div className="mt-1 font-bold">{brl(h.nightly)} <span className="text-xs font-normal text-muted-foreground">/ noite</span></div>
                   </div>); })}
-              </div>
-              <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+               </div>
+               {(pickF.out || pickF.back) && <div className="mt-3 space-y-2">
+                 <h3 className="text-sm font-semibold">Voos selecionados</h3>
+                 {([["Ida", pickF.out], ["Volta", pickF.back]] as const).map(([label, f]) => f && (
+                   <div key={label} className="rounded-xl border border-primary/40 bg-primary/5 p-3">
+                     <div className="flex justify-between"><span className="text-sm font-semibold">{label} · {f.airline} {f.flightNumber}</span><button aria-label={`Remover voo de ${label}`} onClick={() => { const k = label === "Ida" ? "out" : "back"; const next = { ...pickF, [k]: undefined }; setPickF(next); setS(prev => { const t = prev.transport; if (!t) return prev; return { ...prev, transport: { ...t, price: (next.out?.price ?? 0) + (next.back?.price ?? 0) } }; }); }}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
+                     <div className="text-[11px] text-muted-foreground">{f.from} → {f.to} · {f.departure} – {f.arrival}</div>
+                     <div className="mt-1 font-bold">{brl(f.price)}</div>
+                   </div>))}
+               </div>}
+               <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
               <Button disabled={!sel.length || uploading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : "Gerar link"}</Button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
