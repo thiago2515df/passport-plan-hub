@@ -71,7 +71,11 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
       </header>
 
       <section className="relative overflow-hidden bg-navy">
-        {hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+        {!aiFailed ? (
+          <img src={aiHero} alt="" onError={() => setAiFailed(true)} className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
         <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
           <div className="text-xs font-semibold tracking-[0.25em] opacity-90">SUA PRÓXIMA VIAGEM</div>
