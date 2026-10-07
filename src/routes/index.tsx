@@ -62,6 +62,8 @@ function Index() {
   const [outF, setOutF] = useState<Leg>(empty);
   const [backF, setBackF] = useState<Leg>(empty);
   const [destIata, setDestIata] = useState("");
+  const [picking, setPicking] = useState(false);
+  const [calMonth, setCalMonth] = useState<Date>(() => toD("2026-11-16"));
   const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
   const transport = s.transport ?? makeTransport("none", s.destino);
   const changeDestination = (destination: string) => setS(previous => {
