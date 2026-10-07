@@ -104,18 +104,21 @@ function Proposta() {
             >
               {/* Foto com indicador de galeria */}
               <div className="relative md:w-72 shrink-0 overflow-hidden bg-secondary">
-                {h.image ? (
-                  <img
-                    src={h.image}
-                    alt={h.name}
-                    loading="lazy"
-                    className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105 md:h-full"
-                  />
-                ) : (
-                  <div className="grid h-56 w-full place-items-center bg-secondary md:h-full">
-                    <Building2 className="h-10 w-10 text-muted-foreground" />
-                  </div>
-                )}
+                {(() => {
+                  const fallbackImg = "/uploads/1791395629883-0-Captura-de-Tela-29-.png";
+                  const imgSrc = h.image && h.image.trim().length > 0 ? h.image : fallbackImg;
+                  return (
+                    <img
+                      src={imgSrc}
+                      alt={h.name}
+                      loading="lazy"
+                      className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105 md:h-full"
+                      onError={(e) => {
+                        (e.currentTarget as HTMLImageElement).src = fallbackImg;
+                      }}
+                    />
+                  );
+                })()}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 md:hidden" />
                 <span className="absolute bottom-3 left-3 rounded-full bg-background/90 px-3 py-1 text-xs font-semibold backdrop-blur shadow">
                   Ver fotos e detalhes
