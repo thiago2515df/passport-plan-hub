@@ -52,7 +52,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
   const cliente = p.s.cliente?.trim();
-  const destino = (p.s.destino ?? "").split(",")[0];
+  const destino = (p.s.destino ?? "").split(",")[0] ?? "";
   const hero = hotels.find((h) => h.image)?.image;
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
