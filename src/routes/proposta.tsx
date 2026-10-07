@@ -3,7 +3,7 @@ import { MapPin, Star, Calendar, Users } from "lucide-react";
 import { HOTELS, brl, decodeProposal, nightsBetween } from "@/lib/hotels";
 
 export const Route = createFileRoute("/proposta")({
-  validateSearch: (s: Record<string, unknown>) => ({ t: String(s.t ?? "") }),
+  validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
   head: () => ({
     meta: [
       { title: "Sua proposta de hospedagem — PassHub" },
