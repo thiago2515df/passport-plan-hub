@@ -19,8 +19,7 @@ export const Route = createFileRoute("/")({
 
 const MAX = 3;
 const nav = [
-  ["COTAÇÕES", [[Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"], [Building2, "Hospedagem"], [Car, "Carros"], [Users, "Cotações em grupo"]]],
-  ["GERAL", [[LayoutDashboard, "Dashboard"], [Bookmark, "Reservas"]]],
+  ["COTAÇÕES", [[Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"], [Building2, "Hospedagem"]]],
 ] as const;
 
 function Index() {
