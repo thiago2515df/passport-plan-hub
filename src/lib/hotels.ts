@@ -17,8 +17,11 @@ export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency",
 
 export type TransportMode = "none" | "air" | "bus";
 export type Ticket = { path: string; name: string; type: string };
-export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined };
-export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean };
+export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string };
+export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean; price?: number; travelClass?: string; bags?: string };
+/** Valor do pacote para o cliente: hotel + transporte. */
+export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + (t && t.mode !== "none" ? t.price ?? 0 : 0);
+export const hasBreakfast = (meal?: string) => !!meal && /caf[eé]|breakfast|meia|completa|all/i.test(meal) && !/sem|room only|no meal/i.test(meal);
 export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string; transport?: Transport };
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
