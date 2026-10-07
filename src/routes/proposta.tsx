@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
-import { AGENCY_WHATSAPP, brl, decodeProposal, nightsBetween, type Hotel } from "@/lib/hotels";
+import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, packageTotal, type Hotel } from "@/lib/hotels";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
-import { TransportPanel } from "@/components/TransportPanel";
+import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/proposta")({
@@ -49,9 +49,10 @@ function Proposta() {
   const cliente = p.s.cliente?.trim();
   const destino = p.s.destino.split(",")[0];
   const hero = hotels.find((h) => h.image)?.image;
+  const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
   const wa = `https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(
-    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(pick.total)})` : ""}.`,
+    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(packageTotal(pick.total, p.s.transport))}${hasTransport ? ", com passagem" : ""})` : ""}.`,
   )}`;
 
   return (
@@ -160,7 +161,7 @@ function Proposta() {
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
+            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(packageTotal(pick.total, p.s.transport))}</div></div>
             <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Confirmar no WhatsApp</a>
           </div>
         </div>
