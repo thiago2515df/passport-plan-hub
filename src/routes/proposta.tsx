@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { MapPin, Star, Calendar, Users, Building2, CheckCircle2, Sparkles, ChevronRight } from "lucide-react";
-import { brl, decodeProposal, nightsBetween, type Hotel } from "@/lib/hotels";
+import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
+import { AGENCY_WHATSAPP, brl, decodeProposal, nightsBetween, type Hotel } from "@/lib/hotels";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
 
@@ -9,10 +9,10 @@ export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
   head: () => ({
     meta: [
-      { title: "Sua proposta de hospedagem — PassHub" },
-      { name: "description", content: "Confira as opções de hotéis selecionadas especialmente para você." },
-      { property: "og:title", content: "Sua proposta de hospedagem" },
-      { property: "og:description", content: "Opções de hotéis selecionadas pelo seu agente de viagens." },
+      { title: "Sua proposta de viagem — Excursão Brasília" },
+      { name: "description", content: "Confira as opções de hospedagem selecionadas especialmente para você." },
+      { property: "og:title", content: "Sua proposta de viagem — Excursão Brasília" },
+      { property: "og:description", content: "Opções de hotéis selecionadas pela Excursão Brasília." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
@@ -20,14 +20,18 @@ export const Route = createFileRoute("/proposta")({
   component: Proposta,
 });
 
+const TABS = ["Hospedagem", "Aéreo", "Adicionais"] as const;
+
 function Proposta() {
   const { t } = Route.useSearch();
   const p = decodeProposal(t);
-  const [activeHotel, setActiveHotel] = useState<Hotel | null>(null);
+  const [active, setActive] = useState<Hotel | null>(null);
+  const [tab, setTab] = useState(0);
+  const [chosen, setChosen] = useState<number | null>(null);
 
   if (!p) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background font-sans text-muted-foreground">
+      <div className="grid min-h-screen place-items-center bg-background text-muted-foreground">
         <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
           <Building2 className="mx-auto mb-3 h-12 w-12 text-primary/60" />
           <h2 className="text-xl font-semibold text-foreground">Proposta inválida ou expirada</h2>
@@ -38,166 +42,122 @@ function Proposta() {
   }
 
   const nights = nightsBetween(p.s.checkin, p.s.checkout);
-  const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR");
+  const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
+  const cliente = p.s.cliente?.trim();
+  const destino = p.s.destino.split(",")[0];
+  const hero = hotels.find((h) => h.image)?.image;
+  const pick = chosen != null ? hotels[chosen] : null;
+  const wa = `https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(
+    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(pick.total)})` : ""}.`,
+  )}`;
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-secondary/40 via-background to-background px-4 py-12 font-sans text-foreground">
-      <div className="mx-auto max-w-4xl">
-        {/* Header topo */}
-        <div className="flex flex-col items-center sm:flex-row sm:justify-between border-b border-border/60 pb-6 mb-8 gap-4">
-          <img src={logoAsset.url} alt="Excursão Brasília" className="w-36 object-contain" />
-          <div className="flex items-center gap-2 rounded-full bg-primary/10 px-4 py-1.5 text-xs font-semibold text-primary">
-            <Sparkles className="h-3.5 w-3.5" /> Proposta Exclusiva de Hospedagem
+    <div className="min-h-screen bg-background pb-28 text-foreground">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+          <img src={logoAsset.url} alt="Excursão Brasília" className="h-12 w-auto object-contain" />
+          <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border-2 border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground">
+            <MessageCircle className="h-4 w-4" /> Fale conosco
+          </a>
+        </div>
+      </header>
+
+      <section className="relative overflow-hidden bg-primary">
+        {hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />}
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/75 to-primary/30" />
+        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-primary-foreground md:pb-24 md:pt-16">
+          <div className="text-xs font-semibold tracking-[0.25em] opacity-90">SUA PRÓXIMA VIAGEM</div>
+          <h1 className="mt-2 flex flex-wrap items-center gap-x-3 text-4xl font-extrabold tracking-tight md:text-6xl">
+            {p.s.origem && <><span>{p.s.origem}</span><ArrowRight className="h-8 w-8 md:h-12 md:w-12" /></>}
+            <span>{destino}</span>
+          </h1>
+          <p className="mt-2 text-lg font-medium md:text-xl">Uma viagem especial para você{cliente ? `, ${cliente}` : ""}</p>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {[
+              [Calendar, `${fmt(p.s.checkin)} a ${fmt(p.s.checkout)}`],
+              [Moon, `${nights} ${nights === 1 ? "noite" : "noites"}`],
+              [Users, p.s.hospedes],
+            ].map(([I, txt], k) => {
+              const Icon = I as typeof Calendar;
+              return <span key={k} className="flex items-center gap-2 rounded-full border border-primary-foreground/40 bg-primary-foreground/10 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
+            })}
           </div>
         </div>
+      </section>
 
-        {/* Título e Resumo da Viagem */}
-        <div className="rounded-3xl border border-border/80 bg-card p-6 md:p-8 shadow-xl shadow-black/[0.03]">
-          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Sua proposta personalizada</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Selecionamos as melhores opções de estadia para a sua viagem. Clique em qualquer hotel para explorar fotos, comodidades e detalhes completos.
-          </p>
-
-          <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-2xl bg-secondary/60 p-4 text-sm">
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card shadow-sm text-primary">
-                <MapPin className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-[11px] text-muted-foreground font-medium">Destino</div>
-                <div className="font-semibold truncate">{p.s.destino}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card shadow-sm text-primary">
-                <Calendar className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-[11px] text-muted-foreground font-medium">Período ({nights} {nights === 1 ? "noite" : "noites"})</div>
-                <div className="font-semibold">{fmt(p.s.checkin)} – {fmt(p.s.checkout)}</div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-card shadow-sm text-primary">
-                <Users className="h-4 w-4" />
-              </div>
-              <div>
-                <div className="text-[11px] text-muted-foreground font-medium">Acompanhantes</div>
-                <div className="font-semibold">{p.s.hospedes}</div>
-              </div>
-            </div>
-          </div>
+      <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-4">
+        <div className="flex items-center justify-center gap-2 rounded-2xl bg-card px-4 py-4 text-sm font-semibold shadow-lg">
+          <Sparkles className="h-5 w-5 text-chart-4" /> Proposta exclusiva{cliente && <> para <span className="text-primary">{cliente}</span></>}
         </div>
 
-        {/* Lista de hotéis da proposta */}
-        <div className="mt-8 space-y-6">
-          <h2 className="text-lg font-semibold px-1">Opções disponíveis para escolha ({hotels.length})</h2>
-          
-          {hotels.map((h, i) => (
-            <div
-              key={h.id ?? i}
-              onClick={() => setActiveHotel(h)}
-              className="group cursor-pointer overflow-hidden rounded-3xl border border-border/80 bg-card transition-all duration-300 hover:border-primary/60 hover:shadow-xl hover:shadow-primary/5 md:flex"
-            >
-              {/* Foto com indicador de galeria */}
-              <div className="relative md:w-72 shrink-0 overflow-hidden bg-secondary">
-                {(() => {
-                  const fallbackImg = "/uploads/1791395629883-0-Captura-de-Tela-29-.png";
-                  const imgSrc = h.image && h.image.trim().length > 0 ? h.image : fallbackImg;
-                  return (
-                    <img
-                      src={imgSrc}
-                      alt={h.name}
-                      loading="lazy"
-                      className="h-56 w-full object-cover transition-transform duration-500 group-hover:scale-105 md:h-full"
-                      onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src = fallbackImg;
-                      }}
-                    />
-                  );
-                })()}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 md:hidden" />
-                <span className="absolute bottom-3 left-3 rounded-full bg-background/90 px-3 py-1 text-xs font-semibold backdrop-blur shadow">
-                  Ver fotos e detalhes
-                </span>
-              </div>
-
-              {/* Conteúdo do hotel */}
-              <div className="flex flex-1 flex-col justify-between p-6">
-                <div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                      OPÇÃO {i + 1}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: h.stars || 3 }).map((_, k) => (
-                        <Star key={k} className="h-4 w-4 fill-star text-star" />
-                      ))}
-                    </div>
-                  </div>
-
-                  <h3 className="mt-2.5 text-xl font-bold group-hover:text-primary transition-colors">
-                    {h.name}
-                  </h3>
-
-                  <div className="mt-1.5 flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
-                    <span className="truncate">{h.address}</span>
-                  </div>
-
-                  {h.room && (
-                    <div className="mt-2 inline-block rounded-lg bg-secondary/80 px-3 py-1 text-xs font-medium text-secondary-foreground">
-                      {h.room}
-                    </div>
-                  )}
-
-                  {/* O que está incluso no pacote */}
-                  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" /> Hospedagem confirmada
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" /> Taxas e impostos inclusos
-                    </div>
-                  </div>
-                </div>
-
-                {/* Preços e Ação */}
-                <div className="mt-6 flex flex-col sm:flex-row sm:items-end justify-between border-t border-border/60 pt-4 gap-4">
-                  <div>
-                    <div className="text-xs text-muted-foreground">
-                      {brl(h.nightly)} / noite · {nights} {nights === 1 ? "noite" : "noites"}
-                    </div>
-                    <div className="text-2xl font-black text-foreground">
-                      {brl(h.total)}
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 text-sm font-semibold text-primary group-hover:translate-x-1 transition-transform">
-                    Ver detalhes completos <ChevronRight className="h-4 w-4" />
-                  </div>
-                </div>
-              </div>
-            </div>
+        <nav className="mt-4 grid grid-cols-3 border-b border-border">
+          {TABS.map((n, k) => (
+            <button key={n} onClick={() => setTab(k)} className={`flex items-center justify-center gap-2 border-b-[3px] py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+              <span className={`grid h-8 w-8 place-items-center rounded-full ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{k + 1}</span>{n}
+            </button>
           ))}
-        </div>
+        </nav>
 
-        {/* Rodapé da proposta */}
-        <div className="mt-12 text-center text-xs text-muted-foreground border-t border-border/60 pt-6">
-          Proposta gerada com PassHub Propostas · Valores sujeitos à disponibilidade no momento da confirmação.
-        </div>
+        {tab === 0 && (
+          <>
+            <h2 className="mt-8 text-2xl font-extrabold md:text-3xl">Escolha sua hospedagem</h2>
+            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.</p>
+            <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {hotels.map((h, i) => {
+                const [room, meal] = (h.room ?? "").split(" · ");
+                const sel = chosen === i;
+                return (
+                  <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-md transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
+                    <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
+                      <HotelPhoto hotel={h} />
+                      {meal && <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-semibold shadow"><Coffee className="h-3.5 w-3.5" />{meal}</span>}
+                      {sel && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"><Check className="h-3.5 w-3.5" />Selecionado</span>}
+                    </button>
+                    <div className="flex flex-1 flex-col px-2 pt-3">
+                      <h3 className="text-lg font-bold leading-tight">{h.name}</h3>
+                      <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                        <MapPin className="h-4 w-4 shrink-0 text-primary" /><span className="truncate">{h.address || destino}</span>
+                        <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver no mapa</a>
+                      </div>
+                      {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-chart-4 text-chart-4" : "text-muted-foreground/40"}`} />)}</div>}
+                      {room && <div className="mt-2 text-xs text-muted-foreground">{room}</div>}
+                      <div className="mt-3 border-t border-border pt-3">
+                        <div className="text-xs text-muted-foreground">{brl(h.nightly)} / noite · {nights} {nights === 1 ? "noite" : "noites"}</div>
+                        <div className="text-2xl font-black">{brl(h.total)}</div>
+                      </div>
+                      <div className="mt-auto space-y-2 pt-3">
+                        <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
+                        <button onClick={() => setChosen(sel ? null : i)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground">{sel ? <><Check className="h-4 w-4" />Hospedagem selecionada</> : <>Selecionar hospedagem <ArrowRight className="h-4 w-4" /></>}</button>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </>
+        )}
+        {tab > 0 && (
+          <div className="mt-10 rounded-3xl bg-card p-10 text-center shadow-md">
+            {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
+            <h2 className="mt-3 text-xl font-bold">{TABS[tab]}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Fale com a gente para incluir {tab === 1 ? "passagens aéreas" : "passeios, transfer e seguro"} na sua viagem.</p>
+            <a href={wa} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Fale conosco</a>
+          </div>
+        )}
+        <p className="mt-10 text-center text-xs text-muted-foreground">Valores sujeitos à disponibilidade no momento da confirmação.</p>
       </div>
 
-      {/* Modal de Galeria / Detalhes do Hotel */}
-      {activeHotel && (
-        <HotelGallery
-          hotel={activeHotel}
-          onClose={() => setActiveHotel(null)}
-        />
+      {pick && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
+            <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Confirmar no WhatsApp</a>
+          </div>
+        </div>
       )}
+
+      {active && <HotelGallery hotel={active} onClose={() => setActive(null)} />}
     </div>
   );
 }
