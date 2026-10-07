@@ -28,6 +28,18 @@ export const hasBreakfast = (meal?: string) => !!meal && /caf[eé]|breakfast|mei
 export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string; transport?: Transport };
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
+
+// Aeroporto mais próximo de destinos comuns (usado para buscar voos sem digitar o código).
+const CITY_IATA: [RegExp, string][] = [
+  [/caldas\s+novas?/i, "CLV"], [/rio\s+de\s+janeiro/i, "GIG"], [/macei/i, "MCZ"], [/s[aã]o\s+paulo/i, "GRU"],
+  [/bras[ií]lia/i, "BSB"], [/salvador/i, "SSA"], [/fortaleza/i, "FOR"], [/recife/i, "REC"], [/natal/i, "NAT"],
+  [/porto\s+seguro/i, "BPS"], [/florian/i, "FLN"], [/curitiba/i, "CWB"], [/belo\s+horizonte/i, "CNF"],
+  [/goi[aâ]nia/i, "GYN"], [/foz\s+do\s+igua/i, "IGU"], [/manaus/i, "MAO"], [/bel[eé]m/i, "BEL"],
+  [/jo[aã]o\s+pessoa/i, "JPA"], [/aracaju/i, "AJU"], [/gramado|canela|porto\s+alegre/i, "POA"],
+  [/balne[aá]rio\s+cambori/i, "NVT"], [/canc[uú]n/i, "CUN"], [/orlando|miami/i, "MCO"], [/buenos\s+aires/i, "EZE"],
+  [/santiago/i, "SCL"], [/lisboa/i, "LIS"], [/paris/i, "CDG"], [/nova\s+york|new\s+york/i, "JFK"],
+];
+export const cityIata = (destination: string) => CITY_IATA.find(([re]) => re.test(destination))?.[1] ?? "";
 export const makeTransport = (mode: TransportMode, destination: string): Transport => {
   const standard = mode === "bus" && isCaldasNovas(destination);
   return { mode, standard,
