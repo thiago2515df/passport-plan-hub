@@ -15,12 +15,15 @@ export type Hotel = {
 export const COMMISSION = 0.0536;
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number };
+export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string };
+
+/** WhatsApp da agência (só dígitos, com DDI 55). Troque pelo número real. */
+export const AGENCY_WHATSAPP = "5561999999999";
 
 export const nightsBetween = (a: string, b: string) =>
   Math.max(1, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
 
-type Proposal = { s: Search; hotels: Omit<Hotel, "x" | "y" | "id" | "hotelId">[] };
+type Proposal = { s: Search; hotels: Omit<Hotel, "x" | "y" | "id">[] };
 export const encodeProposal = (p: Proposal) => btoa(unescape(encodeURIComponent(JSON.stringify(p))));
 export const decodeProposal = (t: string): Proposal | null => {
   try { const p = JSON.parse(decodeURIComponent(escape(atob(t)))); return Array.isArray(p?.hotels) ? p : null; } catch { return null; }
