@@ -103,12 +103,14 @@ function Proposta() {
 
         {tab === 0 && (
           <>
+            {hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport!.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport!} /></div>}
             <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Escolha sua hospedagem</h2>
-            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.</p>
+            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosen === i;
+                const included = [hasTransport ? (p.s.transport!.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã"].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
@@ -124,9 +126,13 @@ function Proposta() {
                       </div>
                       {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
                       {room && <div className="mt-2 text-xs text-muted-foreground">{room}</div>}
+                      <ul className="mt-3 space-y-1 text-sm">
+                        <li className="text-xs font-semibold text-muted-foreground">O que está incluso</li>
+                        {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{x}</li>)}
+                      </ul>
                       <div className="mt-3 border-t border-border pt-3">
-                        <div className="text-xs text-muted-foreground">{brl(h.nightly)} / noite · {nights} {nights === 1 ? "noite" : "noites"}</div>
-                        <div className="text-2xl font-black">{brl(h.total)}</div>
+                        <div className="text-xs text-muted-foreground">{hasTransport ? `Pacote completo · ${p.s.hospedes}` : `${brl(h.nightly)} / noite · ${nights} ${nights === 1 ? "noite" : "noites"}`}</div>
+                        <div className="text-2xl font-black">{brl(packageTotal(h.total, p.s.transport))}</div>
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
