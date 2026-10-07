@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Star, Calendar, Users } from "lucide-react";
 import { brl, decodeProposal, nightsBetween } from "@/lib/hotels";
+import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -28,7 +29,7 @@ function Proposta() {
   return (
     <div className="min-h-screen bg-background px-4 py-10 font-sans">
       <div className="mx-auto max-w-3xl">
-        <div className="text-2xl font-medium">PassHub</div>
+        <img src={logoAsset.url} alt="Excursão Brasília" className="w-32" />
         <h1 className="mt-6 text-3xl font-semibold">Proposta de hospedagem</h1>
         <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
           <span className="flex items-center gap-1"><MapPin className="h-4 w-4" />{p.s.destino}</span>
