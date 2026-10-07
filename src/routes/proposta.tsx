@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { MapPin, Star, Calendar, Users } from "lucide-react";
-import { HOTELS, brl, decodeProposal, nightsBetween } from "@/lib/hotels";
+import { brl, decodeProposal, nightsBetween } from "@/lib/hotels";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -23,7 +23,7 @@ function Proposta() {
   if (!p) return <div className="grid min-h-screen place-items-center font-sans text-muted-foreground">Proposta inválida.</div>;
   const nights = nightsBetween(p.s.checkin, p.s.checkout);
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR");
-  const hotels = p.ids.map(id => HOTELS.find(h => h.id === id)).filter(Boolean) as typeof HOTELS;
+  const hotels = p.hotels;
 
   return (
     <div className="min-h-screen bg-background px-4 py-10 font-sans">
@@ -36,17 +36,18 @@ function Proposta() {
           <span className="flex items-center gap-1"><Users className="h-4 w-4" />{p.s.hospedes}</span>
         </div>
         <div className="mt-8 space-y-4">
-          {hotels.map((h, i) => { const n = h.nightly * (1 + p.s.rav / 100); return (
-            <div key={h.id} className="overflow-hidden rounded-2xl border border-border bg-card md:flex">
-              <img src={h.image} alt={h.name} loading="lazy" width={944} height={704} className="h-48 w-full object-cover md:w-64" />
+          {hotels.map((h, i) => (
+            <div key={i} className="overflow-hidden rounded-2xl border border-border bg-card md:flex">
+              {h.image && <img src={h.image} alt={h.name} loading="lazy" className="h-48 w-full object-cover md:w-64" />}
               <div className="flex-1 p-5">
                 <div className="text-xs font-semibold text-primary">OPÇÃO {i + 1}</div>
                 <div className="mt-1 flex items-center gap-2 text-lg font-semibold">{h.name}<span className="flex">{Array.from({ length: h.stars }).map((_, k) => <Star key={k} className="h-4 w-4 fill-star text-star" />)}</span></div>
                 <div className="mt-1 text-sm text-muted-foreground">{h.address}</div>
-                <div className="mt-4 text-2xl font-bold">{brl(n * nights)}</div>
-                <div className="text-sm text-muted-foreground">{brl(n)} / noite · total {nights} noites</div>
+                {h.room && <div className="mt-1 text-sm text-muted-foreground">{h.room}</div>}
+                <div className="mt-4 text-2xl font-bold">{brl(h.total)}</div>
+                <div className="text-sm text-muted-foreground">{brl(h.nightly)} / noite · total {nights} noites</div>
               </div>
-            </div>); })}
+            </div>))}
         </div>
       </div>
     </div>

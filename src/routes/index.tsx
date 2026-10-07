@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown } from "lucide-react";
-import { HOTELS, COMMISSION, brl, nightsBetween, encodeProposal, type Search } from "@/lib/hotels";
+import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useMemo, useState } from "react";
+import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
+import { COMMISSION, brl, nightsBetween, encodeProposal, type Search, type Hotel } from "@/lib/hotels";
+import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -23,23 +25,50 @@ const nav = [
 ] as const;
 
 function Index() {
-  const [s, setS] = useState<Search>({ destino: "Caldas Novas (e arredores), Brasil", checkin: "2026-10-16", checkout: "2026-10-18", hospedes: "1 quarto · 3 hóspedes", rav: 0 });
+  const findDest = useServerFn(searchDestinations);
+  const findHotels = useServerFn(searchHotels);
+  const [s, setS] = useState<Search>({ destino: "", checkin: "2026-11-16", checkout: "2026-11-18", hospedes: "", rav: 0 });
+  const [destId, setDestId] = useState("");
+  const [sugs, setSugs] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [rooms, setRooms] = useState(1);
+  const [adults, setAdults] = useState(2);
+  const [kids, setKids] = useState<number[]>([]);
+  const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [sel, setSel] = useState<string[]>([]);
   const [link, setLink] = useState("");
   const nights = nightsBetween(s.checkin, s.checkout);
-  const price = (n: number) => n * (1 + s.rav / 100);
+  const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
 
-  const list = useMemo(() => HOTELS.filter(h => h.name.toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => sort === "asc" ? a.nightly - b.nightly : b.nightly - a.nightly), [q, sort]);
+  useEffect(() => {
+    if (destId || s.destino.trim().length < 3) { setSugs([]); return; }
+    const t = setTimeout(() => findDest({ data: { q: s.destino.trim().slice(0, 80) } }).then(r => setSugs(r.items.slice(0, 8))).catch(() => {}), 350);
+    return () => clearTimeout(t);
+  }, [s.destino, destId]);
+
+  const buscar = async () => {
+    if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
+    setErr(""); setLoading(true); setSel([]); setLink("");
+    try {
+      const r = await findHotels({ data: { destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, rav: s.rav } });
+      setHotels(r.hotels); if (r.error) setErr(r.error); else if (!r.hotels.length) setErr("Nenhum hotel encontrado para essa busca.");
+    } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
+  };
+
+  const list = useMemo(() => hotels.filter(h => h.name.toLowerCase().includes(q.toLowerCase()))
+    .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
   const gerar = () => {
-    const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s, ids: sel }))}`;
+    const chosen = sel.map(id => hotels.find(h => h.id === id)!).map(({ id: _i, x: _x, y: _y, ...h }) => h);
+    const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }))}`;
     setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
   };
   const field = "flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm";
+  const num = "w-14 rounded-md border border-border bg-card px-2 py-1";
 
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
@@ -57,30 +86,44 @@ function Index() {
 
       <main className="flex-1 p-6">
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_1.3fr_.6fr_auto] md:items-end">
-          <label className="text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input className="w-full bg-transparent outline-none" value={s.destino} onChange={e => setS({ ...s, destino: e.target.value })} /></div></label>
+          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input placeholder="Cidade, bairro ou hotel" className="w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); setS({ ...s, destino: e.target.value }); }} /></div>
+            {sugs.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+              {sugs.map((d, i) => <button type="button" key={d.id + i} onClick={() => { setDestId(d.id); setS({ ...s, destino: d.name }); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
+            </div>}
+          </label>
           <label className="text-sm">Check-in<div className={field + " mt-2"}><Calendar className="h-4 w-4" /><input type="date" className="w-full bg-transparent outline-none" value={s.checkin} onChange={e => setS({ ...s, checkin: e.target.value })} /></div></label>
           <label className="text-sm">Check-out<div className={field + " mt-2"}><Calendar className="h-4 w-4" /><input type="date" className="w-full bg-transparent outline-none" value={s.checkout} onChange={e => setS({ ...s, checkout: e.target.value })} /></div></label>
-          <label className="text-sm">Quartos e hóspedes<div className={field + " mt-2"}><Users className="h-4 w-4" /><input className="w-full bg-transparent outline-none" value={s.hospedes} onChange={e => setS({ ...s, hospedes: e.target.value })} /></div></label>
+          <details className="relative text-sm"><summary className="list-none">Quartos e hóspedes<div className={field + " mt-2 cursor-pointer"}><Users className="h-4 w-4" />{hosp}</div></summary>
+            <div className="absolute z-20 mt-1 w-64 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lg">
+              <div className="flex justify-between">Quartos<input type="number" min={1} max={9} className={num} value={rooms} onChange={e => setRooms(Math.max(1, Math.min(9, +e.target.value)))} /></div>
+              <div className="flex justify-between">Adultos<input type="number" min={1} max={9} className={num} value={adults} onChange={e => setAdults(Math.max(1, Math.min(9, +e.target.value)))} /></div>
+              <div className="flex justify-between">Crianças<input type="number" min={0} max={4} className={num} value={kids.length} onChange={e => { const n = Math.max(0, Math.min(4, +e.target.value)); setKids(k => Array.from({ length: n }, (_, i) => k[i] ?? 7)); }} /></div>
+              {kids.map((a, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground">Idade criança {i + 1}<input type="number" min={0} max={17} className={num} value={a} onChange={e => setKids(k => k.map((v, j) => j === i ? Math.max(0, Math.min(17, +e.target.value)) : v))} /></div>)}
+            </div>
+          </details>
           <label className="text-sm">RAV<div className={field + " mt-2"}><select className="w-full bg-transparent outline-none" value={s.rav} onChange={e => setS({ ...s, rav: +e.target.value })}>{[0, 5, 10, 15, 20].map(v => <option key={v} value={v}>{v}%</option>)}</select></div></label>
-          <button className="h-11 rounded-xl bg-primary px-10 text-sm font-bold text-primary-foreground hover:opacity-90">BUSCAR</button>
+          <button onClick={buscar} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-10 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading && <Loader2 className="h-4 w-4 animate-spin" />}BUSCAR</button>
         </div>
+        {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_.75fr]">
           <section>
             <div className="mb-4 flex items-center justify-between">
-              <h1 className="text-2xl font-semibold">Hotéis encontrados</h1>
+              <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
               <div className="flex gap-2">
                 <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button>
                 <button onClick={() => setSort(sort === "asc" ? "desc" : "asc")} className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground">{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></button>
               </div>
             </div>
             <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 text-muted-foreground" /><input placeholder="Buscar nos hotéis..." className="w-full bg-transparent text-sm outline-none" value={q} onChange={e => setQ(e.target.value)} /></div>
+            {loading && <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando nas operadoras... pode levar até 1 minuto.</div>}
+            {!loading && !hotels.length && !err && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Escolha o destino, as datas e clique em BUSCAR.</div>}
             <div className="space-y-3">
               {list.map(h => {
-                const on = sel.includes(h.id); const p = price(h.nightly);
+                const on = sel.includes(h.id);
                 return (
                   <div key={h.id} className={`flex overflow-hidden rounded-2xl border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                    <img src={h.image} alt={h.name} loading="lazy" width={944} height={704} className="h-36 w-44 shrink-0 object-cover" />
+                    {h.image ? <img src={h.image} alt={h.name} loading="lazy" className="h-36 w-44 shrink-0 object-cover" /> : <div className="grid h-36 w-44 shrink-0 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>}
                     <div className="flex flex-1 flex-col p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="font-semibold">{h.name}</div>
@@ -90,10 +133,11 @@ function Index() {
                         </div>
                       </div>
                       <div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{h.address}</span></div>
-                      <div className="mt-3 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(p)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
-                      <div className="text-[11px] text-muted-foreground">Total de {brl(p * nights)}</div>
+                      {h.room && <div className="mt-1 truncate text-xs text-muted-foreground">{h.room}</div>}
+                      <div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
+                      <div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div>
                       <div className="mt-auto flex items-end justify-between">
-                        <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(p * COMMISSION)}</span>
+                        <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(h.total * COMMISSION)}</span>
                         <button onClick={() => toggle(h.id)} className="rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-ink-foreground">{on ? "Remover" : "Adicionar"}</button>
                       </div>
                     </div>
@@ -105,24 +149,21 @@ function Index() {
 
           <div className="space-y-4">
             <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
-              <div className="absolute left-[5%] top-[40%] h-[55%] w-[45%] rounded-[45%] bg-success opacity-70" />
-              <div className="absolute right-[2%] top-[55%] h-[30%] w-[25%] rounded-[40%] bg-star opacity-15" />
-              {HOTELS.map(h => (
-                <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(price(h.nightly) * nights)).replace(",00", "")}</button>
+              {list.slice(0, 40).map(h => (
+                <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>
               ))}
-              <span className="absolute bottom-[18%] left-[4%] text-xs text-muted-foreground">Rio Quente</span>
-              <span className="absolute left-[60%] top-[38%] text-sm text-muted-foreground">Caldas Novas</span>
+              {!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-4">
               <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length}/{MAX}</span></div>
               {sel.length === 0 && <p className="text-sm text-muted-foreground">Selecione até {MAX} hotéis para montar a proposta.</p>}
               <div className="space-y-2">
-                {sel.map(id => { const h = HOTELS.find(x => x.id === id)!; return (
+                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; return (
                   <div key={id} className="rounded-xl border border-border p-3">
                     <div className="flex justify-between"><span className="text-sm font-semibold">{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
                     <div className="text-[11px] text-muted-foreground">{h.address}</div>
-                    <div className="mt-1 font-bold">{brl(price(h.nightly))} <span className="text-xs font-normal text-muted-foreground">/ noite</span></div>
+                    <div className="mt-1 font-bold">{brl(h.nightly)} <span className="text-xs font-normal text-muted-foreground">/ noite</span></div>
                   </div>); })}
               </div>
               <button disabled={!sel.length} onClick={gerar} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Link2 className="h-4 w-4" />Gerar link</button>
