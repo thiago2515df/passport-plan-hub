@@ -9,6 +9,7 @@ import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { searchFlights } from "@/lib/flights.functions";
+import { saveProposal } from "@/lib/proposals.functions";
 import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -99,10 +100,16 @@ function Index() {
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
-  const gerar = () => {
+  const saveProp = useServerFn(saveProposal);
+  const [saving, setSaving] = useState(false);
+  const gerar = async () => {
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
-    const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }))}`;
-    setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+    setSaving(true);
+    try {
+      const { code } = await saveProp({ data: { payload: encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }) } });
+      const url = `${window.location.origin}/p/${code}`;
+      setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+    } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
     const next = { ...pickF, [k]: f }; setPickF(next);
@@ -239,7 +246,7 @@ function Index() {
                    </div>))}
                </div>}
                <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-              <Button disabled={!sel.length || uploading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : "Gerar link"}</Button>
+              <Button disabled={!sel.length || uploading || saving} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Gerando…" : "Gerar link"}</Button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
           </div>
