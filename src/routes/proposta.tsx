@@ -32,7 +32,7 @@ function Proposta() {
   if (!p) {
     return (
       <div className="grid min-h-screen place-items-center bg-background text-muted-foreground">
-        <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-lg">
+        <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-md">
           <Building2 className="mx-auto mb-3 h-12 w-12 text-primary/60" />
           <h2 className="text-xl font-semibold text-foreground">Proposta inválida ou expirada</h2>
           <p className="mt-1 text-sm">Verifique o link recebido com o seu agente.</p>
@@ -53,7 +53,7 @@ function Proposta() {
   )}`;
 
   return (
-    <div className="min-h-screen bg-background pb-28 text-foreground">
+    <div className="proposta min-h-screen bg-background pb-28 text-foreground">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <img src={logoAsset.url} alt="Excursão Brasília" className="h-12 w-auto object-contain" />
@@ -63,13 +63,13 @@ function Proposta() {
         </div>
       </header>
 
-      <section className="relative overflow-hidden bg-primary">
+      <section className="relative overflow-hidden bg-navy">
         {hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/95 via-primary/75 to-primary/30" />
-        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-primary-foreground md:pb-24 md:pt-16">
+        <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
+        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
           <div className="text-xs font-semibold tracking-[0.25em] opacity-90">SUA PRÓXIMA VIAGEM</div>
           <h1 className="mt-2 flex flex-wrap items-center gap-x-3 text-4xl font-extrabold tracking-tight md:text-6xl">
-            {p.s.origem && <><span>{p.s.origem}</span><ArrowRight className="h-8 w-8 md:h-12 md:w-12" /></>}
+            {p.s.origem && <><span>{p.s.origem}</span><ArrowRight className="h-8 w-8 text-turquoise md:h-12 md:w-12" strokeWidth={3} /></>}
             <span>{destino}</span>
           </h1>
           <p className="mt-2 text-lg font-medium md:text-xl">Uma viagem especial para você{cliente ? `, ${cliente}` : ""}</p>
@@ -80,47 +80,47 @@ function Proposta() {
               [Users, p.s.hospedes],
             ].map(([I, txt], k) => {
               const Icon = I as typeof Calendar;
-              return <span key={k} className="flex items-center gap-2 rounded-full border border-primary-foreground/40 bg-primary-foreground/10 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
+              return <span key={k} className="flex items-center gap-2 rounded-full border border-card/40 bg-card/15 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
             })}
           </div>
         </div>
       </section>
 
       <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-4">
-        <div className="flex items-center justify-center gap-2 rounded-2xl bg-card px-4 py-4 text-sm font-semibold shadow-lg">
-          <Sparkles className="h-5 w-5 text-chart-4" /> Proposta exclusiva{cliente && <> para <span className="text-primary">{cliente}</span></>}
+        <div className="flex items-center justify-center gap-2 rounded-2xl bg-card px-4 py-4 text-sm font-semibold shadow-md">
+          <Sparkles className="h-5 w-5 text-star" /> <span className="text-navy">Proposta exclusiva</span>{cliente && <> para <span className="text-primary">{cliente}</span></>}
         </div>
 
-        <nav className="mt-4 grid grid-cols-3 border-b border-border">
+        <nav className="mt-4 grid grid-cols-3 rounded-t-2xl border-b border-border bg-card">
           {TABS.map((n, k) => (
             <button key={n} onClick={() => setTab(k)} className={`flex items-center justify-center gap-2 border-b-[3px] py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
-              <span className={`grid h-8 w-8 place-items-center rounded-full ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary"}`}>{k + 1}</span>{n}
+              <span className={`grid h-8 w-8 place-items-center rounded-full ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{k + 1}</span>{n}
             </button>
           ))}
         </nav>
 
         {tab === 0 && (
           <>
-            <h2 className="mt-8 text-2xl font-extrabold md:text-3xl">Escolha sua hospedagem</h2>
+            <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Escolha sua hospedagem</h2>
             <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.</p>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosen === i;
                 return (
-                  <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-md transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
+                  <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
                       <HotelPhoto hotel={h} />
                       {meal && <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-semibold shadow"><Coffee className="h-3.5 w-3.5" />{meal}</span>}
                       {sel && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"><Check className="h-3.5 w-3.5" />Selecionado</span>}
                     </button>
                     <div className="flex flex-1 flex-col px-2 pt-3">
-                      <h3 className="text-lg font-bold leading-tight">{h.name}</h3>
+                      <h3 className="text-lg font-extrabold leading-tight text-navy">{h.name}</h3>
                       <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                         <MapPin className="h-4 w-4 shrink-0 text-primary" /><span className="truncate">{h.address || destino}</span>
                         <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver no mapa</a>
                       </div>
-                      {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-chart-4 text-chart-4" : "text-muted-foreground/40"}`} />)}</div>}
+                      {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
                       {room && <div className="mt-2 text-xs text-muted-foreground">{room}</div>}
                       <div className="mt-3 border-t border-border pt-3">
                         <div className="text-xs text-muted-foreground">{brl(h.nightly)} / noite · {nights} {nights === 1 ? "noite" : "noites"}</div>

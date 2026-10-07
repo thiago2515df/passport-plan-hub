@@ -153,3 +153,25 @@
     color: var(--color-foreground);
   }
 }
+
+/* Paleta da página de proposta (Excursão Brasília) */
+.proposta {
+  --primary: oklch(0.49 0.19 258);          /* #005BCC */
+  --primary-foreground: oklch(1 0 0);
+  --navy: oklch(0.21 0.07 268);             /* #0B173A */
+  --turquoise: oklch(0.73 0.13 215);        /* #08BBDD */
+  --background: oklch(0.982 0.004 255);     /* #F7F9FC */
+  --card: oklch(1 0 0);
+  --foreground: oklch(0.21 0.07 268);
+  --muted-foreground: oklch(0.58 0.03 255); /* #718096 */
+  --border: oklch(0.93 0.012 250);          /* #E3EAF2 */
+  --secondary: oklch(0.96 0.008 250);       /* #EFF3F8 */
+  --rating: oklch(0.56 0.1 185);            /* #008D83 */
+  --star: oklch(0.81 0.16 85);              /* #F5B817 */
+  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+@theme inline {
+  --color-navy: var(--navy);
+  --color-turquoise: var(--turquoise);
+  --color-rating: var(--rating);
+}
