@@ -2,11 +2,13 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
-import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
+import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, iataOf, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
+import { FlightPicker } from "@/components/FlightPicker";
+import { searchFlights } from "@/lib/flights.functions";
 import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -52,6 +54,13 @@ function Index() {
   const [sel, setSel] = useState<string[]>([]);
   const [link, setLink] = useState("");
   const [uploading, setUploading] = useState(false);
+  const findFlights = useServerFn(searchFlights);
+  type Leg = { list: Flight[]; loading: boolean; error?: string | undefined };
+  const empty: Leg = { list: [], loading: false };
+  const [outF, setOutF] = useState<Leg>(empty);
+  const [backF, setBackF] = useState<Leg>(empty);
+  const [destIata, setDestIata] = useState("");
+  const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
   const transport = s.transport ?? makeTransport("none", s.destino);
   const changeDestination = (destination: string) => setS(previous => {
     const current = previous.transport;
@@ -71,6 +80,15 @@ function Index() {
   const buscar = async () => {
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
     setErr(""); setLoading(true); setSel([]); setLink("");
+    if (transport.mode === "air") {
+      const from = iataOf(s.origem), to = iataOf(destIata);
+      setPickF({});
+      if (!from || !to) { setOutF({ list: [], loading: false, error: "Informe o aeroporto de origem como 'Brasília (BSB)' e o código do aeroporto de destino." }); setBackF(empty); }
+      else {
+        const run = (a: string, b: string, date: string, set: (l: Leg) => void) => { set({ list: [], loading: true }); findFlights({ data: { from: a, to: b, date, adults, children: kids.length } }).then(r => set({ list: r.flights, loading: false, error: r.error ?? (r.flights.length ? undefined : "Nenhum voo encontrado.") })).catch(e => set({ list: [], loading: false, error: (e as Error).message })); };
+        run(from, to, s.checkin, setOutF); run(to, from, s.checkout, setBackF);
+      }
+    }
     try {
       const r = await findHotels({ data: { destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, rav: s.rav } });
       setHotels(r.hotels); if (r.error) setErr(r.error); else if (!r.hotels.length) setErr("Nenhum hotel encontrado para essa busca.");
@@ -85,6 +103,17 @@ function Index() {
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }))}`;
     setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+  };
+  const choose = (k: "out" | "back", f: Flight) => {
+    const next = { ...pickF, [k]: f }; setPickF(next);
+    setS(prev => {
+      const t = prev.transport ?? makeTransport("air", prev.destino);
+      const leg = (x: Flight) => ({ company: `${x.airline} · ${x.flightNumber}`, departure: x.departure, arrival: x.arrival, from: x.from, to: x.to, duration: x.duration, stops: x.stops });
+      return { ...prev, transport: { ...t,
+        ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}),
+        ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}),
+        price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: (next.out ?? next.back)!.travelClass, bags: (next.out ?? next.back)!.bags } };
+    });
   };
   const field = "flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm";
   const num = "w-14 rounded-md border border-border bg-card px-2 py-1";
@@ -177,6 +206,11 @@ function Index() {
           </section>
 
           <div className="min-w-0 space-y-4">
+            {transport.mode === "air" && <>
+              <label className="block text-sm">Aeroporto de destino (código)<input aria-label="Aeroporto de destino" placeholder="Ex.: MCZ" maxLength={3} value={destIata} onChange={e => setDestIata(e.target.value.toUpperCase())} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /></label>
+              <FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} />
+              <FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} />
+            </>}
             {transport.mode !== "none" ? <TransportPanel s={s} value={transport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
                 <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>
