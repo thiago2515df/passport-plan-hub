@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Plane, Bus, Shield, Building2, Car, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, LayoutDashboard, Bookmark, Check, ChevronDown } from "lucide-react";
+import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown } from "lucide-react";
 import { HOTELS, COMMISSION, brl, nightsBetween, encodeProposal, type Search } from "@/lib/hotels";
 
 export const Route = createFileRoute("/")({
@@ -19,8 +19,7 @@ export const Route = createFileRoute("/")({
 
 const MAX = 3;
 const nav = [
-  ["COTAÇÕES", [[Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"], [Building2, "Hospedagem"], [Car, "Carros"], [Users, "Cotações em grupo"]]],
-  ["GERAL", [[LayoutDashboard, "Dashboard"], [Bookmark, "Reservas"]]],
+  ["COTAÇÕES", [[Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"], [Building2, "Hospedagem"]]],
 ] as const;
 
 function Index() {
