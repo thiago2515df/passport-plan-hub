@@ -1,5 +1,6 @@
 export type Hotel = {
   id: string; // offerId da PassHub
+  hotelId?: number;
   name: string;
   address: string;
   stars: number;
@@ -19,7 +20,7 @@ export type Search = { destino: string; checkin: string; checkout: string; hospe
 export const nightsBetween = (a: string, b: string) =>
   Math.max(1, Math.round((new Date(b).getTime() - new Date(a).getTime()) / 86400000));
 
-type Proposal = { s: Search; hotels: Omit<Hotel, "x" | "y" | "id">[] };
+type Proposal = { s: Search; hotels: Omit<Hotel, "x" | "y" | "id" | "hotelId">[] };
 export const encodeProposal = (p: Proposal) => btoa(unescape(encodeURIComponent(JSON.stringify(p))));
 export const decodeProposal = (t: string): Proposal | null => {
   try { const p = JSON.parse(decodeURIComponent(escape(atob(t)))); return Array.isArray(p?.hotels) ? p : null; } catch { return null; }

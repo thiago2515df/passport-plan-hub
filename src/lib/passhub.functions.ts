@@ -12,7 +12,14 @@ export const searchDestinations = createServerFn({ method: "GET" })
       const r = await passhub<{ destinations: { destinationId: string; name: string; type: string }[] }>(
         `/hotel/destinations?q=${encodeURIComponent(data.q)}`,
       );
-      return { items: (r.destinations ?? []).map((d) => ({ id: d.destinationId, name: d.name, type: d.type })) };
+      const label: Record<string, string> = { City: "Cidade", "Multi-City (Vicinity)": "Região", Neighborhood: "Bairro", Airport: "Aeroporto" };
+      const seen = new Set<string>();
+      const items = (r.destinations ?? [])
+        .filter((d) => d.type?.toLowerCase() !== "hotel")
+        .filter((d) => (seen.has(d.destinationId + d.name) ? false : (seen.add(d.destinationId + d.name), true)))
+        .sort((a, b) => (a.type === "City" ? -1 : 0) - (b.type === "City" ? -1 : 0))
+        .map((d) => ({ id: d.destinationId, name: d.name, type: label[d.type] ?? d.type }));
+      return { items };
     } catch (e) {
       return { items: [], error: (e as Error).message };
     }
@@ -62,6 +69,7 @@ export const searchHotels = createServerFn({ method: "POST" })
       return {
         hotels: offers.map((o) => ({
           id: o.offerId,
+          hotelId: o.hotel.hotelId,
           name: o.hotel?.hotelName ?? "Hotel",
           address: o.hotel?.hotelAddress ?? "",
           stars: Math.round(o.hotel.starRating ?? 0),
@@ -75,5 +83,21 @@ export const searchHotels = createServerFn({ method: "POST" })
       };
     } catch (e) {
       return { hotels: [], error: (e as Error).message };
+    }
+  });
+
+export const getHotelDetails = createServerFn({ method: "GET" })
+  .inputValidator((d) => z.object({ hotelId: z.number().int().positive() }).parse(d))
+  .handler(async ({ data }) => {
+    const { passhub } = await import("./passhub.server");
+    try {
+      const h = await passhub<{ description?: string; photos?: { url: string }[]; amenities?: { name: string }[] }>(`/hotel/hotels/${data.hotelId}`);
+      return {
+        photos: (h.photos ?? []).map((p) => p.url).filter(Boolean),
+        description: h.description ?? "",
+        amenities: (h.amenities ?? []).map((a) => a.name).filter(Boolean),
+      };
+    } catch (e) {
+      return { photos: [] as string[], description: "", amenities: [] as string[], error: (e as Error).message };
     }
   });

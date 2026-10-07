@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
+import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -34,6 +35,7 @@ function Index() {
   const [adults, setAdults] = useState(2);
   const [kids, setKids] = useState<number[]>([]);
   const [hotels, setHotels] = useState<Hotel[]>([]);
+  const [gallery, setGallery] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
@@ -86,7 +88,7 @@ function Index() {
 
       <main className="flex-1 p-6">
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_1.3fr_.6fr_auto] md:items-end">
-          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input placeholder="Cidade, bairro ou hotel" className="w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); setS({ ...s, destino: e.target.value }); }} /></div>
+          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input placeholder="Cidade ou região" className="w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); setS({ ...s, destino: e.target.value }); }} /></div>
             {sugs.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
               {sugs.map((d, i) => <button type="button" key={d.id + i} onClick={() => { setDestId(d.id); setS({ ...s, destino: d.name }); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
             </div>}
@@ -123,10 +125,10 @@ function Index() {
                 const on = sel.includes(h.id);
                 return (
                   <div key={h.id} className={`flex overflow-hidden rounded-2xl border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                    {h.image ? <img src={h.image} alt={h.name} loading="lazy" onError={e => { e.currentTarget.style.visibility = "hidden"; }} className="h-36 w-44 shrink-0 object-cover" /> : <div className="grid h-36 w-44 shrink-0 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>}
+                    <button type="button" onClick={() => setGallery(h)} className="shrink-0" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button>
                     <div className="flex flex-1 flex-col p-3">
                       <div className="flex items-start justify-between gap-2">
-                        <div className="font-semibold">{h.name}</div>
+                        <button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button>
                         <div className="flex items-center gap-2">
                           <div className="flex">{Array.from({ length: h.stars }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-star text-star" />)}</div>
                           <button aria-label="Selecionar" onClick={() => toggle(h.id)} className={`grid h-6 w-6 place-items-center rounded-full border-2 ${on ? "border-primary" : "border-border"}`}>{on && <span className="h-3 w-3 rounded-full bg-primary" />}</button>
@@ -172,6 +174,7 @@ function Index() {
           </div>
         </div>
       </main>
+      {gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} />}
     </div>
   );
 }
