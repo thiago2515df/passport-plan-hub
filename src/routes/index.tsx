@@ -246,7 +246,7 @@ function Index() {
                    </div>))}
                </div>}
                <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-              <Button disabled={!sel.length || uploading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : "Gerar link"}</Button>
+              <Button disabled={!sel.length || uploading || saving} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Gerando…" : "Gerar link"}</Button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
           </div>
