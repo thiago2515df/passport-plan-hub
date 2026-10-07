@@ -34,6 +34,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
+  const [aiFailed, setAiFailed] = useState(false);
 
   if (!p) {
     return (
