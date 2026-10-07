@@ -66,7 +66,7 @@ function Index() {
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
   const gerar = () => {
-    const chosen = sel.map(id => hotels.find(h => h.id === id)!).map(({ id: _i, x: _x, y: _y, ...h }) => h);
+    const chosen = sel.map(id => hotels.find(h => h.id === id)!).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }))}`;
     setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
   };
@@ -169,6 +169,8 @@ function Index() {
                     <div className="mt-1 font-bold">{brl(h.nightly)} <span className="text-xs font-normal text-muted-foreground">/ noite</span></div>
                   </div>); })}
               </div>
+              <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+              <input placeholder="Cidade de origem (ex.: Brasília)" value={s.origem ?? ""} onChange={e => { setLink(""); setS({ ...s, origem: e.target.value }); }} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
               <button disabled={!sel.length} onClick={gerar} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Link2 className="h-4 w-4" />Gerar link</button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
