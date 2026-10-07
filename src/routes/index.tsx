@@ -58,7 +58,7 @@ function Index() {
     } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
   };
 
-  const list = useMemo(() => hotels.filter(h => h.name.toLowerCase().includes(q.toLowerCase()))
+  const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };

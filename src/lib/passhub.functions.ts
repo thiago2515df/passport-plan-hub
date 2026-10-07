@@ -62,8 +62,8 @@ export const searchHotels = createServerFn({ method: "POST" })
       return {
         hotels: offers.map((o) => ({
           id: o.offerId,
-          name: o.hotel.hotelName,
-          address: o.hotel.hotelAddress ?? "",
+          name: o.hotel?.hotelName ?? "Hotel",
+          address: o.hotel?.hotelAddress ?? "",
           stars: Math.round(o.hotel.starRating ?? 0),
           nightly: o.dailyPrice ?? o.totalPrice / data.nights,
           total: o.totalPrice,
