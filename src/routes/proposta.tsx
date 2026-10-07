@@ -4,6 +4,8 @@ import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, M
 import { AGENCY_WHATSAPP, brl, decodeProposal, nightsBetween, type Hotel } from "@/lib/hotels";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
+import { TransportPanel } from "@/components/TransportPanel";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -20,7 +22,7 @@ export const Route = createFileRoute("/proposta")({
   component: Proposta,
 });
 
-const TABS = ["Hospedagem", "Aéreo", "Adicionais"] as const;
+const TABS = ["Hospedagem", "Transporte", "Adicionais"] as const;
 
 function Proposta() {
   const { t } = Route.useSearch();
@@ -93,9 +95,9 @@ function Proposta() {
 
         <nav className="mt-4 grid grid-cols-3 rounded-t-2xl border-b border-border bg-card">
           {TABS.map((n, k) => (
-            <button key={n} onClick={() => setTab(k)} className={`flex items-center justify-center gap-2 border-b-[3px] py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+            <Button variant="ghost" key={n} onClick={() => setTab(k)} className={`h-auto rounded-none whitespace-normal border-b-[3px] px-1 py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
               <span className={`grid h-8 w-8 place-items-center rounded-full ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{k + 1}</span>{n}
-            </button>
+            </Button>
           ))}
         </nav>
 
@@ -137,11 +139,12 @@ function Proposta() {
             </div>
           </>
         )}
-        {tab > 0 && (
+        {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-8 max-w-3xl"><TransportPanel s={p.s} value={p.s.transport} /></div>}
+        {(tab === 2 || (tab === 1 && (!p.s.transport || p.s.transport.mode === "none"))) && (
           <div className="mt-10 rounded-3xl bg-card p-10 text-center shadow-md">
             {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
             <h2 className="mt-3 text-xl font-bold">{TABS[tab]}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Fale com a gente para incluir {tab === 1 ? "passagens aéreas" : "passeios, transfer e seguro"} na sua viagem.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : "Fale com a gente para incluir passeios, transfer e seguro na sua viagem."}</p>
             <a href={wa} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Fale conosco</a>
           </div>
         )}

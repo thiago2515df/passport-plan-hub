@@ -17,7 +17,7 @@ export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency",
 
 export type TransportMode = "none" | "air" | "bus";
 export type Ticket = { path: string; name: string; type: string };
-export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket };
+export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined };
 export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean };
 export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string; transport?: Transport };
 
