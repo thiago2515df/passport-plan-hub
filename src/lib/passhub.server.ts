@@ -44,7 +44,7 @@ export async function passhub<T>(path: string, init: { method?: string; body?: u
   const res = await fetch(`${BASE}${path}`, {
     method: init.method ?? "GET",
     headers: { "X-Api-Key": key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+    body: init.body === undefined ? null : JSON.stringify(init.body),
   });
   if (res.status === 401 && !retried) {
     const err = await parseError(res);
