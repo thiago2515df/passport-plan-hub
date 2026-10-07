@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
+import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 
 export const Route = createFileRoute("/")({
@@ -75,7 +76,7 @@ function Index() {
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
       <aside className="hidden w-60 shrink-0 border-r border-border bg-card px-5 py-6 lg:block">
-        <div className="mb-8 text-3xl font-medium tracking-tight">PassHub</div>
+        <img src={logoAsset.url} alt="Excursão Brasília" className="mb-8 w-40" />
         {nav.map(([t, items]) => (
           <div key={t} className="mb-6">
             <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{t}</div>
