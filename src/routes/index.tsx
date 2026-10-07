@@ -123,7 +123,7 @@ function Index() {
                 const on = sel.includes(h.id);
                 return (
                   <div key={h.id} className={`flex overflow-hidden rounded-2xl border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                    {h.image ? <img src={h.image} alt={h.name} loading="lazy" className="h-36 w-44 shrink-0 object-cover" /> : <div className="grid h-36 w-44 shrink-0 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>}
+                    {h.image ? <img src={h.image} alt={h.name} loading="lazy" onError={e => { e.currentTarget.style.visibility = "hidden"; }} className="h-36 w-44 shrink-0 object-cover" /> : <div className="grid h-36 w-44 shrink-0 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>}
                     <div className="flex flex-1 flex-col p-3">
                       <div className="flex items-start justify-between gap-2">
                         <div className="font-semibold">{h.name}</div>

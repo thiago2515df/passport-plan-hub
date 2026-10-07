@@ -65,7 +65,7 @@ export const searchHotels = createServerFn({ method: "POST" })
           name: o.hotel?.hotelName ?? "Hotel",
           address: o.hotel?.hotelAddress ?? "",
           stars: Math.round(o.hotel.starRating ?? 0),
-          nightly: o.dailyPrice ?? o.totalPrice / data.nights,
+          nightly: o.totalPrice / data.nights,
           total: o.totalPrice,
           room: [o.roomName, o.mealPlan].filter(Boolean).join(" · "),
           image: o.hotel.thumbUrl ?? "",
