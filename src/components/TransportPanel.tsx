@@ -85,7 +85,7 @@ export function TransportPanel({ s, value, onChange, onBusyChange }: { s: Search
   </section>;
 }
 
-const longDate = (d: string) => d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" }) : "";
+const longDate = (d: string) => d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
 
 /** Cartão do itinerário visto pelo cliente (estilo bilhete). */
 export function TransportItinerary({ s, value }: { s: Search; value: Transport }) {
@@ -93,27 +93,30 @@ export function TransportItinerary({ s, value }: { s: Search; value: Transport }
   const origin = s.origem || "Brasília";
   const Icon = value.mode === "bus" ? Bus : Plane;
   return <section aria-label="Itinerário" className="overflow-hidden rounded-3xl bg-navy text-card shadow-md">
-    <div className="flex items-center gap-2 px-5 pt-4 text-xs font-semibold tracking-[0.2em] opacity-80"><Icon className="h-4 w-4" />{value.mode === "bus" ? "SEU ÔNIBUS" : "SEU VOO"}</div>
+    <div className="flex items-center gap-2 px-4 pt-4 text-xs font-semibold tracking-[0.2em] opacity-80 sm:px-5"><Icon className="h-4 w-4" />{value.mode === "bus" ? "SEU ÔNIBUS" : "SEU VOO"}</div>
     {(["outbound", "inbound"] as const).map((key, i) => {
       const leg = value[key]; const out = key === "outbound";
       const date = longDate(out ? s.checkin : s.checkout);
       const a = out ? origin : destination, b = out ? destination : origin;
-      return <div key={key} className={`px-5 py-5 ${i ? "border-t border-dashed border-card/40" : ""}`}>
-        <div className="grid grid-cols-[auto_1fr] items-center gap-4 md:grid-cols-[110px_1fr]">
-          <div className="text-center">
-            <span className="rounded-md bg-card px-3 py-0.5 text-xs font-black text-navy">{out ? "IDA" : "VOLTA"}</span>
-            <div className="mt-2 max-w-[110px] break-words text-xs font-bold">{leg.company || "—"}</div>
+      return <div key={key} className={`px-4 py-4 sm:px-5 sm:py-5 ${i ? "border-t border-dashed border-card/40" : ""}`}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <span className="rounded-md bg-card px-3 py-0.5 text-xs font-black text-navy">{out ? "IDA" : "VOLTA"}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-bold">{leg.company || "—"}</span>
+          <span className="text-xs opacity-80">{date}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
+          <div className="min-w-0"><div className="text-3xl font-black tabular-nums sm:text-4xl md:text-5xl">{leg.departure || "--:--"}</div><div className="text-xs font-semibold sm:text-sm">{a}{leg.from ? ` (${leg.from})` : ""}</div></div>
+          <div className="text-center text-xs">
+            <div className="whitespace-nowrap font-bold">{leg.duration}</div>
+            <div className="mx-auto my-1 w-12 border-t-2 border-dashed border-card/70 sm:w-24 md:w-32" />
+            <div className="whitespace-nowrap opacity-80">{leg.stops || (value.mode === "air" ? "Direto" : "")}</div>
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
-            <div className="min-w-0"><div className="text-[11px] opacity-80">{date}</div><div className="text-3xl font-black md:text-5xl">{leg.departure || "--:--"}</div><div className="truncate text-xs font-semibold">{a}{leg.from ? ` (${leg.from})` : ""}</div></div>
-            <div className="pb-5 text-center text-xs"><div className="font-bold">{leg.duration}</div><div className="my-1 w-16 border-t-2 border-dashed border-card/70 md:w-32" /><div className="opacity-80">{leg.stops || (value.mode === "air" ? "Direto" : "")}</div></div>
-            <div className="min-w-0 text-right"><div className="text-[11px] opacity-80">{date}</div><div className="text-3xl font-black md:text-5xl">{leg.arrival || "--:--"}</div><div className="truncate text-xs font-semibold">{b}{leg.to ? ` (${leg.to})` : ""}</div></div>
-          </div>
+          <div className="min-w-0 text-right"><div className="text-3xl font-black tabular-nums sm:text-4xl md:text-5xl">{leg.arrival || "--:--"}</div><div className="text-xs font-semibold sm:text-sm">{b}{leg.to ? ` (${leg.to})` : ""}</div></div>
         </div>
         {leg.ticket && <div className="text-foreground [&_button]:bg-card"><TicketView ticket={leg.ticket} /></div>}
       </div>;
     })}
-    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-card/20 px-5 py-3 text-sm">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-card/20 px-4 py-3 text-sm sm:px-5">
       <span className="flex items-center gap-2"><Users className="h-4 w-4" />{s.hospedes}</span>
       {value.bags && <span className="flex items-center gap-2"><Luggage className="h-4 w-4" />{value.bags}</span>}
       {value.travelClass && <span className="rounded-full border border-card px-3 py-1 text-xs font-bold">CLASSE: {value.travelClass.toUpperCase()}</span>}
