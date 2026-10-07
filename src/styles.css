@@ -36,28 +36,28 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 20px;
+  padding: 18px 24px;
   background: var(--branco);
 }
 
 .proposta .logo {
   display: block;
-  width: clamp(140px, 35vw, 220px);
+  width: clamp(140px, 35vw, 260px);
   height: auto;
   object-fit: contain;
 }
 
 /* FOTO DO DESTINO */
 .proposta .hero {
-  padding: 44px 20px 64px;
+  padding: 56px 24px 70px;
   color: var(--branco);
   background-color: #07588D;
   background-image:
     linear-gradient(
       90deg,
-      rgba(11, 23, 58, 0.95) 0%,
-      rgba(11, 23, 58, 0.70) 55%,
-      rgba(11, 23, 58, 0.25) 100%
+      rgba(0, 43, 83, 0.92) 0%,
+      rgba(0, 66, 109, 0.65) 55%,
+      rgba(0, 66, 109, 0.12) 100%
     ),
     var(--foto-destino, none);
   background-position: center;
@@ -67,15 +67,14 @@
 .proposta .hero-sobretitulo {
   color: var(--branco);
   font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.24em;
 }
 
 .proposta .hero-titulo {
-  margin: 10px 0;
+  margin: 12px 0;
   color: var(--branco);
-  font-size: clamp(28px, 6vw, 48px);
+  font-size: clamp(30px, 6vw, 58px);
   font-weight: 800;
   line-height: 1.12;
   letter-spacing: -0.035em;
@@ -87,15 +86,14 @@
 
 .proposta .hero-subtitulo {
   color: var(--branco);
-  font-size: clamp(15px, 2.8vw, 20px);
-  font-weight: 500;
+  font-size: clamp(16px, 3vw, 24px);
 }
 
 .proposta .viagem-infos {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  margin-top: 22px;
+  margin-top: 24px;
 }
 
 .proposta .viagem-chip {
@@ -104,39 +102,25 @@
   justify-content: center;
   gap: 8px;
   padding: 10px 14px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.45);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.14);
   color: var(--branco);
-  font-size: 13px;
   font-weight: 600;
   backdrop-filter: blur(8px);
-}
-
-.proposta .viagem-chip svg {
-  color: var(--branco);
 }
 
 /* FAIXA COM NOME DO CLIENTE */
 .proposta .cliente-faixa {
   position: relative;
-  max-width: 1200px;
-  margin: -28px 16px 0;
-  padding: 18px 24px;
+  margin: -28px 20px 0;
+  padding: 20px;
   border-radius: 20px;
   background: var(--branco);
-  color: var(--marinho);
+  color: #233D60;
   text-align: center;
-  font-size: 16px;
   font-weight: 700;
-  box-shadow: 0 10px 30px rgba(11, 23, 58, 0.08);
-  z-index: 10;
-}
-
-@media (min-width: 768px) {
-  .proposta .cliente-faixa {
-    margin-inline: auto;
-  }
+  box-shadow: 0 8px 28px rgba(15, 45, 80, 0.07);
 }
 
 .proposta .cliente-nome {
@@ -146,13 +130,8 @@
 /* HOSPEDAGEM / AÉREO / ADICIONAIS */
 .proposta .etapas {
   display: flex;
-  max-width: 1200px;
-  margin: 16px auto 0;
   background: var(--branco);
   border-bottom: 1px solid var(--borda);
-  border-radius: 16px 16px 0 0;
-  overflow: hidden;
-  box-shadow: 0 4px 20px rgba(11, 23, 58, 0.04);
 }
 
 .proposta .etapa {
@@ -161,28 +140,24 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 18px 8px;
+  padding: 22px 8px 18px;
   border: 0;
   border-bottom: 4px solid transparent;
   background: transparent;
   color: var(--texto-suave);
   font: inherit;
-  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 150ms;
 }
 
 .proposta .etapa-numero {
   display: inline-grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--inativo);
-  color: var(--marinho);
-  font-size: 13px;
-  font-weight: 700;
+  color: #263D60;
 }
 
 .proposta .etapa[aria-selected="true"] {
@@ -199,194 +174,105 @@
 .proposta .conteudo {
   width: min(100%, 1200px);
   margin-inline: auto;
-  padding: 28px 16px;
+  padding: 28px 20px;
 }
 
 .proposta .secao-titulo {
-  margin: 0 0 4px;
+  margin: 0 0 6px;
   color: var(--marinho);
-  font-size: clamp(22px, 4vw, 32px);
+  font-size: clamp(24px, 4vw, 36px);
   font-weight: 800;
   line-height: 1.2;
   letter-spacing: -0.025em;
 }
 
 .proposta .secao-descricao {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   color: var(--texto-suave);
-  font-size: 14px;
 }
 
 .proposta .hotel-card {
   overflow: hidden;
   padding: 12px;
-  border: 1px solid var(--borda);
+  border: 1px solid #F0F3F7;
   border-radius: 24px;
   background: var(--branco);
-  box-shadow: 0 8px 30px rgba(11, 23, 58, 0.06);
-  transition: box-shadow 160ms, border-color 160ms;
-}
-
-.proposta .hotel-card:hover {
-  box-shadow: 0 12px 38px rgba(11, 23, 58, 0.1);
+  box-shadow: 0 8px 32px rgba(15, 45, 80, 0.06);
 }
 
 .proposta .hotel-foto-container {
   position: relative;
-  display: block;
-  width: 100%;
-  text-align: left;
-  border: 0;
-  background: transparent;
-  padding: 0;
-  cursor: pointer;
 }
 
-.proposta .hotel-foto-container img {
+.proposta .hotel-foto {
+  display: block;
   width: 100%;
   aspect-ratio: 1.65;
   object-fit: cover;
   border-radius: 18px;
-  display: block;
 }
 
 .proposta .hotel-alimentacao {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
+  top: 14px;
+  left: 14px;
+  padding: 9px 14px;
   border-radius: 999px;
   background: var(--branco);
   color: var(--texto);
-  font-size: 12px;
   font-weight: 700;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-}
-
-.proposta .hotel-alimentacao svg {
-  color: var(--azul);
 }
 
 .proposta .hotel-corpo {
-  padding: 14px 6px 6px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
+  padding: 16px 4px 4px;
 }
 
 .proposta .hotel-nome {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   color: var(--marinho);
-  font-size: clamp(18px, 3vw, 22px);
+  font-size: clamp(22px, 3.4vw, 30px);
   font-weight: 800;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
-.proposta .hotel-localizacao {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--texto-suave);
-  font-size: 13px;
-}
-
-.proposta .hotel-localizacao svg {
-  color: var(--azul);
+.proposta .hotel-localizacao,
+.proposta .hotel-avaliacao-texto,
+.proposta .hotel-comodidades {
+  color: #617184;
 }
 
 .proposta .hotel-link {
   color: var(--azul);
   text-decoration: none;
   font-weight: 700;
-  font-size: 13px;
-  margin-left: auto;
 }
 
-.proposta .hotel-link:hover {
-  text-decoration: underline;
-}
-
-.proposta .hotel-meta-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 10px;
-  flex-wrap: wrap;
-}
-
-.proposta .hotel-nota-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
+.proposta .hotel-nota {
+  display: inline-block;
+  padding: 5px 10px;
   border-radius: 8px;
   background: var(--avaliacao);
   color: var(--branco);
-  font-size: 13px;
   font-weight: 800;
 }
 
-.proposta .hotel-avaliacao-texto {
-  color: var(--texto-suave);
-  font-size: 13px;
-  font-weight: 500;
-}
-
 .proposta .hotel-estrelas {
-  display: flex;
-  gap: 2px;
   color: var(--estrela);
-  margin-left: auto;
 }
 
 .proposta .hotel-comodidades {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
-  margin-top: 14px;
-  padding-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 18px;
+  padding-block: 18px;
   border-top: 1px solid var(--borda);
 }
 
-.proposta .comodidade-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--texto-suave);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.proposta .comodidade-item svg {
+.proposta .hotel-comodidades svg,
+.proposta .hotel-localizacao svg,
+.proposta .hotel-alimentacao svg {
   color: var(--azul);
-  flex-shrink: 0;
-  width: 14px;
-  height: 14px;
-}
-
-.proposta .hotel-preco-bloco {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid var(--borda);
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.proposta .hotel-preco-noite {
-  font-size: 12px;
-  color: var(--texto-suave);
-}
-
-.proposta .hotel-preco-total {
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--marinho);
 }
 
 /* BOTÕES */
@@ -394,23 +280,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 46px;
-  padding: 10px 16px;
-  border-radius: 14px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 2px solid var(--azul);
+  border-radius: 15px;
   font: inherit;
-  font-size: 14px;
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: all 160ms;
-  width: 100%;
+  transition: background-color 160ms, border-color 160ms;
 }
 
 .proposta .botao-primario {
   background: var(--azul);
-  border: 2px solid var(--azul);
   color: var(--branco);
+}
+
+.proposta .botao-secundario {
+  background: var(--branco);
+  color: var(--azul);
+}
+
+.proposta .hotel-card .botao {
+  width: 100%;
+  margin-top: 10px;
 }
 
 .proposta .botao-primario:hover {
@@ -418,39 +312,51 @@
   border-color: var(--azul-hover);
 }
 
-.proposta .botao-secundario {
-  background: var(--branco);
-  border: 2px solid var(--azul);
-  color: var(--azul);
-}
-
 .proposta .botao-secundario:hover {
   background: #EDF5FF;
 }
 
-.proposta .hotel-botoes {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
+.proposta .botao:focus-visible,
+.proposta .etapa:focus-visible {
+  outline: 3px solid var(--turquesa);
+  outline-offset: 3px;
 }
 
 .proposta .hotel-card.is-selected {
   border-color: var(--azul);
-  box-shadow: 0 0 0 2px var(--azul), 0 10px 30px rgba(0, 91, 204, 0.1);
+  box-shadow: 0 0 0 2px var(--azul);
 }
 
 @media (max-width: 480px) {
   .proposta .cabecalho {
     padding: 14px 16px;
+    gap: 10px;
+  }
+  .proposta .cabecalho .botao {
+    padding: 8px 12px;
+    font-size: 12px;
+    border-radius: 12px;
   }
   .proposta .hero {
-    padding: 36px 16px 54px;
+    padding: 38px 20px 58px;
+  }
+  .proposta .viagem-infos {
+    gap: 6px;
+  }
+  .proposta .viagem-chip {
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .proposta .etapa {
+    gap: 5px;
+    padding-inline: 4px;
+    font-size: 12px;
+  }
+  .proposta .etapa-numero {
+    width: 26px;
+    height: 26px;
   }
   .proposta .conteudo {
-    padding: 20px 14px;
-  }
-  .proposta .hotel-comodidades {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 24px 16px;
   }
 }
