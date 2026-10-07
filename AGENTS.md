@@ -8,3 +8,7 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Transport data travels with the existing encoded proposal so old hotel-only links remain compatible.
+- Ticket attachments use a private Cloud bucket, insert-only uploads and two-random-UUID bearer capabilities; server-generated short-lived URLs disclose one file only, never list files.
+- Keep transport editing and customer viewing in TransportPanel to share itinerary rendering and validation.

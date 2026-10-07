@@ -2,10 +2,12 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
-import { COMMISSION, brl, nightsBetween, encodeProposal, type Search, type Hotel } from "@/lib/hotels";
+import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
+import { TransportPanel } from "@/components/TransportPanel";
+import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -43,6 +45,14 @@ function Index() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [sel, setSel] = useState<string[]>([]);
   const [link, setLink] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const transport = s.transport ?? makeTransport("none", s.destino);
+  const changeDestination = (destination: string) => setS(previous => {
+    const current = previous.transport;
+    const changedCity = previous.destino.split(",")[0] !== destination.split(",")[0];
+    return { ...previous, destino: destination, transport: current && changedCity && (isCaldasNovas(destination) !== isCaldasNovas(previous.destino) || current.standard) ? makeTransport(current.mode, destination) : current ?? makeTransport("none", destination) };
+  });
+  useEffect(() => { setLink(""); }, [s, rooms, adults, kids]);
   const nights = nightsBetween(s.checkin, s.checkout);
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
 
@@ -66,7 +76,7 @@ function Index() {
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
   const gerar = () => {
-    const chosen = sel.map(id => hotels.find(h => h.id === id)!).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
+    const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     const url = `${window.location.origin}/proposta?t=${encodeURIComponent(encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }))}`;
     setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
   };
@@ -87,11 +97,11 @@ function Index() {
         ))}
       </aside>
 
-      <main className="flex-1 p-6">
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-[2fr_1fr_1fr_1.3fr_.6fr_auto] md:items-end">
-          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input placeholder="Cidade ou região" className="w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); setS({ ...s, destino: e.target.value }); }} /></div>
+      <main className="min-w-0 flex-1 p-4 md:p-6">
+        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[2fr_1fr_1fr_1.3fr_1.1fr_auto] md:items-end">
+          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>
             {sugs.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-              {sugs.map((d, i) => <button type="button" key={d.id + i} onClick={() => { setDestId(d.id); setS({ ...s, destino: d.name }); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
+              {sugs.map((d, i) => <button type="button" key={d.id + i} disabled={uploading} onClick={() => { setDestId(d.id); changeDestination(d.name); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
             </div>}
           </label>
           <label className="text-sm">Check-in<div className={field + " mt-2"}><Calendar className="h-4 w-4" /><input type="date" className="w-full bg-transparent outline-none" value={s.checkin} onChange={e => setS({ ...s, checkin: e.target.value })} /></div></label>
@@ -104,7 +114,7 @@ function Index() {
               {kids.map((a, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground">Idade criança {i + 1}<input type="number" min={0} max={17} className={num} value={a} onChange={e => setKids(k => k.map((v, j) => j === i ? Math.max(0, Math.min(17, +e.target.value)) : v))} /></div>)}
             </div>
           </details>
-          <label className="text-sm">RAV<div className={field + " mt-2"}><select className="w-full bg-transparent outline-none" value={s.rav} onChange={e => setS({ ...s, rav: +e.target.value })}>{[0, 5, 10, 15, 20].map(v => <option key={v} value={v}>{v}%</option>)}</select></div></label>
+          <label className="text-sm">Transporte<div className={field + " mt-2"}><select aria-label="Transporte" disabled={uploading} className="min-w-0 w-full bg-transparent outline-none" value={transport.mode} onChange={e => setS(previous => ({ ...previous, transport: makeTransport(e.target.value as TransportMode, previous.destino) }))}><option value="none">Sem transporte</option><option value="air">Aéreo</option><option value="bus">Ônibus</option></select></div></label>
           <button onClick={buscar} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-10 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading && <Loader2 className="h-4 w-4 animate-spin" />}BUSCAR</button>
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
@@ -150,13 +160,13 @@ function Index() {
             </div>
           </section>
 
-          <div className="space-y-4">
-            <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
+          <div className="min-w-0 space-y-4">
+            {transport.mode !== "none" ? <TransportPanel s={s} value={transport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
                 <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>
               ))}
               {!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}
-            </div>
+            </div>}
 
             <div className="rounded-2xl border border-border bg-card p-4">
               <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length}/{MAX}</span></div>
@@ -171,7 +181,7 @@ function Index() {
               </div>
               <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
               <input placeholder="Cidade de origem (ex.: Brasília)" value={s.origem ?? ""} onChange={e => { setLink(""); setS({ ...s, origem: e.target.value }); }} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-              <button disabled={!sel.length} onClick={gerar} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-primary-foreground disabled:opacity-40"><Link2 className="h-4 w-4" />Gerar link</button>
+              <Button disabled={!sel.length || uploading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : "Gerar link"}</Button>
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
           </div>
