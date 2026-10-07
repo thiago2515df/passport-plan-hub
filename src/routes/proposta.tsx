@@ -27,6 +27,10 @@ const TABS = ["Hospedagem", "Transporte", "Adicionais"] as const;
 function Proposta() {
   const { t } = Route.useSearch();
   const p = decodeProposal(t);
+  return <ProposalView p={p} />;
+}
+
+export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
