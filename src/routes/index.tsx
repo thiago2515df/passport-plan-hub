@@ -12,6 +12,7 @@ import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal } from "@/lib/proposals.functions";
 import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
+import { ptBR } from "react-day-picker/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
@@ -61,6 +62,8 @@ function Index() {
   const [outF, setOutF] = useState<Leg>(empty);
   const [backF, setBackF] = useState<Leg>(empty);
   const [destIata, setDestIata] = useState("");
+  const [picking, setPicking] = useState(false);
+  const [calMonth, setCalMonth] = useState<Date>(() => toD("2026-11-16"));
   const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
   const transport = s.transport ?? makeTransport("none", s.destino);
   const changeDestination = (destination: string) => setS(previous => {
@@ -151,10 +154,14 @@ function Index() {
             <Popover>
               <PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
-                <DayPicker mode="range" numberOfMonths={2} defaultMonth={toD(s.checkin)} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: toD(s.checkout) }}
-                  onSelect={(r) => { if (!r?.from) return; const from = isoD(r.from); const to = r.to && r.to > r.from ? isoD(r.to) : isoD(new Date(r.from.getTime() + 86400000)); setS({ ...s, checkin: from, checkout: to }); }}
+                <DayPicker mode="range" locale={ptBR} numberOfMonths={2} month={calMonth} onMonthChange={setCalMonth} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: picking ? undefined : toD(s.checkout) }}
+                  onSelect={(_r, day) => {
+                    if (!day) return;
+                    if (!picking || day <= toD(s.checkin)) { setS(prev => ({ ...prev, checkin: isoD(day), checkout: isoD(new Date(day.getTime() + 86400000)) })); setPicking(true); return; }
+                    setS(prev => ({ ...prev, checkout: isoD(day) })); setPicking(false);
+                  }}
                   className="pointer-events-auto p-3" />
-                <p className="px-3 pb-3 text-xs text-muted-foreground">Clique na ida e depois na volta. {nights} {nights === 1 ? "noite" : "noites"}.</p>
+                <p className="px-3 pb-3 text-xs text-muted-foreground">{picking ? "Agora clique no dia da volta." : "Clique na ida e depois na volta."} {nights} {nights === 1 ? "noite" : "noites"}.</p>
               </PopoverContent>
             </Popover>
           </div>
