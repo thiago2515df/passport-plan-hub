@@ -54,7 +54,6 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const cliente = p.s.cliente?.trim();
   const destino = p.s.destino.split(",")[0];
   const hero = hotels.find((h) => h.image)?.image;
-  const [aiFailed, setAiFailed] = useState(false);
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
