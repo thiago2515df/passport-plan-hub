@@ -15,7 +15,20 @@ export type Hotel = {
 export const COMMISSION = 0.0536;
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string };
+export type TransportMode = "none" | "air" | "bus";
+export type Ticket = { path: string; name: string; type: string };
+export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket };
+export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean };
+export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; origem?: string; transport?: Transport };
+
+export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
+export const makeTransport = (mode: TransportMode, destination: string): Transport => {
+  const standard = mode === "bus" && isCaldasNovas(destination);
+  return { mode, standard,
+    outbound: { company: standard ? "Viação Águas do Cerrado (ilustrativa)" : "", departure: standard ? "05:00" : "", arrival: standard ? "12:00" : "" },
+    inbound: { company: standard ? "Viação Águas do Cerrado (ilustrativa)" : "", departure: standard ? "12:00" : "", arrival: standard ? "20:00" : "" },
+  };
+};
 
 /** WhatsApp da agência (só dígitos, com DDI 55). Troque pelo número real. */
 export const AGENCY_WHATSAPP = "5561999999999";
