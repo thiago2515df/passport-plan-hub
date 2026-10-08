@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { ptBR } from "react-day-picker/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -39,11 +40,13 @@ const nav = [
 ] as const;
 
 function Index() {
-  const findDest = useServerFn(searchDestinations);
   const findHotels = useServerFn(searchHotels);
   const [s, setS] = useState<Search>({ destino: "", checkin: "2026-11-16", checkout: "2026-11-18", hospedes: "", rav: 0 });
   const [destId, setDestId] = useState("");
-  const [sugs, setSugs] = useState<{ id: string; name: string; type: string }[]>([]);
+  const [cityFocus, setCityFocus] = useState<"origin" | "destination" | null>(null);
+  const [chosenOrigin, setChosenOrigin] = useState("");
+  const originCities = useCitySuggestions(cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
+  const destinationCities = useCitySuggestions(cityFocus === "destination" && !destId ? s.destino : "");
   const [rooms, setRooms] = useState(1);
   const [adults, setAdults] = useState(2);
   const [kids, setKids] = useState<number[]>([]);
@@ -74,12 +77,6 @@ function Index() {
   useEffect(() => { setLink(""); }, [s, rooms, adults, kids]);
   const nights = nightsBetween(s.checkin, s.checkout);
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
-
-  useEffect(() => {
-    if (destId || s.destino.trim().length < 3) { setSugs([]); return; }
-    const t = setTimeout(() => findDest({ data: { q: s.destino.trim().slice(0, 80) } }).then(r => setSugs(r.items.slice(0, 8))).catch(() => {}), 350);
-    return () => clearTimeout(t);
-  }, [s.destino, destId]);
 
   const buscar = async () => {
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
@@ -144,12 +141,20 @@ function Index() {
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
-          <label className="text-sm">Origem<div className={field + " mt-2"}><Plane className="h-4 w-4" /><input placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onChange={e => setS({ ...s, origem: e.target.value })} /></div></label>
-          <label className="relative text-sm">Destino<div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>
-            {sugs.length > 0 && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-              {sugs.map((d, i) => <button type="button" key={d.id + i} disabled={uploading} onClick={() => { setDestId(d.id); changeDestination(d.name); setSugs([]); }} className="block w-full px-4 py-2 text-left text-sm hover:bg-secondary"><span className="mr-2 text-[10px] font-semibold text-muted-foreground">{d.type}</span>{d.name}</button>)}
+          <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
+            {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+              {originCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}
+              {originCities.error && <p className="px-4 py-2 text-destructive">{originCities.error}</p>}
+              {originCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} onMouseDown={e => e.preventDefault()} onClick={() => { setChosenOrigin(d.name); setS(prev => ({ ...prev, origem: d.name })); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}
             </div>}
-          </label>
+          </div>
+          <div className="relative text-sm"><label htmlFor="destination-city">Destino</label><div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input id="destination-city" autoComplete="off" disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onFocus={() => setCityFocus("destination")} onBlur={() => setCityFocus(null)} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>
+            {cityFocus === "destination" && (destinationCities.loading || destinationCities.error || destinationCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
+              {destinationCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}
+              {destinationCities.error && <p className="px-4 py-2 text-destructive">{destinationCities.error}</p>}
+              {destinationCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} disabled={uploading} onMouseDown={e => e.preventDefault()} onClick={() => { setDestId(d.id); changeDestination(d.name); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}
+            </div>}
+          </div>
           <div className="text-sm">Ida e volta
             <Popover>
               <PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger>
