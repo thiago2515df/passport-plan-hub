@@ -5,3 +5,5 @@
 - [ ] Bus search via API (same flow)
 - [x] WhatsApp real 5561992267062
 - [x] Links curtos /p/<code> (tabela proposals)
+- [ ] Settings page and seller workspace with secure profiles, permissions and proposal ownership.
+- [ ] Activate first administrator account (requires identifying the owner's account).
