@@ -22,6 +22,6 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
       <Button title="Minha página" variant={current === "seller" ? "secondary" : "ghost"} className={item} asChild><Link to="/vendedor" search={{ q: "" }}><UserRound /><span>Minha página</span></Link></Button>
       {access.admin && <Button title="Configurações" variant={current === "settings" ? "secondary" : "ghost"} className={item} asChild><Link to="/configuracoes"><Settings /><span>Configurações</span></Link></Button>}
     </nav>
-    <div className="mt-auto overflow-hidden border-t border-border pt-4"><SignOutButton /></div>
+    <div className={`mt-auto overflow-hidden border-t border-border pt-4 ${collapsed ? "[&_span]:hidden" : ""}`}><SignOutButton compact /></div>
   </aside>;
 }

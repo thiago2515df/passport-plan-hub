@@ -8,18 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import logo from "@/assets/excursao-brasilia.png.asset.json";
 
-export function SignOutButton() {
+export function SignOutButton({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  return <Button variant="ghost" disabled={busy} onClick={async () => {
+  return <Button variant="ghost" title="Sair" aria-label="Sair" className={compact ? "w-full justify-start px-2 [&_span]:hidden lg:[&_span]:inline" : undefined} disabled={busy} onClick={async () => {
     setBusy(true);
     await queryClient.cancelQueries();
     queryClient.clear();
     const { error } = await supabase.auth.signOut();
     if (!error) await navigate({ to: "/auth", replace: true });
     setBusy(false);
-  }}><LogOut className="h-4 w-4" />Sair</Button>;
+  }}><LogOut className="h-4 w-4" /><span>Sair</span></Button>;
 }
 
 export function AuthScreen() {
