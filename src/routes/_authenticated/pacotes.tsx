@@ -24,7 +24,7 @@ const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStar
 const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
 export const Route = createFileRoute("/_authenticated/pacotes")({
-  validateSearch: (search: Record<string, unknown>): { code?: string; mode?: "air" | "bus" } => ({ ...(typeof search.code === "string" && /^[a-z0-9]{6,12}$/.test(search.code) ? { code: search.code } : {}), ...(search.mode === "air" || search.mode === "bus" ? { mode: search.mode } : {}) }),
+  validateSearch: (search: Record<string, unknown>): { code?: string; mode?: "air" | "bus" } => ({ ...(typeof search['code'] === "string" && /^[a-z0-9]{6,12}$/.test(search['code']) ? { code: search['code'] } : {}), ...(search['mode'] === "air" || search['mode'] === "bus" ? { mode: search['mode'] } : {}) }),
   head: () => ({
     meta: [
       { title: "Pacotes — Excursão Brasília" },

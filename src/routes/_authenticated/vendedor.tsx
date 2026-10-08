@@ -14,7 +14,7 @@ import { FileText, Send, CheckCircle2, Clock, Plus, ExternalLink, Pencil, Phone,
 
 const boardOptions = (id: string) => queryOptions({ queryKey: ["proposal-board", id], queryFn: () => listMyProposals(), refetchInterval: 30000 });
 export const Route = createFileRoute("/_authenticated/vendedor")({
-  validateSearch: (search: Record<string, unknown>) => ({ q: typeof search.q === "string" ? search.q : "" }),
+  validateSearch: (search: Record<string, unknown>) => ({ q: typeof search['q'] === "string" ? search['q'] : "" }),
   loader: async ({ context }) => { await context.queryClient.ensureQueryData(boardOptions(context.user.id)); },
   errorComponent: ({ error }) => <BoardError message={error.message} />,
   notFoundComponent: () => <BoardError message="Página não encontrada." />,
