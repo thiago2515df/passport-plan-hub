@@ -89,18 +89,27 @@ export type Database = {
           created_at: string
           owner_id: string | null
           payload: string
+          sent_at: string | null
+          status: string
+          updated_at: string
         }
         Insert: {
           code: string
           created_at?: string
           owner_id?: string | null
           payload: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Update: {
           code?: string
           created_at?: string
           owner_id?: string | null
           payload?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
         }
         Relationships: [
           {
