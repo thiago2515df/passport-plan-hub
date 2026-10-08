@@ -97,9 +97,14 @@ export const saveSettings = createServerFn({ method: "POST" }).middleware([requi
   });
 
 export const listMyProposals = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
-  const { data: profile } = await context.supabase.from("profiles").select("active").eq("id", context.userId).maybeSingle();
-  if (!profile?.active) throw new Error("Acesso suspenso.");
-  const { data, error } = await context.supabase.from("proposals").select("code,payload,created_at").eq("owner_id", context.userId).order("created_at", { ascending: false }).limit(200);
+  const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+  const { data: seller } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "seller" });
+  if (!admin && !seller) throw new Error("Acesso suspenso ou não autorizado.");
+  let query = context.supabase.from("proposals").select("code,payload,created_at,owner_id,status,sent_at,updated_at").order("created_at", { ascending: false });
+  if (!admin) query = query.eq("owner_id", context.userId);
+  const { data, error } = await query;
   if (error) throw new Error("Não foi possível carregar suas propostas.");
-  return data ?? [];
+  const { data: people, error: peopleError } = await context.supabase.from("profiles").select("id,name,email");
+  if (peopleError) throw new Error("Não foi possível carregar a equipe.");
+  return (data ?? []).map(row => ({ ...row, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" }));
 });
