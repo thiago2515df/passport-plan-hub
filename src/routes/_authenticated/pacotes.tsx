@@ -16,12 +16,13 @@ import { ptBR } from "react-day-picker/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 import { useAccess } from "@/components/AccessProvider";
+import { SignOutButton } from "@/components/AuthScreen";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/pacotes")({
   head: () => ({
     meta: [
       { title: "Pacotes — Excursão Brasília" },
@@ -143,12 +144,13 @@ function Index() {
         ))}
         <div className="space-y-1 border-t border-border pt-4">
           <Button variant="ghost" className="w-full justify-start" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button>
-          <Button variant="ghost" className="w-full justify-start" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>
+          {access.admin && <Button variant="ghost" className="w-full justify-start" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>}
+          <SignOutButton />
         </div>
       </aside>
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
-        <div className="mb-4 flex justify-end gap-2 lg:hidden"><Button variant="outline" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button><Button variant="outline" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button></div>
+        <div className="mb-4 flex justify-end gap-2 lg:hidden"><Button variant="outline" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button>{access.admin && <Button variant="outline" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>}<SignOutButton /></div>
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
           <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
             {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
