@@ -12,7 +12,9 @@ describe("standard proposal message", () => {
     expect(message).toContain("👥 3 pessoas");
   });
   it("supports old guest labels and month/year boundaries", () => {
-    const message = proposalShareMessage({ ...search, adults: undefined, checkin: "2026-12-30", checkout: "2027-01-02" }, "abcdef");
+    const { adults, ...legacySearch } = search;
+    expect(adults).toBe(2);
+    const message = proposalShareMessage({ ...legacySearch, checkin: "2026-12-30", checkout: "2027-01-02" }, "abcdef");
     expect(message).toContain("30 Dezembro 2026 a 2 Janeiro 2027");
     expect(message).toContain("👥 2 pessoas");
   });
