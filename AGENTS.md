@@ -21,3 +21,4 @@
 - Persist Kanban status and timestamps on proposals; only explicit sending confirmation marks awaiting, with three grouped columns and server-authorized owner/admin updates.
 - Hydrate proposal editing through authenticated exact-code reads and update the same code without replacing ownership; preserve guest counts and destination IDs in the encoded search metadata.
 - Generate proposal-sharing text through one browser-safe formatter for clipboard and WhatsApp so both actions always use identical personalized content.
+- Share versioned public proposal-preview artwork and absolute social-image metadata across short and legacy proposal routes so crawlers see the same branded preview without authentication.
