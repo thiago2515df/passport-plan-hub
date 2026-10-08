@@ -20,3 +20,4 @@
 - Use one shared ManagementNav sidebar on all workspace screens, preserving icon navigation when collapsed.
 - Persist Kanban status and timestamps on proposals; only explicit sending confirmation marks awaiting, with three grouped columns and server-authorized owner/admin updates.
 - Hydrate proposal editing through authenticated exact-code reads and update the same code without replacing ownership; preserve guest counts and destination IDs in the encoded search metadata.
+- Generate proposal-sharing text through one browser-safe formatter for clipboard and WhatsApp so both actions always use identical personalized content.

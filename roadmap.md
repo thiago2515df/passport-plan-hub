@@ -1,4 +1,5 @@
 # Transport proposal
+- [x] Use identical personalized standard message for copying and WhatsApp in the proposal sending dialog; verify both actions.
 - [x] Show destination-only customer title and personalized exclusive-proposal highlight when a client name exists.
 - [x] Preserve a shared lateral menu across workspace pages.
 - [x] Add three-column proposal Kanban, team/owner visibility, confirmed sending and approval/cancellation.
