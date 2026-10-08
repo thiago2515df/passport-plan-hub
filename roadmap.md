@@ -1,4 +1,5 @@
 # Transport proposal
+- [x] Show destination-only customer title and personalized exclusive-proposal highlight when a client name exists.
 - [x] Preserve a shared lateral menu across workspace pages.
 - [x] Add three-column proposal Kanban, team/owner visibility, confirmed sending and approval/cancellation.
 - [x] Add secure proposal editing and client details; verify authenticated administrator creation, owner assignment, confirmed sending, editing and approval.

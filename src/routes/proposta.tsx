@@ -57,8 +57,8 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
   const shortCity = (name: string) => (name.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)\s*/gi, "").trim();
-  const origem = shortCity(p.s.origem ?? "");
   const destino = shortCity(p.s.destino ?? "");
+   const cliente = p.s.cliente?.trim();
   const hero = hotels.find((h) => h.image)?.image;
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
@@ -87,8 +87,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
         <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
-          <h1 className="mt-2 flex flex-wrap items-center gap-x-3 text-4xl font-extrabold tracking-tight md:text-6xl">
-            {origem && <><span>{origem}</span><ArrowRight className="h-8 w-8 text-turquoise md:h-12 md:w-12" strokeWidth={3} /></>}
+          <h1 className="mt-2 text-4xl font-extrabold break-words md:text-6xl">
             <span>{destino}</span>
           </h1>
           <div className="mt-5 flex flex-wrap gap-2">
@@ -101,6 +100,14 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
               return <span key={k} className="flex items-center gap-2 rounded-full border border-card/40 bg-card/15 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
             })}
           </div>
+           {cliente && (
+             <div className="mt-6 flex max-w-full items-start gap-3 border-l-2 border-turquoise pl-4">
+               <Sparkles className="mt-1 h-5 w-5 shrink-0 text-turquoise" aria-hidden="true" />
+               <p className="min-w-0 text-base leading-relaxed md:text-lg">
+                 Proposta exclusiva para <span className="font-bold break-words">{cliente}</span>
+               </p>
+             </div>
+           )}
         </div>
       </section>
 
