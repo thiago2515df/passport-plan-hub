@@ -1,0 +1,3 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { AuthScreen } from "@/components/AuthScreen";
+export const Route = createFileRoute("/")({ head: () => ({ meta: [{ title: "Acesso da equipe — Excursão Brasília" }, { name: "description", content: "Entre para montar pacotes e gerenciar propostas da Excursão Brasília." }, { property: "og:title", content: "Acesso da equipe — Excursão Brasília" }, { property: "og:description", content: "Sistema de propostas de viagens da Excursão Brasília." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, nofollow" }] }), component: AuthScreen });

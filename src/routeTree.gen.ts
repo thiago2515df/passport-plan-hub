@@ -9,21 +9,23 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PropostaRouteImport } from './routes/proposta'
-import { Route as VendedorRouteImport } from './routes/vendedor'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedPacotesRouteImport } from './routes/_authenticated/pacotes'
+import { Route as AuthenticatedVendedorRouteImport } from './routes/_authenticated/vendedor'
 import { Route as PCodeRouteImport } from './routes/p/$code'
 import { Route as ApiPublicDestinationImageSlugRouteImport } from './routes/api/public/destination-image/$slug'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PropostaRoute = PropostaRouteImport.update({
@@ -31,10 +33,26 @@ const PropostaRoute = PropostaRouteImport.update({
   path: '/proposta',
   getParentRoute: () => rootRouteImport,
 } as any)
-const VendedorRoute = VendedorRouteImport.update({
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPacotesRoute = AuthenticatedPacotesRouteImport.update({
+  id: '/pacotes',
+  path: '/pacotes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVendedorRoute = AuthenticatedVendedorRouteImport.update({
   id: '/vendedor',
   path: '/vendedor',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const PCodeRoute = PCodeRouteImport.update({
   id: '/p/$code',
@@ -49,27 +67,36 @@ const ApiPublicDestinationImageSlugRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
-  '/vendedor': typeof VendedorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/pacotes': typeof AuthenticatedPacotesRoute
+  '/vendedor': typeof AuthenticatedVendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
-  '/vendedor': typeof VendedorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/pacotes': typeof AuthenticatedPacotesRoute
+  '/vendedor': typeof AuthenticatedVendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
-  '/vendedor': typeof VendedorRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/pacotes': typeof AuthenticatedPacotesRoute
+  '/_authenticated/vendedor': typeof AuthenticatedVendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
@@ -77,52 +104,61 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/configuracoes'
+    | '/auth'
     | '/proposta'
+    | '/reset-password'
+    | '/configuracoes'
+    | '/pacotes'
     | '/vendedor'
     | '/p/$code'
     | '/api/public/destination-image/$slug'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/configuracoes'
+    | '/auth'
     | '/proposta'
+    | '/reset-password'
+    | '/configuracoes'
+    | '/pacotes'
     | '/vendedor'
     | '/p/$code'
     | '/api/public/destination-image/$slug'
   id:
     | '__root__'
-    | '/'
-    | '/configuracoes'
+    | '/_authenticated'
+    | '/auth'
     | '/proposta'
-    | '/vendedor'
+    | '/reset-password'
+    | '/_authenticated/configuracoes'
+    | '/_authenticated/pacotes'
+    | '/_authenticated/vendedor'
     | '/p/$code'
     | '/api/public/destination-image/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   PropostaRoute: typeof PropostaRoute
-  VendedorRoute: typeof VendedorRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   PCodeRoute: typeof PCodeRoute
   ApiPublicDestinationImageSlugRoute: typeof ApiPublicDestinationImageSlugRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/proposta': {
@@ -132,12 +168,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropostaRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/vendedor': {
-      id: '/vendedor'
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pacotes': {
+      id: '/_authenticated/pacotes'
+      path: '/pacotes'
+      fullPath: '/pacotes'
+      preLoaderRoute: typeof AuthenticatedPacotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/vendedor': {
+      id: '/_authenticated/vendedor'
       path: '/vendedor'
       fullPath: '/vendedor'
-      preLoaderRoute: typeof VendedorRouteImport
-      parentRoute: typeof rootRouteImport
+      preLoaderRoute: typeof AuthenticatedVendedorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/p/$code': {
       id: '/p/$code'
@@ -156,11 +213,26 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedPacotesRoute: typeof AuthenticatedPacotesRoute
+  AuthenticatedVendedorRoute: typeof AuthenticatedVendedorRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedPacotesRoute: AuthenticatedPacotesRoute,
+  AuthenticatedVendedorRoute: AuthenticatedVendedorRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   PropostaRoute: PropostaRoute,
-  VendedorRoute: VendedorRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   PCodeRoute: PCodeRoute,
   ApiPublicDestinationImageSlugRoute: ApiPublicDestinationImageSlugRoute,
 }

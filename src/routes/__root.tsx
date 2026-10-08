@@ -80,11 +80,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { name: "google", content: "notranslate" },
-      { title: "PassHub — Cotações de hospedagem" },
+      { title: "Excursão Brasília — Propostas de viagens" },
       { name: "description", content: "Monte propostas de hotéis e gere links para seus clientes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
