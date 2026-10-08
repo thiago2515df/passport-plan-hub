@@ -35,7 +35,7 @@ export const Route = createFileRoute("/")({
 
 const MAX = 3;
 const nav = [
-  ["COTAÇÕES", [[Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"], [Building2, "Hospedagem"]]],
+  ["COTAÇÕES", [[Building2, "Pacotes"], [Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"]]],
 ] as const;
 
 function Index() {
@@ -136,7 +136,7 @@ function Index() {
           <div key={t} className="mb-6">
             <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{t}</div>
             {items.map(([I, l]) => (
-              <div key={l} className={`flex items-center gap-3 rounded-lg px-2 py-2 text-sm ${l === "Hospedagem" ? "bg-secondary font-semibold" : "text-muted-foreground"}`}><I className="h-4 w-4" />{l}</div>
+              <div key={l} className={`flex items-center gap-3 rounded-lg px-2 py-2 text-sm ${l === "Pacotes" ? "bg-secondary font-semibold" : "text-muted-foreground"}`}><I className="h-4 w-4" />{l}</div>
             ))}
           </div>
         ))}
