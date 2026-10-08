@@ -205,9 +205,9 @@ function Index() {
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
-        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_.75fr]">
-          <section>
-            <div className="mb-4 flex items-center justify-between">
+        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="min-w-0">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
               <div className="flex gap-2">
                 <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button>
@@ -223,7 +223,7 @@ function Index() {
                 return (
                   <div key={h.id} className={`flex overflow-hidden rounded-2xl border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
                     <button type="button" onClick={() => setGallery(h)} className="shrink-0" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button>
-                    <div className="flex flex-1 flex-col p-3">
+                    <div className="flex min-w-0 flex-1 flex-col p-3">
                       <div className="flex items-start justify-between gap-2">
                         <button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button>
                         <div className="flex items-center gap-2">

@@ -22,3 +22,4 @@
 - Hydrate proposal editing through authenticated exact-code reads and update the same code without replacing ownership; preserve guest counts and destination IDs in the encoded search metadata.
 - Generate proposal-sharing text through one browser-safe formatter for clipboard and WhatsApp so both actions always use identical personalized content.
 - Share versioned public proposal-preview artwork and absolute social-image metadata across short and legacy proposal routes so crawlers see the same branded preview without authentication.
+- Keep hotel result tracks shrinkable and flight results in a bounded desktop column with stacked flight details, so long hotel content cannot squeeze flight times or prices.
