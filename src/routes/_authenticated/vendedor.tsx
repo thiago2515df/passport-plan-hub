@@ -16,7 +16,7 @@ const boardOptions = (id: string) => queryOptions({ queryKey: ["proposal-board",
 export const Route = createFileRoute("/_authenticated/vendedor")({
   validateSearch: (search: Record<string, unknown>) => ({ q: typeof search['q'] === "string" ? search['q'] : "" }),
   loader: async ({ context }) => { await context.queryClient.ensureQueryData(boardOptions(context.user.id)); },
-  errorComponent: ({ error }) => <BoardError message={error.message} />,
+  errorComponent: ({ error }) => <BoardError message={error instanceof Error ? error.message : "Não foi possível carregar as propostas."} />,
   notFoundComponent: () => <BoardError message="Página não encontrada." />,
   head: () => ({ meta: [{ title: "Quadro de propostas — Excursão Brasília" }, { name: "description", content: "Acompanhamento das propostas de viagem e resultados da equipe." }, { property: "og:title", content: "Quadro de propostas — Excursão Brasília" }, { property: "og:description", content: "Propostas criadas, aguardando resposta e concluídas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, nofollow" }] }),
   component: SellerPage,

@@ -19,7 +19,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
       <Button title="Rodoviário" variant="ghost" className={item} asChild><Link to="/pacotes" search={{ mode: "bus" }}><Bus /><span>Rodoviário</span></Link></Button>
       <Button title="Seguros — indisponível" variant="ghost" className={item} disabled><Shield /><span>Seguros</span></Button>
       <div className="my-4 border-t border-border" />
-      <Button title="Minha página" variant={current === "seller" ? "secondary" : "ghost"} className={item} asChild><Link to="/vendedor"><UserRound /><span>Minha página</span></Link></Button>
+      <Button title="Minha página" variant={current === "seller" ? "secondary" : "ghost"} className={item} asChild><Link to="/vendedor" search={{ q: "" }}><UserRound /><span>Minha página</span></Link></Button>
       {access.admin && <Button title="Configurações" variant={current === "settings" ? "secondary" : "ghost"} className={item} asChild><Link to="/configuracoes"><Settings /><span>Configurações</span></Link></Button>}
     </nav>
     <div className="mt-auto overflow-hidden border-t border-border pt-4"><SignOutButton /></div>

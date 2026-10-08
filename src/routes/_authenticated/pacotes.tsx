@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, decodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
@@ -46,6 +47,7 @@ const nav = [
 
 function Index() {
   const { code: editingCode, mode } = Route.useSearch();
+  const queryClient = useQueryClient();
   const loadEditable = useServerFn(getEditableProposal);
   const access = useAccess();
   const findHotels = useServerFn(searchHotels);
@@ -136,6 +138,8 @@ function Index() {
       const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["proposal-board"] });
+      queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
@@ -157,7 +161,7 @@ function Index() {
       <ManagementNav current="packages" />
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
-        {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor">Voltar às propostas</Link></Button></div>}
+        {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor" search={{ q: "" }}>Voltar às propostas</Link></Button></div>}
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
           <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
             {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
@@ -275,7 +279,7 @@ function Index() {
                      <div className="mt-1 font-bold">{brl(f.price)}</div>
                    </div>))}
                </div>}
-               <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
+               <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                <Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>
