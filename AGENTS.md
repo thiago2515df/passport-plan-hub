@@ -17,3 +17,6 @@
 - Store proposal ownership from the authenticated request, and serve shared proposals only through exact-code lookup so sellers cannot browse each other's work.
 - Keep a single AccessProvider for session transitions and permission-driven UI; private workspace pages live under the managed client-only authenticated layout, while login, password recovery and customer proposals remain public.
 - Provision the first administrator only through trusted out-of-band administration; seller creation validates the administrator server-side and emails a password-setup link.
+- Use one shared ManagementNav sidebar on all workspace screens, preserving icon navigation when collapsed.
+- Persist Kanban status and timestamps on proposals; only explicit sending confirmation marks awaiting, with three grouped columns and server-authorized owner/admin updates.
+- Hydrate proposal editing through authenticated exact-code reads and update the same code without replacing ownership; preserve guest counts and destination IDs in the encoded search metadata.
