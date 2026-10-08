@@ -1,5 +1,5 @@
 # Transport proposal
-- [ ] Create and verify a branded standard image for every proposal link preview.
+- [x] Create and verify a branded standard image for every proposal link preview.
 - [x] Use identical personalized standard message for copying and WhatsApp in the proposal sending dialog; verify both actions.
 - [x] Show destination-only customer title and personalized exclusive-proposal highlight when a client name exists.
 - [x] Preserve a shared lateral menu across workspace pages.
