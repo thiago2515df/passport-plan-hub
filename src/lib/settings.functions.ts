@@ -5,6 +5,22 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
 const seller = z.object({ name: z.string().trim().min(2).max(100), phone: z.string().trim().max(30), email: z.string().email().max(200), permissions });
 
+export const getAgencyContact = createServerFn({ method: "GET" }).handler(async () => {
+  const { createClient } = await import("@supabase/supabase-js");
+  const url = process.env['SUPABASE_URL'];
+  const key = process.env['SUPABASE_PUBLISHABLE_KEY'];
+  if (!url || !key) return null;
+  const client = createClient(url, key, { auth: { persistSession: false }, global: { fetch: (input, init) => {
+    const headers = new Headers(init?.headers);
+    if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
+    headers.set("apikey", key);
+    return fetch(input, { ...init, headers });
+  } } });
+  const { data, error } = await client.rpc("agency_contact");
+  if (error || !data || typeof data !== "object") return null;
+  return { agency_name: typeof data.agency_name === "string" ? data.agency_name : "Excursão Brasília", whatsapp: typeof data.whatsapp === "string" && /^\d{10,15}$/.test(data.whatsapp) ? data.whatsapp : "5561992267062" };
+});
+
 export const getAccess = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { data: profile } = await context.supabase.from("profiles").select("id,name,phone,email,active").eq("id", context.userId).maybeSingle();
   const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
