@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Building2 } from "lucide-react";
 import { decodeProposal } from "@/lib/hotels";
 import { getProposal } from "@/lib/proposals.functions";
+import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { ProposalView } from "../proposta";
 
 export const Route = createFileRoute("/p/$code")({
@@ -15,6 +16,7 @@ export const Route = createFileRoute("/p/$code")({
       { property: "og:description", content: "Opções de hotéis selecionadas pela Excursão Brasília." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...proposalPreviewMeta,
     ],
   }),
   component: ShortProposal,

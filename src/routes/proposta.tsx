@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAgencyContact } from "@/lib/settings.functions";
+import { proposalPreviewMeta } from "@/lib/proposal-preview";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/proposta")({
       { property: "og:description", content: "Opções de hotéis selecionadas pela Excursão Brasília." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      ...proposalPreviewMeta,
     ],
   }),
   component: Proposta,
