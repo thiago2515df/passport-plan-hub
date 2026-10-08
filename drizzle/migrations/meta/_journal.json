@@ -15,6 +15,13 @@
       "when": 1791414818105,
       "tag": "0001_destination_images_table",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791424038079,
+      "tag": "0002_seller_settings_access",
+      "breakpoints": true
     }
   ]
 }
