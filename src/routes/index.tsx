@@ -30,6 +30,7 @@ export const Route = createFileRoute("/")({
       { property: "og:description", content: "Busque hotéis e gere propostas em segundos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: Index,

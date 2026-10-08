@@ -13,6 +13,7 @@ import { decodeProposal } from "@/lib/hotels";
 
 export const Route = createFileRoute("/configuracoes")({ head: () => ({ meta: [
   { title: "Configurações e vendedores — Excursão Brasília" }, { name: "description", content: "Administração de vendedores, permissões e configurações da Excursão Brasília." },
+  { name: "robots", content: "noindex, nofollow" },
   { property: "og:title", content: "Configurações — Excursão Brasília" }, { property: "og:description", content: "Gerenciamento de acessos e configurações da agência." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: SettingsPage });
 
@@ -26,7 +27,8 @@ function SettingsPage() {
   const create = useServerFn(createSeller);
   const update = useServerFn(updateSeller);
   const save = useServerFn(saveSettings);
-  const data = useQuery({ queryKey: ["settings"], queryFn: () => fetchSettings(), enabled: access.admin, retry: false });
+  const settingsQuery = useQuery({ queryKey: ["settings", access.userId], queryFn: () => fetchSettings(), enabled: access.admin, retry: false });
+  const data = { ...settingsQuery, data: access.admin ? settingsQuery.data : undefined };
   const [tab, setTab] = useState<string>("people");
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState(initial);

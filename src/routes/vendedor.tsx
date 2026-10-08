@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { listMyProposals } from "@/lib/settings.functions";
 import { decodeProposal } from "@/lib/hotels";
 import { FileText } from "lucide-react";
-export const Route = createFileRoute("/vendedor")({ head: () => ({ meta: [ { title: "Minhas propostas — Excursão Brasília" }, { name: "description", content: "Página individual do vendedor da Excursão Brasília." }, { property: "og:title", content: "Minhas propostas — Excursão Brasília" }, { property: "og:description", content: "Propostas individuais do vendedor." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" } ] }), component: SellerPage });
+export const Route = createFileRoute("/vendedor")({ head: () => ({ meta: [ { title: "Minhas propostas — Excursão Brasília" }, { name: "description", content: "Página individual do vendedor da Excursão Brasília." }, { property: "og:title", content: "Minhas propostas — Excursão Brasília" }, { property: "og:description", content: "Propostas individuais do vendedor." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, nofollow" } ] }), component: SellerPage });
 function SellerPage() {
   const access = useAccess(); const list = useServerFn(listMyProposals);
   const rows = useQuery({ queryKey: ["my-proposals", access.userId], queryFn: () => list(), enabled: access.allowed, retry: false });
