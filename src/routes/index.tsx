@@ -1,7 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
-import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2 } from "lucide-react";
+import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
@@ -15,6 +15,7 @@ import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { ptBR } from "react-day-picker/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
+import { useAccess } from "@/components/AccessProvider";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -23,12 +24,13 @@ const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-dig
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Hospedagem — PassHub Propostas" },
+      { title: "Pacotes — Excursão Brasília" },
       { name: "description", content: "Busque hotéis, selecione opções e gere um link de proposta para o cliente." },
-      { property: "og:title", content: "Hospedagem — PassHub Propostas" },
+      { property: "og:title", content: "Pacotes — Excursão Brasília" },
       { property: "og:description", content: "Busque hotéis e gere propostas em segundos." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, nofollow" },
     ],
   }),
   component: Index,
@@ -40,13 +42,14 @@ const nav = [
 ] as const;
 
 function Index() {
+  const access = useAccess();
   const findHotels = useServerFn(searchHotels);
   const [s, setS] = useState<Search>({ destino: "", checkin: "2026-11-16", checkout: "2026-11-18", hospedes: "", rav: 0 });
   const [destId, setDestId] = useState("");
   const [cityFocus, setCityFocus] = useState<"origin" | "destination" | null>(null);
   const [chosenOrigin, setChosenOrigin] = useState("");
-  const originCities = useCitySuggestions(cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
-  const destinationCities = useCitySuggestions(cityFocus === "destination" && !destId ? s.destino : "");
+  const originCities = useCitySuggestions(access.allowed && cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
+  const destinationCities = useCitySuggestions(access.allowed && cityFocus === "destination" && !destId ? s.destino : "");
   const [rooms, setRooms] = useState(1);
   const [adults, setAdults] = useState(2);
   const [kids, setKids] = useState<number[]>([]);
@@ -79,6 +82,7 @@ function Index() {
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
 
   const buscar = async () => {
+    if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
     setErr(""); setLoading(true); setSel([]); setLink("");
     if (transport.mode === "air") {
@@ -119,7 +123,7 @@ function Index() {
       return { ...prev, transport: { ...t,
         ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}),
         ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}),
-        price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: (next.out ?? next.back)!.travelClass, bags: (next.out ?? next.back)!.bags } };
+         price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: f.travelClass, bags: f.bags } };
     });
   };
   const field = "flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm";
@@ -137,9 +141,14 @@ function Index() {
             ))}
           </div>
         ))}
+        <div className="space-y-1 border-t border-border pt-4">
+          <Button variant="ghost" className="w-full justify-start" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button>
+          <Button variant="ghost" className="w-full justify-start" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>
+        </div>
       </aside>
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
+        <div className="mb-4 flex justify-end gap-2 lg:hidden"><Button variant="outline" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button><Button variant="outline" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button></div>
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
           <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
             {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
@@ -258,7 +267,8 @@ function Index() {
                    </div>))}
                </div>}
                <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-              <Button disabled={!sel.length || uploading || saving} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Gerando…" : "Gerar link"}</Button>
+               <Button disabled={!access.allowed || !sel.length || uploading || saving} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Gerando…" : "Gerar link"}</Button>
+               {!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
           </div>

@@ -1,8 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Flight } from "./hotels";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const searchFlights = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
       from: z.string().regex(/^[A-Z]{3}$/),
@@ -12,7 +14,9 @@ export const searchFlights = createServerFn({ method: "POST" })
       children: z.number().int().min(0).max(8),
     }).parse(d),
   )
-  .handler(async ({ data }): Promise<{ flights: Flight[]; error?: string }> => {
+  .handler(async ({ data, context }): Promise<{ flights: Flight[]; error?: string }> => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "search_flights");
     const { passhub } = await import("./passhub.server");
     type Offer = {
       airline?: string; flightNumber?: string; departureLocation?: string; arrivalLocation?: string;

@@ -9,9 +9,9 @@ import { ProposalView } from "../proposta";
 export const Route = createFileRoute("/p/$code")({
   head: () => ({
     meta: [
-      { title: "Sua proposta de viagem — Excursão Brasília" },
+      { title: "Proposta exclusiva — Excursão Brasília" },
       { name: "description", content: "Confira as opções de hospedagem selecionadas especialmente para você." },
-      { property: "og:title", content: "Sua proposta de viagem — Excursão Brasília" },
+      { property: "og:title", content: "Proposta exclusiva — Excursão Brasília" },
       { property: "og:description", content: "Opções de hotéis selecionadas pela Excursão Brasília." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_activity: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          target_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          target_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          target_id?: string | null
+        }
+        Relationships: []
+      }
       destination_images: {
         Row: {
           content: string
@@ -32,21 +56,127 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          active: boolean
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id: string
+          name?: string
+          phone?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: []
+      }
       proposals: {
         Row: {
           code: string
           created_at: string
+          owner_id: string | null
           payload: string
         }
         Insert: {
           code: string
           created_at?: string
+          owner_id?: string | null
           payload: string
         }
         Update: {
           code?: string
           created_at?: string
+          owner_id?: string | null
           payload?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposals_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_permissions: {
+        Row: {
+          create_proposals: boolean
+          manage_transport: boolean
+          search_flights: boolean
+          search_hotels: boolean
+          user_id: string
+        }
+        Insert: {
+          create_proposals?: boolean
+          manage_transport?: boolean
+          search_flights?: boolean
+          search_hotels?: boolean
+          user_id: string
+        }
+        Update: {
+          create_proposals?: boolean
+          manage_transport?: boolean
+          search_flights?: boolean
+          search_hotels?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_permissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      system_settings: {
+        Row: {
+          agency_name: string
+          id: number
+          whatsapp: string
+        }
+        Insert: {
+          agency_name?: string
+          id?: number
+          whatsapp?: string
+        }
+        Update: {
+          agency_name?: string
+          id?: number
+          whatsapp?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -55,7 +185,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      agency_contact: { Args: never; Returns: Json }
+      has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      public_proposal: { Args: { _code: string }; Returns: string }
+      seller_can: { Args: { _permission: string }; Returns: boolean }
     }
     Enums: {
       [_ in never]: never

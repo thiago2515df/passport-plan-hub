@@ -6,6 +6,9 @@ import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
 import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { getAgencyContact } from "@/lib/settings.functions";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -31,6 +34,8 @@ function Proposta() {
 }
 
 export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
+  const contact = useServerFn(getAgencyContact);
+  const agency = useQuery({ queryKey: ["agency-contact"], queryFn: () => contact(), staleTime: 60000 });
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
@@ -58,7 +63,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
-  const wa = `https://wa.me/${AGENCY_WHATSAPP}?text=${encodeURIComponent(
+  const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(
     `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(packageTotal(pick.total, p.s.transport))}${hasTransport ? ", com passagem" : ""})` : ""}.`,
   )}`;
 

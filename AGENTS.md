@@ -13,3 +13,6 @@
 - Ticket attachments use a private Cloud bucket, insert-only uploads and two-random-UUID bearer capabilities; server-generated short-lived URLs disclose one file only, never list files.
 - Keep transport editing and customer viewing in TransportPanel to share itinerary rendering and validation.
 - Share city suggestions through useCitySuggestions with session caching and stale-response guards so origin and destination behave consistently.
+- Keep seller identity in profiles, roles in user_roles, and permissions in seller_permissions; validate administrative actions server-side to prevent privilege escalation.
+- Store proposal ownership from the authenticated request, and serve shared proposals only through exact-code lookup so sellers cannot browse each other's work.
+- Keep a single AccessProvider for session transitions and permission-driven UI; login activation is separate from settings preparation.
