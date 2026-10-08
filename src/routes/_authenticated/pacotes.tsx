@@ -2,14 +2,15 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
-import { COMMISSION, brl, nightsBetween, encodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
+import { COMMISSION, brl, nightsBetween, encodeProposal, decodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { searchFlights } from "@/lib/flights.functions";
-import { saveProposal } from "@/lib/proposals.functions";
+import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
+import { ManagementNav } from "@/components/ManagementNav";
 import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { ptBR } from "react-day-picker/locale";
@@ -23,6 +24,7 @@ const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStar
 const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 
 export const Route = createFileRoute("/_authenticated/pacotes")({
+  validateSearch: (search: Record<string, unknown>): { code?: string; mode?: "air" | "bus" } => ({ ...(typeof search.code === "string" && /^[a-z0-9]{6,12}$/.test(search.code) ? { code: search.code } : {}), ...(search.mode === "air" || search.mode === "bus" ? { mode: search.mode } : {}) }),
   head: () => ({
     meta: [
       { title: "Pacotes — Excursão Brasília" },
@@ -43,6 +45,8 @@ const nav = [
 ] as const;
 
 function Index() {
+  const { code: editingCode, mode } = Route.useSearch();
+  const loadEditable = useServerFn(getEditableProposal);
   const access = useAccess();
   const findHotels = useServerFn(searchHotels);
   const [s, setS] = useState<Search>({ destino: "", checkin: "2026-11-16", checkout: "2026-11-18", hospedes: "", rav: 0 });
@@ -72,6 +76,24 @@ function Index() {
   const [picking, setPicking] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(() => toD("2026-11-16"));
   const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
+  const [editLoading, setEditLoading] = useState(false);
+  useEffect(() => {
+    if (!mode) return;
+    setS(previous => ({ ...previous, transport: makeTransport(mode, previous.destino) }));
+  }, [mode]);
+  useEffect(() => {
+    if (!editingCode) return;
+    let alive = true; setEditLoading(true);
+    loadEditable({ data: editingCode }).then(row => {
+      if (!alive) return;
+      const proposal = decodeProposal(row.payload);
+      if (!proposal) throw new Error("Proposta inválida.");
+      const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
+      setS(proposal.s); setHotels(restored); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
+      setDestId(proposal.s.destinationId ?? ""); setRooms(proposal.s.rooms ?? 1); setAdults(proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2)); setKids(proposal.s.childAges ?? []); setCalMonth(toD(proposal.s.checkin));
+    }).catch(error => { if (alive) setErr(error instanceof Error ? error.message : "Não foi possível abrir a proposta."); }).finally(() => { if (alive) setEditLoading(false); });
+    return () => { alive = false; };
+  }, [editingCode, loadEditable]);
   const transport = s.transport ?? makeTransport("none", s.destino);
   const changeDestination = (destination: string) => setS(previous => {
     const current = previous.transport;
@@ -111,7 +133,7 @@ function Index() {
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     setSaving(true);
     try {
-      const { code } = await saveProp({ data: { payload: encodeProposal({ s: { ...s, hospedes: hosp }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
@@ -132,25 +154,10 @@ function Index() {
 
   return (
     <div className="flex min-h-screen bg-background font-sans text-foreground">
-      <aside className="hidden w-60 shrink-0 border-r border-border bg-card px-5 py-6 lg:block">
-        <img src={logoAsset.url} alt="Excursão Brasília" className="mb-8 w-40" />
-        {nav.map(([t, items]) => (
-          <div key={t} className="mb-6">
-            <div className="mb-2 text-[11px] font-semibold text-muted-foreground">{t}</div>
-            {items.map(([I, l]) => (
-              <div key={l} className={`flex items-center gap-3 rounded-lg px-2 py-2 text-sm ${l === "Pacotes" ? "bg-secondary font-semibold" : "text-muted-foreground"}`}><I className="h-4 w-4" />{l}</div>
-            ))}
-          </div>
-        ))}
-        <div className="space-y-1 border-t border-border pt-4">
-          <Button variant="ghost" className="w-full justify-start" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button>
-          {access.admin && <Button variant="ghost" className="w-full justify-start" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>}
-          <SignOutButton />
-        </div>
-      </aside>
+      <ManagementNav current="packages" />
 
       <main className="min-w-0 flex-1 p-4 md:p-6">
-        <div className="mb-4 flex justify-end gap-2 lg:hidden"><Button variant="outline" asChild><Link to="/vendedor"><UserRound className="h-4 w-4" />Minha página</Link></Button>{access.admin && <Button variant="outline" asChild><Link to="/configuracoes"><Settings className="h-4 w-4" />Configurações</Link></Button>}<SignOutButton /></div>
+        {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor">Voltar às propostas</Link></Button></div>}
         <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
           <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
             {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
@@ -269,7 +276,9 @@ function Index() {
                    </div>))}
                </div>}
                <input placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-               <Button disabled={!access.allowed || !sel.length || uploading || saving} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Gerando…" : "Gerar link"}</Button>
+               <input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+               <input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
+               <Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>
                {!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
