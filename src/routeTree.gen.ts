@@ -10,7 +10,9 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as PropostaRouteImport } from './routes/proposta'
+import { Route as VendedorRouteImport } from './routes/vendedor'
 import { Route as PCodeRouteImport } from './routes/p/$code'
 import { Route as ApiPublicDestinationImageSlugRouteImport } from './routes/api/public/destination-image/$slug'
 
@@ -19,9 +21,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PropostaRoute = PropostaRouteImport.update({
   id: '/proposta',
   path: '/proposta',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VendedorRoute = VendedorRouteImport.update({
+  id: '/vendedor',
+  path: '/vendedor',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PCodeRoute = PCodeRouteImport.update({
@@ -38,40 +50,61 @@ const ApiPublicDestinationImageSlugRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/proposta': typeof PropostaRoute
+  '/vendedor': typeof VendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/proposta': typeof PropostaRoute
+  '/vendedor': typeof VendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/proposta': typeof PropostaRoute
+  '/vendedor': typeof VendedorRoute
   '/p/$code': typeof PCodeRoute
   '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    '/' | '/proposta' | '/p/$code' | '/api/public/destination-image/$slug'
+    | '/'
+    | '/configuracoes'
+    | '/proposta'
+    | '/vendedor'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/proposta' | '/p/$code' | '/api/public/destination-image/$slug'
+  to:
+    | '/'
+    | '/configuracoes'
+    | '/proposta'
+    | '/vendedor'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
   id:
     | '__root__'
     | '/'
+    | '/configuracoes'
     | '/proposta'
+    | '/vendedor'
     | '/p/$code'
     | '/api/public/destination-image/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   PropostaRoute: typeof PropostaRoute
+  VendedorRoute: typeof VendedorRoute
   PCodeRoute: typeof PCodeRoute
   ApiPublicDestinationImageSlugRoute: typeof ApiPublicDestinationImageSlugRoute
 }
@@ -85,11 +118,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/proposta': {
       id: '/proposta'
       path: '/proposta'
       fullPath: '/proposta'
       preLoaderRoute: typeof PropostaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vendedor': {
+      id: '/vendedor'
+      path: '/vendedor'
+      fullPath: '/vendedor'
+      preLoaderRoute: typeof VendedorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/p/$code': {
@@ -111,7 +158,9 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   PropostaRoute: PropostaRoute,
+  VendedorRoute: VendedorRoute,
   PCodeRoute: PCodeRoute,
   ApiPublicDestinationImageSlugRoute: ApiPublicDestinationImageSlugRoute,
 }
