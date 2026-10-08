@@ -6,5 +6,5 @@
 - [x] WhatsApp real 5561992267062
 - [x] Links curtos /p/<code> (tabela proposals)
 - [x] Settings page and seller workspace with secure profiles, permissions and proposal ownership.
-- [ ] Activate login and first administrator (next requested stage; requires owner's account).
+- [ ] Activate email login, password setup by email and first administrator for the identified owner.
 - [ ] Verify authenticated seller creation, permissions and stored proposal owner (blocked: no auth users yet).

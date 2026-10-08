@@ -15,4 +15,5 @@
 - Share city suggestions through useCitySuggestions with session caching and stale-response guards so origin and destination behave consistently.
 - Keep seller identity in profiles, roles in user_roles, and permissions in seller_permissions; validate administrative actions server-side to prevent privilege escalation.
 - Store proposal ownership from the authenticated request, and serve shared proposals only through exact-code lookup so sellers cannot browse each other's work.
-- Keep a single AccessProvider for session transitions and permission-driven UI; login activation is separate from settings preparation.
+- Keep a single AccessProvider for session transitions and permission-driven UI; private workspace pages live under the managed client-only authenticated layout, while login, password recovery and customer proposals remain public.
+- Provision the first administrator only through trusted out-of-band administration; seller creation validates the administrator server-side and emails a password-setup link.
