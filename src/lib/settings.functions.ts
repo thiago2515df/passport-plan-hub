@@ -4,6 +4,10 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
 const seller = z.object({ name: z.string().trim().min(2).max(100), phone: z.string().trim().max(30), email: z.string().email().max(200), permissions });
+const setupRedirect = z.string().url().refine(value => {
+  const url = new URL(value);
+  return url.pathname === "/reset-password" && !url.search && !url.hash && ["https://propostabsb.excursaobrasilia.com.br", "https://passport-plan-hub.lovable.app", "https://id-preview--ddd66a00-5f11-4b98-aeb8-15d4f4b34f1b.lovable.app", "http://localhost:8080"].includes(url.origin);
+}, "Endereço de ativação inválido.");
 
 export const getAgencyContact = createServerFn({ method: "GET" }).handler(async () => {
   const { createClient } = await import("@supabase/supabase-js");
@@ -43,12 +47,12 @@ export const getSettings = createServerFn({ method: "GET" }).middleware([require
 });
 
 export const createSeller = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => seller.extend({ password: z.string().min(10).max(128) }).parse(d))
+  .inputValidator(d => seller.extend({ redirectTo: setupRedirect }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email: data.email, password: data.password, email_confirm: false });
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email: data.email, email_confirm: false });
     if (error || !created.user) throw new Error("Não foi possível criar a conta. Verifique se o e-mail já está cadastrado.");
     const id = created.user.id;
     const results = await Promise.all([
@@ -57,6 +61,8 @@ export const createSeller = createServerFn({ method: "POST" }).middleware([requi
       supabaseAdmin.from("seller_permissions").insert({ user_id: id, ...data.permissions }),
     ]);
     if (results.some(r => r.error)) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível salvar o vendedor."); }
+    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, { redirectTo: data.redirectTo });
+    if (inviteError) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível enviar o convite. Tente criar a conta novamente."); }
     await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, target_id: id, action: "Vendedor criado" });
     return { id };
   });
