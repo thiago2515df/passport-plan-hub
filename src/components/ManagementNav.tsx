@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Building2, Settings, UserRound, ArrowLeft } from "lucide-react";
+import { Building2, Settings, UserRound } from "lucide-react";
 import logo from "@/assets/excursao-brasilia.png.asset.json";
 import { Button } from "@/components/ui/button";
 
