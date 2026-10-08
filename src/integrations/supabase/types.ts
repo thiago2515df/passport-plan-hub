@@ -185,6 +185,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      agency_contact: { Args: never; Returns: Json }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
       public_proposal: { Args: { _code: string }; Returns: string }
       seller_can: { Args: { _permission: string }; Returns: boolean }

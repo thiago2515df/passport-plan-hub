@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { decodeProposal } from "./hotels";
 
 const codeSchema = z.string().regex(/^[a-z0-9]{6,12}$/);
 
@@ -20,6 +21,9 @@ export const saveProposal = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
+    const proposal = decodeProposal(data.payload);
+    if (!proposal) throw new Error("Proposta inválida.");
+    if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
     for (let i = 0; i < 5; i++) {
       const code = newCode();
       const { error } = await context.supabase.from("proposals").insert({ code, payload: data.payload, owner_id: context.userId });

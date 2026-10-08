@@ -1,12 +1,16 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Hotel } from "./hotels";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Fail = { error: string };
 
 export const searchDestinations = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ q: z.string().min(3).max(80) }).parse(d))
-  .handler(async ({ data }): Promise<{ items: { id: string; name: string; type: string }[] } & Partial<Fail>> => {
+  .handler(async ({ data, context }): Promise<{ items: { id: string; name: string; type: string }[] } & Partial<Fail>> => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       const r = await passhub<{ destinations: { destinationId: string; name: string; type: string }[] }>(
@@ -26,6 +30,7 @@ export const searchDestinations = createServerFn({ method: "GET" })
   });
 
 export const searchHotels = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z
       .object({
@@ -39,7 +44,9 @@ export const searchHotels = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data }): Promise<{ hotels: Hotel[] } & Partial<Fail>> => {
+  .handler(async ({ data, context }): Promise<{ hotels: Hotel[] } & Partial<Fail>> => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       type Offer = {

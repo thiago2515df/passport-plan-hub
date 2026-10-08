@@ -1,0 +1,5 @@
+ALTER POLICY "Insert new ticket files with random capability paths" ON storage.objects TO authenticated WITH CHECK (bucket_id = 'proposal-tickets' AND public.seller_can('manage_transport') AND name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|png|jpg|webp)$');
+ALTER POLICY proposals_owner_read ON public.proposals USING ((owner_id=auth.uid() AND public.has_role(auth.uid(),'seller')) OR public.has_role(auth.uid(),'admin'));
+CREATE FUNCTION public.agency_contact() RETURNS jsonb LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT jsonb_build_object('agency_name', agency_name, 'whatsapp', whatsapp) FROM public.system_settings WHERE id=1; $$;
+REVOKE ALL ON FUNCTION public.agency_contact() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.agency_contact() TO anon,authenticated,service_role;

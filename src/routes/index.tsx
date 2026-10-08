@@ -47,8 +47,8 @@ function Index() {
   const [destId, setDestId] = useState("");
   const [cityFocus, setCityFocus] = useState<"origin" | "destination" | null>(null);
   const [chosenOrigin, setChosenOrigin] = useState("");
-  const originCities = useCitySuggestions(cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
-  const destinationCities = useCitySuggestions(cityFocus === "destination" && !destId ? s.destino : "");
+  const originCities = useCitySuggestions(access.allowed && cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
+  const destinationCities = useCitySuggestions(access.allowed && cityFocus === "destination" && !destId ? s.destino : "");
   const [rooms, setRooms] = useState(1);
   const [adults, setAdults] = useState(2);
   const [kids, setKids] = useState<number[]>([]);
@@ -81,6 +81,7 @@ function Index() {
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
 
   const buscar = async () => {
+    if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
     setErr(""); setLoading(true); setSel([]); setLink("");
     if (transport.mode === "air") {
