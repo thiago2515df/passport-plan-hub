@@ -29,6 +29,13 @@
       "when": 1791424324944,
       "tag": "0003_seller_upload_and_read_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791426037421,
+      "tag": "0004_proposal_kanban_workflow",
+      "breakpoints": true
     }
   ]
 }

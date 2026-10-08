@@ -17,13 +17,18 @@ const newCode = () => {
 /** Salva a proposta no banco e devolve um código curto para o link. */
 export const saveProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ payload: z.string().min(1).max(200_000) }).parse(data))
+  .inputValidator((data) => z.object({ payload: z.string().min(1).max(200_000), code: codeSchema.optional() }).parse(data))
   .handler(async ({ data, context }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
     const proposal = decodeProposal(data.payload);
     if (!proposal) throw new Error("Proposta inválida.");
     if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
+    if (data.code) {
+      const { data: saved, error } = await context.supabase.from("proposals").update({ payload: data.payload }).eq("code", data.code).select("code").maybeSingle();
+      if (error || !saved) throw new Error("Proposta não encontrada ou edição não permitida.");
+      return { code: saved.code };
+    }
     for (let i = 0; i < 5; i++) {
       const code = newCode();
       const { error } = await context.supabase.from("proposals").insert({ code, payload: data.payload, owner_id: context.userId });
@@ -31,6 +36,28 @@ export const saveProposal = createServerFn({ method: "POST" })
       if (error.code !== "23505") throw new Error(error.message);
     }
     throw new Error("Não foi possível gerar o link. Tente de novo.");
+  });
+
+export const getEditableProposal = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth]).inputValidator(data => codeSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "create_proposals");
+    const { data: row, error } = await context.supabase.from("proposals").select("code,payload,owner_id").eq("code", data).maybeSingle();
+    const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
+    if (error || !row || (!admin && row.owner_id !== context.userId)) throw new Error("Proposta não encontrada ou edição não permitida.");
+    return { code: row.code, payload: row.payload };
+  });
+
+export const setProposalStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator(data => z.object({ code: codeSchema, status: z.enum(["created", "awaiting", "approved", "cancelled"]) }).parse(data))
+  .handler(async ({ context, data }) => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "create_proposals");
+    const { data: row, error } = await context.supabase.from("proposals").update({ status: data.status }).eq("code", data.code).select("code,status,sent_at").maybeSingle();
+    if (error || !row) throw new Error("Não foi possível atualizar esta proposta.");
+    return row;
   });
 
 /** Busca uma proposta pelo código curto. */

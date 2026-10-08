@@ -1,0 +1,8 @@
+ALTER TABLE public.proposals ADD COLUMN status text NOT NULL DEFAULT 'created', ADD COLUMN sent_at timestamptz, ADD COLUMN updated_at timestamptz NOT NULL DEFAULT now();
+ALTER TABLE public.proposals ADD CONSTRAINT proposals_status_valid CHECK (status IN ('created','awaiting','approved','cancelled'));
+GRANT UPDATE (payload, status) ON public.proposals TO authenticated;
+CREATE POLICY proposals_authorized_update ON public.proposals FOR UPDATE TO authenticated USING (public.seller_can('create_proposals') AND (owner_id = auth.uid() OR public.has_role(auth.uid(),'admin'))) WITH CHECK (public.seller_can('create_proposals') AND (owner_id = auth.uid() OR public.has_role(auth.uid(),'admin')));
+CREATE OR REPLACE FUNCTION public.proposal_workflow_timestamps() RETURNS trigger LANGUAGE plpgsql SET search_path = public AS $$ BEGIN NEW.updated_at := now(); IF NEW.status = 'awaiting' AND OLD.sent_at IS NULL THEN NEW.sent_at := now(); ELSE NEW.sent_at := OLD.sent_at; END IF; RETURN NEW; END; $$;
+CREATE TRIGGER proposal_workflow_timestamps BEFORE UPDATE ON public.proposals FOR EACH ROW EXECUTE FUNCTION public.proposal_workflow_timestamps();
+CREATE INDEX proposals_status_owner_idx ON public.proposals(owner_id,status);
+COMMENT ON COLUMN public.proposals.status IS 'created: draft link; awaiting: user confirmed sending; approved/cancelled: recorded outcome. WhatsApp opening is not delivery confirmation.';
