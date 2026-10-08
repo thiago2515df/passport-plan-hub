@@ -56,8 +56,9 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const nights = nightsBetween(p.s.checkin, p.s.checkout);
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
-  const cliente = p.s.cliente?.trim();
-  const destino = (p.s.destino ?? "").split(",")[0] ?? "";
+  const shortCity = (name: string) => (name.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)\s*/gi, "").trim();
+  const origem = shortCity(p.s.origem ?? "");
+  const destino = shortCity(p.s.destino ?? "");
   const hero = hotels.find((h) => h.image)?.image;
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
@@ -86,12 +87,10 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
         <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
-          <div className="text-xs font-semibold tracking-[0.25em] opacity-90">SUA PRÓXIMA VIAGEM</div>
           <h1 className="mt-2 flex flex-wrap items-center gap-x-3 text-4xl font-extrabold tracking-tight md:text-6xl">
-            {p.s.origem && <><span>{p.s.origem}</span><ArrowRight className="h-8 w-8 text-turquoise md:h-12 md:w-12" strokeWidth={3} /></>}
+            {origem && <><span>{origem}</span><ArrowRight className="h-8 w-8 text-turquoise md:h-12 md:w-12" strokeWidth={3} /></>}
             <span>{destino}</span>
           </h1>
-          <p className="mt-2 text-lg font-medium md:text-xl">Uma viagem especial para você{cliente ? `, ${cliente}` : ""}</p>
           <div className="mt-5 flex flex-wrap gap-2">
             {[
               [Calendar, `${fmt(p.s.checkin)} a ${fmt(p.s.checkout)}`],
@@ -105,10 +104,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto -mt-8 max-w-6xl px-4">
-        <div className="flex items-center justify-center gap-2 rounded-2xl bg-card px-4 py-4 text-sm font-semibold shadow-md">
-          <Sparkles className="h-5 w-5 text-star" /> <span className="text-navy">Proposta exclusiva</span>{cliente && <> para <span className="text-primary">{cliente}</span></>}
-        </div>
+      <div className="relative z-10 mx-auto max-w-6xl px-4">
 
         <nav className="mt-4 grid grid-cols-3 rounded-t-2xl border-b border-border bg-card">
           {TABS.map((n, k) => (
