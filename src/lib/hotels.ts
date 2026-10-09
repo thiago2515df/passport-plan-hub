@@ -25,7 +25,7 @@ export type Flight = {
 /** Extrai código IATA ("Brasília (BSB)" → "BSB"). */
 export const iataOf = (v?: string) => { const m = (v ?? "").toUpperCase().match(/\(([A-Z]{3})\)|^\s*([A-Z]{3})\s*$/); return m ? m[1] ?? m[2] ?? "" : ""; };
 export type Ticket = { path: string; name: string; type: string };
-export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string };
+export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string; airline?: string | undefined; flightNumber?: string | undefined; departureDate?: string | undefined; arrivalDate?: string | undefined; fareCategory?: string | undefined; connections?: string[] | undefined; baggage?: Flight["baggage"] | undefined };
 export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean; price?: number | undefined; travelClass?: string; bags?: string };
 /** Valor do pacote para o cliente: hotel + transporte. */
 export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + (t && t.mode !== "none" ? t.price ?? 0 : 0);
