@@ -16,7 +16,12 @@ export const COMMISSION = 0.0536;
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type TransportMode = "none" | "air" | "bus";
-export type Flight = { id: string; airline: string; flightNumber: string; from: string; to: string; departure: string; arrival: string; duration: string; stops: string; price: number; travelClass: string; bags: string };
+export type Flight = {
+  id: string; airline: string; flightNumber: string; from: string; to: string; departure: string; arrival: string; duration: string; stops: string; price: number; travelClass: string; bags: string;
+  departureDate?: string; arrivalDate?: string; fareCategory?: string; connections?: string[];
+  baggage?: { personal?: boolean; carryOn?: boolean; checked?: boolean };
+  installments?: { count: number; interestFree?: boolean }; commission?: number; fareRules?: string;
+};
 /** Extrai código IATA ("Brasília (BSB)" → "BSB"). */
 export const iataOf = (v?: string) => { const m = (v ?? "").toUpperCase().match(/\(([A-Z]{3})\)|^\s*([A-Z]{3})\s*$/); return m ? m[1] ?? m[2] ?? "" : ""; };
 export type Ticket = { path: string; name: string; type: string };

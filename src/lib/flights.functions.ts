@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Flight } from "./hotels";
+import { mapFlightOffer, type FlightOffer } from "./flight-offers";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 export const searchFlights = createServerFn({ method: "POST" })
@@ -18,14 +19,8 @@ export const searchFlights = createServerFn({ method: "POST" })
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "search_flights");
     const { passhub } = await import("./passhub.server");
-    type Offer = {
-      airline?: string; flightNumber?: string; departureLocation?: string; arrivalLocation?: string;
-      departureTime?: string; arrivalTime?: string; totalFlightDuration?: string; stopCount?: number;
-      totalPrice: number; serviceClass?: string; carryOnBaggageIncluded?: boolean;
-      checkedBaggageIncluded?: boolean; checkedBaggageQuantity?: number;
-    };
     try {
-      const r = await passhub<{ offers?: Offer[] }>("/searches", {
+      const r = await passhub<{ offers?: FlightOffer[] }>("/searches", {
         method: "POST",
         keyName: "PASSHUB_AIR_API_KEY",
         body: {
@@ -34,17 +29,7 @@ export const searchFlights = createServerFn({ method: "POST" })
           dates: [{ departure: data.date }], ravPercentage: 0, initialWaitSeconds: 40,
         },
       });
-      const time = (t?: string) => (t ?? "").slice(11, 16);
-      const flights = (r.offers ?? []).map((o, i) => ({
-        id: `${i}-${o.flightNumber ?? ""}-${o.departureTime ?? ""}`,
-        airline: o.airline ?? "", flightNumber: o.flightNumber ?? "",
-        from: o.departureLocation ?? data.from, to: o.arrivalLocation ?? data.to,
-        departure: time(o.departureTime), arrival: time(o.arrivalTime),
-        duration: (o.totalFlightDuration ?? "").replace(":", "h"),
-        stops: o.stopCount ? `${o.stopCount} parada${o.stopCount > 1 ? "s" : ""}` : "Direto",
-        price: o.totalPrice, travelClass: o.serviceClass ?? "",
-        bags: o.checkedBaggageIncluded ? `${o.checkedBaggageQuantity || 1} mala despachada` : o.carryOnBaggageIncluded ? "Só bagagem de mão" : "Só item pessoal",
-      }));
+      const flights = (r.offers ?? []).map((o, i) => mapFlightOffer(o, i, data.from, data.to));
       flights.sort((a, b) => a.price - b.price);
       return { flights };
     } catch (e) {
