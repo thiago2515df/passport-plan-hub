@@ -241,16 +241,16 @@ function Index() {
                        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
                          <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(h.total * COMMISSION)}</span>
                          <Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button>
+                       </div>
+                     </div>
                    </article>
-                    </div>
+                );
+              })}
+            </div>
              {!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4">
                <div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {hotelResults.pages}</span></div>
                <div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div>
              </nav>}
-                  </div>
-                );
-              })}
-            </div>
           </section>
 
           <div className="min-w-0 space-y-4">
