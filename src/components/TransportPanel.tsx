@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { viewTicket } from "@/lib/tickets.functions";
 import type { Search, Ticket, Transport, TransportLeg } from "@/lib/hotels";
 import { AirlineLogo } from "@/components/AirlineLogo";
-import { passengerCounts } from "@/lib/customer-itinerary";
+import { connectionAirportLabel, passengerCounts } from "@/lib/customer-itinerary";
 
 export function TicketView({ ticket }: { ticket: Ticket }) {
   const getUrl = useServerFn(viewTicket);
@@ -131,9 +131,9 @@ function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
         <DialogTitle>Detalhes da conexão</DialogTitle>
         <DialogDescription>{connectionLeg?.company}</DialogDescription>
         {(connectionLeg?.connections?.length ? connectionLeg.connections : connectionLeg?.connectionDetails?.map(c => c.airport) ?? []).map((airport, i) => {
-          const detail = connectionLeg?.connectionDetails?.find(c => c.airport === airport);
+           const detail = connectionLeg?.connectionDetails?.[i]?.airport === airport ? connectionLeg.connectionDetails[i] : connectionLeg?.connectionDetails?.find(c => c.airport === airport);
           const time = (t?: string) => t ? (t.includes("T") ? `${date(t.slice(0, 10))} · ${t.slice(11, 16)}` : t) : "Não informado pela companhia";
-          return <div key={`${airport}-${i}`} className="space-y-3 border-t border-border pt-4"><h3 className="font-bold">Conexão em: {airport}</h3><dl className="space-y-3 text-sm"><div><dt className="text-muted-foreground">Chegada ao aeroporto</dt><dd className="mt-1 font-semibold">{time(detail?.arrivalTime)}</dd></div><div><dt className="text-muted-foreground">Saída do próximo voo</dt><dd className="mt-1 font-semibold">{time(detail?.departureTime)}</dd></div><div><dt className="text-muted-foreground">Tempo de permanência</dt><dd className="mt-1 font-semibold">{detail?.duration || "Não informado pela companhia"}</dd></div></dl></div>;
+           return <div key={`${airport}-${i}`} className="space-y-3 border-t border-border pt-4"><h3 className="font-bold">Conexão em: {connectionAirportLabel(airport)}</h3><dl className="space-y-3 text-sm"><div><dt className="text-muted-foreground">Chegada ao aeroporto</dt><dd className="mt-1 font-semibold">{time(detail?.arrivalTime)}</dd></div><div><dt className="text-muted-foreground">Saída do próximo voo</dt><dd className="mt-1 font-semibold">{time(detail?.departureTime)}</dd></div><div><dt className="text-muted-foreground">Tempo de permanência</dt><dd className="mt-1 font-semibold">{detail?.duration || "Não informado pela companhia"}</dd></div>{detail?.isAirportChange && detail.nextDepartureAirport && <div><dt className="text-muted-foreground">Troca de aeroporto · próximo embarque</dt><dd className="mt-1 font-semibold">{connectionAirportLabel(detail.nextDepartureAirport)}</dd></div>}</dl></div>;
         })}
         {!connectionLeg?.connections?.length && !connectionLeg?.connectionDetails?.length && <p className="text-sm text-muted-foreground">O aeroporto e os horários da conexão não foram disponibilizados nesta proposta. Fale com seu agente para confirmar.</p>}
       </DialogContent>
