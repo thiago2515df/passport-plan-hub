@@ -9,6 +9,7 @@ import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
+import { paginateHotels } from "@/lib/result-pagination";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
 import { ManagementNav } from "@/components/ManagementNav";
@@ -66,6 +67,7 @@ function Index() {
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"asc" | "desc">("asc");
+  const [hotelPage, setHotelPage] = useState(1);
   const [sel, setSel] = useState<string[]>([]);
   const [link, setLink] = useState("");
   const [uploading, setUploading] = useState(false);
@@ -109,7 +111,7 @@ function Index() {
   const buscar = async () => {
     if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
-    setErr(""); setLoading(true); setSel([]); setLink("");
+    setErr(""); setLoading(true); setSel([]); setLink(""); setHotelPage(1);
     if (transport.mode === "air") {
       const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(s.destino);
       setPickF({});
@@ -127,6 +129,7 @@ function Index() {
 
   const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
+  const hotelResults = paginateHotels(list, hotelPage);
 
   const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
   const saveProp = useServerFn(saveProposal);
@@ -205,25 +208,25 @@ function Index() {
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
-        <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
+        <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "2xl:grid-cols-[minmax(340px,.7fr)_minmax(0,1.3fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
           <section className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
               <div className="flex gap-2">
                 <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button>
-                <button onClick={() => setSort(sort === "asc" ? "desc" : "asc")} className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground">{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></button>
+                 <button onClick={() => { setSort(sort === "asc" ? "desc" : "asc"); setHotelPage(1); }} className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground">{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></button>
               </div>
             </div>
-            <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 text-muted-foreground" /><input placeholder="Buscar nos hotéis..." className="w-full bg-transparent text-sm outline-none" value={q} onChange={e => setQ(e.target.value)} /></div>
+             <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 text-muted-foreground" /><input placeholder="Buscar nos hotéis..." className="w-full bg-transparent text-sm outline-none" value={q} onChange={e => { setQ(e.target.value); setHotelPage(1); }} /></div>
             {loading && <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando nas operadoras... pode levar até 1 minuto.</div>}
             {!loading && !hotels.length && !err && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Escolha o destino, as datas e clique em BUSCAR.</div>}
             <div className="space-y-3">
-              {list.map(h => {
+               {hotelResults.items.map(h => {
                 const on = sel.includes(h.id);
                 return (
-                  <div key={h.id} className={`flex overflow-hidden rounded-2xl border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                    <button type="button" onClick={() => setGallery(h)} className="shrink-0" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button>
-                    <div className="flex min-w-0 flex-1 flex-col p-3">
+                   <article key={h.id} aria-label={h.name} className={`flex overflow-hidden rounded-lg border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
+                     <button type="button" onClick={() => setGallery(h)} className="w-20 shrink-0 sm:w-28 [&_img]:h-full [&_img]:min-h-32 [&_img]:w-full [&>div]:h-full [&>div]:min-h-32 [&>div]:w-full" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button>
+                     <div className="flex min-w-0 flex-1 flex-col p-2.5">
                       <div className="flex items-start justify-between gap-2">
                         <button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button>
                         <div className="flex items-center gap-2">
@@ -235,11 +238,15 @@ function Index() {
                       {h.room && <div className="mt-1 truncate text-xs text-muted-foreground">{h.room}</div>}
                       <div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
                       <div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div>
-                      <div className="mt-auto flex items-end justify-between">
-                        <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(h.total * COMMISSION)}</span>
-                        <button onClick={() => toggle(h.id)} className="rounded-lg bg-ink px-3 py-2 text-xs font-semibold text-ink-foreground">{on ? "Remover" : "Adicionar"}</button>
-                      </div>
+                       <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
+                         <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(h.total * COMMISSION)}</span>
+                         <Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button>
+                   </article>
                     </div>
+             {!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4">
+               <div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {hotelResults.pages}</span></div>
+               <div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div>
+             </nav>}
                   </div>
                 );
               })}
@@ -249,8 +256,8 @@ function Index() {
           <div className="min-w-0 space-y-4">
             {transport.mode === "air" && <>
               <label className="block text-sm">Aeroporto de destino (código)<input aria-label="Aeroporto de destino" placeholder="Ex.: MCZ" maxLength={3} value={destIata} onChange={e => setDestIata(e.target.value.toUpperCase())} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /></label>
-              <FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} />
-              <FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} />
+               <FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} />
+               <FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} />
             </>}
             {transport.mode === "bus" ? <TransportPanel s={s} value={transport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
