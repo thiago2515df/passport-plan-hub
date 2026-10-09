@@ -1,4 +1,5 @@
 # Transport proposal
+- [ ] Add clickable connection details to customer tickets and simplify baggage to carry-on only; verify available connection data and interaction.
 - [x] Adapt customer flight tickets with logos, passenger counts and baggage icons, without commercial information; verify desktop and mobile.
 - [x] Restyle flight results using original logos and verified API data, with mobile-readable comparison cards; mark unavailable API commercial terms explicitly.
 - [x] Compact hotel results and paginate ten per page; verify navigation and preserved selection.

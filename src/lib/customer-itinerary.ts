@@ -4,7 +4,7 @@ export function flightToTransportLeg(f: Flight): TransportLeg {
   return { company: `${f.airline} · ${f.flightNumber}`, airline: f.airline, flightNumber: f.flightNumber,
     departure: f.departure, arrival: f.arrival, from: f.from, to: f.to, duration: f.duration, stops: f.stops,
     departureDate: f.departureDate, arrivalDate: f.arrivalDate, fareCategory: f.fareCategory || f.travelClass,
-    connections: f.connections, baggage: f.baggage };
+    connections: f.connections, connectionDetails: f.connectionDetails, baggage: f.baggage };
 }
 
 export function passengerCounts(s: Search) {

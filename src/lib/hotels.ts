@@ -16,16 +16,17 @@ export const COMMISSION = 0.0536;
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type TransportMode = "none" | "air" | "bus";
+export type FlightConnection = { airport: string; arrivalTime?: string; departureTime?: string; duration?: string };
 export type Flight = {
   id: string; airline: string; flightNumber: string; from: string; to: string; departure: string; arrival: string; duration: string; stops: string; price: number; travelClass: string; bags: string;
-  departureDate?: string; arrivalDate?: string; fareCategory?: string; connections?: string[];
+  departureDate?: string; arrivalDate?: string; fareCategory?: string; connections?: string[]; connectionDetails?: FlightConnection[] | undefined;
   baggage?: { personal?: boolean; carryOn?: boolean; checked?: boolean };
   installments?: { count: number; interestFree?: boolean }; commission?: number; fareRules?: string;
 };
 /** Extrai código IATA ("Brasília (BSB)" → "BSB"). */
 export const iataOf = (v?: string) => { const m = (v ?? "").toUpperCase().match(/\(([A-Z]{3})\)|^\s*([A-Z]{3})\s*$/); return m ? m[1] ?? m[2] ?? "" : ""; };
 export type Ticket = { path: string; name: string; type: string };
-export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string; airline?: string | undefined; flightNumber?: string | undefined; departureDate?: string | undefined; arrivalDate?: string | undefined; fareCategory?: string | undefined; connections?: string[] | undefined; baggage?: Flight["baggage"] | undefined };
+export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string; airline?: string | undefined; flightNumber?: string | undefined; departureDate?: string | undefined; arrivalDate?: string | undefined; fareCategory?: string | undefined; connections?: string[] | undefined; connectionDetails?: FlightConnection[] | undefined; baggage?: Flight["baggage"] | undefined };
 export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean; price?: number | undefined; travelClass?: string; bags?: string };
 /** Valor do pacote para o cliente: hotel + transporte. */
 export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + (t && t.mode !== "none" ? t.price ?? 0 : 0);
