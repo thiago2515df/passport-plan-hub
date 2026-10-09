@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Bus, Plane, Upload, FileText, Trash2, Loader2, ExternalLink, Users, Luggage } from "lucide-react";
+import { Bus, Plane, Upload, FileText, Trash2, Loader2, ExternalLink, Users, Luggage, UserRound, Baby, Backpack, BriefcaseBusiness, Clock3, Check, X, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { viewTicket } from "@/lib/tickets.functions";
 import type { Search, Ticket, Transport, TransportLeg } from "@/lib/hotels";
+import { AirlineLogo } from "@/components/AirlineLogo";
+import { passengerCounts } from "@/lib/customer-itinerary";
 
 export function TicketView({ ticket }: { ticket: Ticket }) {
   const getUrl = useServerFn(viewTicket);
@@ -87,11 +89,56 @@ export function TransportPanel({ s, value, onChange, onBusyChange }: { s: Search
 
 const longDate = (d: string) => d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
 
+function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
+  const passengers = passengerCounts(s);
+  const shortCity = (city: string) => (city.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)/gi, "").trim();
+  const date = (d: string) => d ? new Date(`${d}T12:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "—";
+  return <section aria-label="Itinerário" className="min-w-0 space-y-3">
+    {(["outbound", "inbound"] as const).map(key => {
+      const leg = value[key], out = key === "outbound";
+      const fallbackDate = out ? s.checkin : s.checkout;
+      const airline = leg.airline || leg.company.split(" · ")[0] || "";
+      const number = leg.flightNumber || leg.company.split(" · ").slice(1).join(" · ");
+      const bags = [
+        { name: "Item pessoal", Icon: Backpack, included: leg.baggage?.personal },
+        { name: "Bagagem de mão", Icon: BriefcaseBusiness, included: leg.baggage?.carryOn },
+        { name: "Bagagem despachada", Icon: Luggage, included: leg.baggage?.checked },
+      ];
+      return <article key={key} aria-label={`Passagem de ${out ? "ida" : "volta"}`} className="@container min-w-0 rounded-lg border border-border bg-card p-4 text-foreground sm:p-5">
+        <div className="grid min-w-0 grid-cols-1 gap-4 @min-[560px]:grid-cols-[88px_minmax(0,1fr)] @min-[560px]:gap-6">
+          <div className="flex items-center justify-between gap-3 @min-[560px]:flex-col @min-[560px]:justify-center"><AirlineLogo airline={airline} /><span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-primary">{out ? "IDA" : "VOLTA"}</span></div>
+          <div className="min-w-0">
+            {(leg.fareCategory || value.travelClass || number) && <div className="mb-4 break-words text-xs font-semibold text-muted-foreground">{[leg.fareCategory || value.travelClass, number].filter(Boolean).join(" · ")}</div>}
+            <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(76px,1fr)_minmax(0,1fr)] items-center gap-2 sm:gap-4">
+              <div className="min-w-0"><div className="text-sm font-bold tabular-nums sm:text-base">{date(leg.departureDate || fallbackDate)}</div><div className="mt-1 text-xl font-bold tabular-nums sm:text-2xl">{leg.departure || "—"}</div><div className="mt-1 break-words text-sm font-semibold">{leg.from || shortCity(out ? s.origem || "Brasília" : s.destino)}</div></div>
+              <div className="min-w-0 text-center text-xs text-muted-foreground"><div className="flex items-center gap-1"><span className="h-px min-w-0 flex-1 bg-border" /><span className="flex items-center gap-1"><Clock3 className="h-3 w-3 shrink-0" />{leg.duration || "—"}</span><span className="h-px min-w-0 flex-1 bg-border" /></div><div className="mt-2 break-words leading-relaxed">{leg.connections?.length ? `Conexão em: ${leg.connections.join(" / ")}` : leg.stops}</div></div>
+              <div className="min-w-0 text-right"><div className="text-sm font-bold tabular-nums sm:text-base">{date(leg.arrivalDate || fallbackDate)}</div><div className="mt-1 text-xl font-bold tabular-nums sm:text-2xl">{leg.arrival || "—"}</div><div className="mt-1 break-words text-sm font-semibold">{leg.to || shortCity(out ? s.destino : s.origem || "Brasília")}</div></div>
+            </div>
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-border pt-3">
+              <div className="flex items-center gap-4 text-sm font-semibold">
+                <span className="flex items-center gap-1.5" aria-label={passengers.adults === undefined ? s.hospedes : `${passengers.adults} adultos`} title="Adultos"><UserRound className="h-5 w-5" />{passengers.adults ?? s.hospedes}</span>
+                {passengers.children > 0 && <span className="flex items-center gap-1.5" aria-label={`${passengers.children} crianças`} title="Crianças"><Baby className="h-5 w-5" />{passengers.children}</span>}
+              </div>
+              <div className="flex items-center gap-4">{bags.map(({ name, Icon, included }) => {
+                const label = `${name}: ${included === true ? "incluída" : included === false ? "não incluída" : "não informada"}`;
+                return <span key={name} role="img" aria-label={label} title={label} className={`relative inline-flex h-7 w-6 items-center justify-center ${included === false ? "text-muted-foreground/50" : "text-muted-foreground"}`}><Icon className="h-6 w-6" />{included === true ? <Check className="absolute -right-1 -top-1 h-3 w-3 text-success-foreground" /> : included === false ? <X className="absolute -right-1 -top-1 h-3 w-3 text-destructive" /> : <HelpCircle className="absolute -right-1 -top-1 h-3 w-3" />}</span>;
+              })}</div>
+            </div>
+            {!leg.baggage && value.bags && <p className="mt-2 text-xs text-muted-foreground">{value.bags}</p>}
+            {leg.ticket && <TicketView ticket={leg.ticket} />}
+          </div>
+        </div>
+      </article>;
+    })}
+  </section>;
+}
+
 /** Cartão do itinerário visto pelo cliente (estilo bilhete). */
 export function TransportItinerary({ s, value }: { s: Search; value: Transport }) {
   const destination = s.destino.split(",")[0] || "Destino";
   const origin = s.origem || "Brasília";
   const Icon = value.mode === "bus" ? Bus : Plane;
+  if (value.mode === "air") return <CustomerFlightTickets s={s} value={value} />;
   return <section aria-label="Itinerário" className="overflow-hidden rounded-3xl bg-navy text-card shadow-md">
     <div className="flex items-center gap-2 px-4 pt-4 text-xs font-semibold tracking-[0.2em] opacity-80 sm:px-5"><Icon className="h-4 w-4" />{value.mode === "bus" ? "SEU ÔNIBUS" : "SEU VOO"}</div>
     {(["outbound", "inbound"] as const).map((key, i) => {
