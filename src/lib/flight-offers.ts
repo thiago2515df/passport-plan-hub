@@ -24,13 +24,13 @@ function connectionDetails(stops: unknown): FlightConnection[] {
   return stops.flatMap(stop => {
     if (!stop || typeof stop !== "object") return [];
     const row = stop as Record<string, unknown>;
-    if (typeof row.airportCode !== "string" || !/^[A-Z]{3}$/.test(row.airportCode)) return [];
+    if (typeof row['airportCode'] !== "string" || !/^[A-Z]{3}$/.test(row['airportCode'])) return [];
     const timestamp = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v) ? v : undefined;
-    return [{ airport: row.airportCode,
-      arrivalTime: timestamp(row.arrivalTime), departureTime: timestamp(row.departureTime),
-      duration: typeof row.duration === "string" && row.duration.trim() ? row.duration : undefined,
-      nextDepartureAirport: typeof row.nextDepartureAirport === "string" && /^[A-Z]{3}$/.test(row.nextDepartureAirport) ? row.nextDepartureAirport : undefined,
-      isAirportChange: typeof row.isAirportChange === "boolean" ? row.isAirportChange : undefined,
+    return [{ airport: row['airportCode'],
+      arrivalTime: timestamp(row['arrivalTime']), departureTime: timestamp(row['departureTime']),
+      duration: typeof row['duration'] === "string" && row['duration'].trim() ? row['duration'] : undefined,
+      nextDepartureAirport: typeof row['nextDepartureAirport'] === "string" && /^[A-Z]{3}$/.test(row['nextDepartureAirport']) ? row['nextDepartureAirport'] : undefined,
+      isAirportChange: typeof row['isAirportChange'] === "boolean" ? row['isAirportChange'] : undefined,
     }];
   });
 }
