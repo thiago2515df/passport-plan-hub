@@ -1,6 +1,6 @@
 # Transport proposal
 - [x] Add clickable connection details to customer tickets and simplify baggage to carry-on only; verify missing-data fallback and interaction.
-- [ ] Investigate PassHub connection fields and preserve available airports, cities, arrival/departure and waiting times through flight selection and customer proposals; verify against actual API data.
+- [x] Import verified PassHub stops airportCode, arrivalTime, departureTime and duration into customer proposals; verify real SSA connection, city label, airport changes and encoded-link preservation.
 - [x] Adapt customer flight tickets with logos, passenger counts and baggage icons, without commercial information; verify desktop and mobile.
 - [x] Restyle flight results using original logos and verified API data, with mobile-readable comparison cards; mark unavailable API commercial terms explicitly.
 - [x] Compact hotel results and paginate ten per page; verify navigation and preserved selection.
