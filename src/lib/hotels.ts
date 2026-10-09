@@ -16,7 +16,7 @@ export const COMMISSION = 0.0536;
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type TransportMode = "none" | "air" | "bus";
-export type FlightConnection = { airport: string; arrivalTime?: string; departureTime?: string; duration?: string };
+export type FlightConnection = { airport: string; arrivalTime?: string | undefined; departureTime?: string | undefined; duration?: string | undefined; nextDepartureAirport?: string | undefined; isAirportChange?: boolean | undefined };
 export type Flight = {
   id: string; airline: string; flightNumber: string; from: string; to: string; departure: string; arrival: string; duration: string; stops: string; price: number; travelClass: string; bags: string;
   departureDate?: string; arrivalDate?: string; fareCategory?: string; connections?: string[]; connectionDetails?: FlightConnection[] | undefined;

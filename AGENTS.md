@@ -24,4 +24,5 @@
 - Share versioned public proposal-preview artwork and absolute social-image metadata across short and legacy proposal routes so crawlers see the same branded preview without authentication.
 - Keep flight comparison cards container-responsive in a wider result track and hotel results compact and paginated through a shared pagination helper, so neither result type squeezes or clips the other.
 - Normalize only verified PassHub flight fields in a browser-safe offer mapper; keep absent commercial terms and baggage allowances unknown instead of inferring them from sample artwork.
+- Map verified PassHub stops into ordered connection details before proposal encoding, preserving timestamps and airport changes; resolve city labels through an airport reference so customer dialogs never guess layover locations or times.
 - Preserve per-leg flight metadata through a browser-safe customer itinerary mapper and reuse AirlineLogo for airline identity, so customer tickets retain dates and baggage without exposing commercial terms.
