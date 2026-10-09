@@ -25,11 +25,12 @@ export function mapFlightOffer(o: FlightOffer, index: number, from: string, to: 
     id: o.offerId ?? `${index}-${o.flightNumber ?? ""}-${o.departureTime ?? ""}`,
     airline: o.airline ?? "", flightNumber: o.flightNumber ?? "", from: o.departureLocation ?? from, to: o.arrivalLocation ?? to,
     departure: (o.departureTime ?? "").slice(11, 16), arrival: (o.arrivalTime ?? "").slice(11, 16),
-    departureDate: o.departureTime?.slice(0, 10), arrivalDate: o.arrivalTime?.slice(0, 10),
+    ...(o.departureTime ? { departureDate: o.departureTime.slice(0, 10) } : {}),
+    ...(o.arrivalTime ? { arrivalDate: o.arrivalTime.slice(0, 10) } : {}),
     duration: (o.totalFlightDuration ?? "").replace(":", "h"),
     stops: o.stopCount === undefined ? "Paradas não informadas" : o.stopCount ? `${o.stopCount} parada${o.stopCount > 1 ? "s" : ""}` : "Direto",
-    connections: connectionCodes(o.stops), price: o.totalPrice, travelClass: o.serviceClass ?? "", fareCategory: o.fareFamily,
-    baggage: { carryOn, checked },
+    connections: connectionCodes(o.stops), price: o.totalPrice, travelClass: o.serviceClass ?? "", ...(o.fareFamily ? { fareCategory: o.fareFamily } : {}),
+    baggage: { ...(carryOn !== undefined ? { carryOn } : {}), ...(checked !== undefined ? { checked } : {}) },
     bags: checked ? `${o.checkedBaggageQuantity || 1} mala despachada` : carryOn ? "Bagagem de mão incluída" : "Consulte a franquia de bagagem",
   };
 }

@@ -208,7 +208,7 @@ function Index() {
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
-        <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "2xl:grid-cols-[minmax(340px,.7fr)_minmax(0,1.3fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
+        <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
           <section className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
