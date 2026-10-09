@@ -10,6 +10,7 @@ import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { paginateHotels } from "@/lib/result-pagination";
+import { flightToTransportLeg } from "@/lib/customer-itinerary";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
 import { ManagementNav } from "@/components/ManagementNav";
@@ -149,7 +150,7 @@ function Index() {
     const next = { ...pickF, [k]: f }; setPickF(next);
     setS(prev => {
       const t = prev.transport ?? makeTransport("air", prev.destino);
-      const leg = (x: Flight) => ({ company: `${x.airline} · ${x.flightNumber}`, departure: x.departure, arrival: x.arrival, from: x.from, to: x.to, duration: x.duration, stops: x.stops });
+      const leg = flightToTransportLeg;
       return { ...prev, transport: { ...t,
         ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}),
         ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}),
