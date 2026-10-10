@@ -8,6 +8,7 @@ import { viewTicket } from "@/lib/tickets.functions";
 import type { Search, Ticket, Transport, TransportLeg } from "@/lib/hotels";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { connectionAirportLabel, passengerCounts } from "@/lib/customer-itinerary";
+import { isCaldasNovas } from "@/lib/hotels";
 
 export function TicketView({ ticket }: { ticket: Ticket }) {
   const getUrl = useServerFn(viewTicket);
@@ -60,7 +61,7 @@ export function TransportPanel({ s, value, onChange, onBusyChange }: { s: Search
     <h2 className="flex items-center gap-2 text-lg font-semibold"><Icon />{value.mode === "bus" ? "Ônibus" : "Aéreo"} · Ida e volta</h2>
     {value.standard && <p className="text-sm text-muted-foreground">Caldas Novas · horários padrão. Empresa ilustrativa, substitua pela operadora real.</p>}
     <div className="grid grid-cols-3 gap-3">
-      <label className="text-xs text-muted-foreground">Valor total (R$)<input aria-label="Valor do transporte" type="number" min={0} step="0.01" value={value.price ?? ""} onChange={e => onChange?.({ ...value, price: e.target.value === "" ? undefined : Math.max(0, +e.target.value) })} className={input} /></label>
+      <label className="text-xs text-muted-foreground">Custo total (R$)<input aria-label="Valor do transporte" type="number" min={0} step="0.01" readOnly={value.mode === "bus" && isCaldasNovas(s.destino)} value={value.price ?? ""} onChange={e => onChange?.({ ...value, price: e.target.value === "" ? undefined : Math.max(0, +e.target.value) })} className={input} /></label>
       <label className="text-xs text-muted-foreground">Classe<input aria-label="Classe" placeholder={value.mode === "bus" ? "Executivo" : "Econômica"} value={value.travelClass ?? ""} onChange={e => onChange?.({ ...value, travelClass: e.target.value })} className={input} /></label>
       <label className="text-xs text-muted-foreground">Bagagem<input aria-label="Bagagem" placeholder="1 mala 23kg" value={value.bags ?? ""} onChange={e => onChange?.({ ...value, bags: e.target.value })} className={input} /></label>
     </div>

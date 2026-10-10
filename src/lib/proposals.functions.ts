@@ -46,7 +46,7 @@ export const getEditableProposal = createServerFn({ method: "GET" })
     const { data: row, error } = await context.supabase.from("proposals").select("code,payload,owner_id").eq("code", data).maybeSingle();
     const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (error || !row || (!admin && row.owner_id !== context.userId)) throw new Error("Proposta não encontrada ou edição não permitida.");
-    return { code: row.code, payload: row.payload };
+    return { code: row.code, payload: row.payload, ownerId: row.owner_id };
   });
 
 export const setProposalStatus = createServerFn({ method: "POST" })
