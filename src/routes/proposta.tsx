@@ -10,6 +10,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { getAgencyContact } from "@/lib/settings.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
+import { customerProposal } from "@/lib/customer-proposal";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -31,7 +32,8 @@ const TABS = ["Hospedagem", "Transporte", "Adicionais"] as const;
 
 function Proposta() {
   const { t } = Route.useSearch();
-  const p = decodeProposal(t);
+  const internal = decodeProposal(t);
+  const p = internal ? customerProposal(internal) : null;
   return <ProposalView p={p} />;
 }
 
@@ -67,7 +69,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
   const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(
-    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(packageTotal(pick.total, p.s.transport))}${hasTransport ? ", com passagem" : ""})` : ""}.`,
+    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(pick.total)}${hasTransport ? ", com passagem" : ""})` : ""}.`,
   )}`;
 
   return (
@@ -125,14 +127,14 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
 
         {tab === 0 && (
           <>
-            {hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport!.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport!} /></div>}
+            {p.s.transport && hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport} /></div>}
             <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Escolha sua hospedagem</h2>
             <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosen === i;
-                const included = [hasTransport ? (p.s.transport!.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã"].filter(Boolean) as string[];
+                const included = [hasTransport ? (p.s.transport?.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã", ...(p.s.extras ?? []).map(item => item.name)].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
@@ -153,8 +155,8 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
                         {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{x}</li>)}
                       </ul>
                       <div className="mt-3 border-t border-border pt-3">
-                        <div className="text-xs text-muted-foreground">{hasTransport ? `Pacote completo · ${p.s.hospedes}` : `${brl(h.nightly)} / noite · ${nights} ${nights === 1 ? "noite" : "noites"}`}</div>
-                        <div className="text-2xl font-black">{brl(packageTotal(h.total, p.s.transport))}</div>
+                        <div className="text-xs text-muted-foreground">Pacote completo · {p.s.hospedes}</div>
+                        <div className="text-2xl font-black">{brl(h.total)}</div>
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
@@ -172,7 +174,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
           <div className="mt-10 rounded-3xl bg-card p-10 text-center shadow-md">
             {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
             <h2 className="mt-3 text-xl font-bold">{TABS[tab]}</h2>
-            <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : "Fale com a gente para incluir passeios, transfer e seguro na sua viagem."}</p>
+             {tab === 2 && p.s.extras?.length ? <ul className="mt-4 space-y-2 text-sm">{p.s.extras.map((item, i) => <li key={i} className="flex items-center justify-center gap-2"><Check className="h-4 w-4 text-primary" />{item.name}</li>)}</ul> : <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : "Fale com a gente para incluir passeios, transfer e seguro na sua viagem."}</p>}
             <a href={wa} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Fale conosco</a>
           </div>
         )}
@@ -182,7 +184,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(packageTotal(pick.total, p.s.transport))}</div></div>
+            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
             <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Confirmar no WhatsApp</a>
           </div>
         </div>
