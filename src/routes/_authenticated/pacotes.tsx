@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, decodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
@@ -11,7 +11,6 @@ import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { paginateHotels } from "@/lib/result-pagination";
 import { flightToTransportLeg } from "@/lib/customer-itinerary";
-import { toggleHotelSelection, nextFlightSelectionStep, type ProposalSelectionStep } from "@/lib/proposal-selection";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
 import { ManagementNav } from "@/components/ManagementNav";
@@ -43,6 +42,7 @@ export const Route = createFileRoute("/_authenticated/pacotes")({
   component: Index,
 });
 
+const MAX = 3;
 const nav = [
   ["COTAÇÕES", [[Building2, "Pacotes"], [Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"]]],
 ] as const;
@@ -70,18 +70,6 @@ function Index() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [hotelPage, setHotelPage] = useState(1);
   const [sel, setSel] = useState<string[]>([]);
-  const outboundRef = useRef<HTMLDivElement>(null);
-  const returnRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLDivElement>(null);
-  const [advanceTo, setAdvanceTo] = useState<ProposalSelectionStep | null>(null);
-  useEffect(() => {
-    if (!advanceTo) return;
-    const target = advanceTo === "out" ? outboundRef.current : advanceTo === "back" ? returnRef.current : summaryRef.current;
-    if (!target) return;
-    target.focus({ preventScroll: true });
-    target.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth", block: "start" });
-    setAdvanceTo(null);
-  }, [advanceTo]);
   const [link, setLink] = useState("");
   const [uploading, setUploading] = useState(false);
   const findFlights = useServerFn(searchFlights);
@@ -144,11 +132,7 @@ function Index() {
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
   const hotelResults = paginateHotels(list, hotelPage);
 
-  const toggle = (id: string) => {
-    setLink("");
-    setSel(previous => toggleHotelSelection(previous, id));
-    if (sel.length === 0 && transport.mode === "air") setAdvanceTo("out");
-  };
+  const toggle = (id: string) => { setLink(""); setSel(p => p.includes(id) ? p.filter(x => x !== id) : p.length < MAX ? [...p, id] : p); };
   const saveProp = useServerFn(saveProposal);
   const [saving, setSaving] = useState(false);
   const gerar = async () => {
@@ -164,8 +148,6 @@ function Index() {
   };
   const choose = (k: "out" | "back", f: Flight) => {
     const next = { ...pickF, [k]: f }; setPickF(next);
-    setLink("");
-    setAdvanceTo(nextFlightSelectionStep(k));
     setS(prev => {
       const t = prev.transport ?? makeTransport("air", prev.destino);
       const leg = flightToTransportLeg;
@@ -275,8 +257,8 @@ function Index() {
           <div className="min-w-0 space-y-4">
             {transport.mode === "air" && <>
               <label className="block text-sm">Aeroporto de destino (código)<input aria-label="Aeroporto de destino" placeholder="Ex.: MCZ" maxLength={3} value={destIata} onChange={e => setDestIata(e.target.value.toUpperCase())} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /></label>
-               <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
-               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
+               <FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} />
+               <FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} />
             </>}
             {transport.mode === "bus" ? <TransportPanel s={s} value={transport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
@@ -285,9 +267,9 @@ function Index() {
               {!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}
             </div> : null}
 
-            <div ref={summaryRef} tabIndex={-1} aria-label="Resumo da proposta" className="scroll-mt-6 rounded-2xl border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hotel" : "hotéis"}</span></div>
-              {sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhum hotel selecionado.</p>}
+            <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length}/{MAX}</span></div>
+              {sel.length === 0 && <p className="text-sm text-muted-foreground">Selecione até {MAX} hotéis para montar a proposta.</p>}
               <div className="space-y-2">
                 {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; return (
                   <div key={id} className="rounded-xl border border-border p-3">

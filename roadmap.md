@@ -1,5 +1,4 @@
 # Transport proposal
-- [x] Remove hotel selection limits and automate first hotel → outbound → return → proposal summary navigation; verified five hotels and automatic focus in the live page, with nine passing tests.
 - [x] Add clickable connection details to customer tickets and simplify baggage to carry-on only; verify missing-data fallback and interaction.
 - [x] Import verified PassHub stops airportCode, arrivalTime, departureTime and duration into customer proposals; verify real SSA connection, city label, airport changes and encoded-link preservation.
 - [x] Adapt customer flight tickets with logos, passenger counts and baggage icons, without commercial information; verify desktop and mobile.
