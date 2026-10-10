@@ -1,5 +1,5 @@
 # Transport proposal
-- [ ] Repair missing public access configuration in published bundles and verify login rendering and configuration tests.
+- [x] Repair missing public access configuration; verify login rendering and configuration tests (published version needs republishing).
 - [x] Add clickable connection details to customer tickets and simplify baggage to carry-on only; verify missing-data fallback and interaction.
 - [x] Import verified PassHub stops airportCode, arrivalTime, departureTime and duration into customer proposals; verify real SSA connection, city label, airport changes and encoded-link preservation.
 - [x] Adapt customer flight tickets with logos, passenger counts and baggage icons, without commercial information; verify desktop and mobile.

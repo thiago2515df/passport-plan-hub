@@ -14,6 +14,10 @@ describe("Public access build configuration", () => {
     expect(JSON.parse(defines["import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"])).toBe("sb_publishable_preview");
   });
 
+  it("treats empty deployment values as missing", () => {
+    expect(publicAccessDefines({ VITE_SUPABASE_URL: " ", VITE_SUPABASE_PUBLISHABLE_KEY: "" })).toEqual(publicAccessDefines({}));
+  });
+
   it("never injects server credentials or runtime-only addresses", () => {
     const defines = publicAccessDefines({ SUPABASE_URL: "http://private-runtime.test", SUPABASE_SERVICE_ROLE_KEY: "private-test-credential" });
     expect(Object.keys(defines)).toEqual(["import.meta.env.VITE_SUPABASE_URL", "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY"]);
