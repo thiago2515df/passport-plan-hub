@@ -110,6 +110,10 @@ function Index() {
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
+        {loading && (
+          <div className="mt-6 flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando nas operadoras... pode levar até 1 minuto.</div>
+        )}
+
         {hasSearched && (
           <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_.75fr]">
             <section>
