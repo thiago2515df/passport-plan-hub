@@ -1,0 +1,1 @@
+CREATE POLICY "Insert new ticket files with random capability paths" ON storage.objects FOR INSERT TO anon, authenticated WITH CHECK (bucket_id = 'proposal-tickets' AND name ~ '^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.(pdf|png|jpg|webp)$');

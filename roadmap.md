@@ -1,0 +1,23 @@
+# Transport proposal
+- [x] Remove hotel selection limits and automate first hotel → outbound → return → proposal summary navigation; verified five hotels and automatic focus in the live page, with nine passing tests.
+- [x] Add clickable connection details to customer tickets and simplify baggage to carry-on only; verify missing-data fallback and interaction.
+- [x] Import verified PassHub stops airportCode, arrivalTime, departureTime and duration into customer proposals; verify real SSA connection, city label, airport changes and encoded-link preservation.
+- [x] Adapt customer flight tickets with logos, passenger counts and baggage icons, without commercial information; verify desktop and mobile.
+- [x] Restyle flight results using original logos and verified API data, with mobile-readable comparison cards; mark unavailable API commercial terms explicitly.
+- [x] Compact hotel results and paginate ten per page; verify navigation and preserved selection.
+- [x] Create and verify a branded standard image for every proposal link preview.
+- [x] Use identical personalized standard message for copying and WhatsApp in the proposal sending dialog; verify both actions.
+- [x] Show destination-only customer title and personalized exclusive-proposal highlight when a client name exists.
+- [x] Preserve a shared lateral menu across workspace pages.
+- [x] Add three-column proposal Kanban, team/owner visibility, confirmed sending and approval/cancellation.
+- [x] Add secure proposal editing and client details; verify authenticated administrator creation, owner assignment, confirmed sending, editing and approval.
+- [x] Replace RAV with transport choices and map with ticket editor.
+- [x] Save private outbound/return attachments and display in shared proposals.
+- [x] Apply Caldas Novas bus defaults and verify the workflow.- [x] Flight search via PassHub air API (outbound/return lists, selection fills proposal)
+- [ ] Bus search via API (same flow)
+- [x] WhatsApp real 5561992267062
+- [x] Links curtos /p/<code> (tabela proposals)
+- [x] Settings page and seller workspace with secure profiles, permissions and proposal ownership.
+- [x] Activate email login, password setup by email and first administrator for the identified owner.
+- [x] Verify administrator settings, seller form, signed-out redirects and sign-out protection.
+- [ ] Verify a real seller invitation and proposal ownership end-to-end (requires the first seller's account and completed email activation).

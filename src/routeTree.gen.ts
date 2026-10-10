@@ -10,11 +10,28 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PropostaRouteImport } from './routes/proposta'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedPacotesRouteImport } from './routes/_authenticated/pacotes'
+import { Route as AuthenticatedVendedorRouteImport } from './routes/_authenticated/vendedor'
+import { Route as PCodeRouteImport } from './routes/p/$code'
+import { Route as ApiPublicDestinationImageSlugRouteImport } from './routes/api/public/destination-image/$slug'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PropostaRoute = PropostaRouteImport.update({
@@ -22,31 +39,119 @@ const PropostaRoute = PropostaRouteImport.update({
   path: '/proposta',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPacotesRoute = AuthenticatedPacotesRouteImport.update({
+  id: '/pacotes',
+  path: '/pacotes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVendedorRoute = AuthenticatedVendedorRouteImport.update({
+  id: '/vendedor',
+  path: '/vendedor',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const PCodeRoute = PCodeRouteImport.update({
+  id: '/p/$code',
+  path: '/p/$code',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicDestinationImageSlugRoute =
+  ApiPublicDestinationImageSlugRouteImport.update({
+    id: '/api/public/destination-image/$slug',
+    path: '/api/public/destination-image/$slug',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/pacotes': typeof AuthenticatedPacotesRoute
+  '/vendedor': typeof AuthenticatedVendedorRoute
+  '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/pacotes': typeof AuthenticatedPacotesRoute
+  '/vendedor': typeof AuthenticatedVendedorRoute
+  '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
+  '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/pacotes': typeof AuthenticatedPacotesRoute
+  '/_authenticated/vendedor': typeof AuthenticatedVendedorRoute
+  '/p/$code': typeof PCodeRoute
+  '/api/public/destination-image/$slug': typeof ApiPublicDestinationImageSlugRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/proposta'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/proposta'
+    | '/reset-password'
+    | '/configuracoes'
+    | '/pacotes'
+    | '/vendedor'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/proposta'
-  id: '__root__' | '/' | '/proposta'
+  to:
+    | '/'
+    | '/auth'
+    | '/proposta'
+    | '/reset-password'
+    | '/configuracoes'
+    | '/pacotes'
+    | '/vendedor'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/proposta'
+    | '/reset-password'
+    | '/_authenticated/configuracoes'
+    | '/_authenticated/pacotes'
+    | '/_authenticated/vendedor'
+    | '/p/$code'
+    | '/api/public/destination-image/$slug'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
   PropostaRoute: typeof PropostaRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
+  PCodeRoute: typeof PCodeRoute
+  ApiPublicDestinationImageSlugRoute: typeof ApiPublicDestinationImageSlugRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -58,6 +163,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/proposta': {
       id: '/proposta'
       path: '/proposta'
@@ -65,12 +184,74 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PropostaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/pacotes': {
+      id: '/_authenticated/pacotes'
+      path: '/pacotes'
+      fullPath: '/pacotes'
+      preLoaderRoute: typeof AuthenticatedPacotesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/vendedor': {
+      id: '/_authenticated/vendedor'
+      path: '/vendedor'
+      fullPath: '/vendedor'
+      preLoaderRoute: typeof AuthenticatedVendedorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/p/$code': {
+      id: '/p/$code'
+      path: '/p/$code'
+      fullPath: '/p/$code'
+      preLoaderRoute: typeof PCodeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/destination-image/$slug': {
+      id: '/api/public/destination-image/$slug'
+      path: '/api/public/destination-image/$slug'
+      fullPath: '/api/public/destination-image/$slug'
+      preLoaderRoute: typeof ApiPublicDestinationImageSlugRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedPacotesRoute: typeof AuthenticatedPacotesRoute
+  AuthenticatedVendedorRoute: typeof AuthenticatedVendedorRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedPacotesRoute: AuthenticatedPacotesRoute,
+  AuthenticatedVendedorRoute: AuthenticatedVendedorRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
   PropostaRoute: PropostaRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
+  PCodeRoute: PCodeRoute,
+  ApiPublicDestinationImageSlugRoute: ApiPublicDestinationImageSlugRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

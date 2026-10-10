@@ -1,6 +1,6 @@
 const BASE = "https://partner-api.passhub.com.br/v1";
 
-let cached: { token: string; exp: number } | null = null;
+const cache = new Map<string, { token: string; exp: number }>();
 
 export class PasshubError extends Error {
   constructor(public status: number, public code: string, message: string, public retriable = false) {
@@ -8,8 +8,8 @@ export class PasshubError extends Error {
   }
 }
 
-function creds() {
-  const key = process.env["PASSHUB_API_KEY"];
+function creds(keyName = "PASSHUB_API_KEY") {
+  const key = process.env[keyName];
   const email = process.env["PASSHUB_API_EMAIL"];
   const password = process.env["PASSHUB_API_PASSWORD"];
   if (!key || !email || !password) throw new PasshubError(500, "CONFIG", "Credenciais PassHub não configuradas");
@@ -23,10 +23,11 @@ async function parseError(res: Response) {
   return new PasshubError(res.status, e.code ?? "UNKNOWN", e.message ?? res.statusText, !!e.retriable);
 }
 
-async function getToken(force = false) {
+async function getToken(keyName: string) {
   const now = Date.now() / 1000;
-  if (!force && cached && cached.exp - now > 3600) return cached.token;
-  const { key, email, password } = creds();
+  const cached = cache.get(keyName);
+  if (cached && cached.exp - now > 3600) return cached.token;
+  const { key, email, password } = creds(keyName);
   const res = await fetch(`${BASE}/auth/token`, {
     method: "POST",
     headers: { "X-Api-Key": key, "Content-Type": "application/json" },
@@ -34,13 +35,14 @@ async function getToken(force = false) {
   });
   if (!res.ok) throw await parseError(res);
   const d = (await res.json()) as { accessToken: string; expiresAt: number };
-  cached = { token: d.accessToken, exp: d.expiresAt };
+  cache.set(keyName, { token: d.accessToken, exp: d.expiresAt });
   return d.accessToken;
 }
 
-export async function passhub<T>(path: string, init: { method?: string; body?: unknown } = {}, retried = false): Promise<T> {
-  const { key } = creds();
-  const token = await getToken();
+export async function passhub<T>(path: string, init: { method?: string; body?: unknown; keyName?: string } = {}, retried = false): Promise<T> {
+  const keyName = init.keyName ?? "PASSHUB_API_KEY";
+  const { key } = creds(keyName);
+  const token = await getToken(keyName);
   const res = await fetch(`${BASE}${path}`, {
     method: init.method ?? "GET",
     headers: { "X-Api-Key": key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -49,7 +51,7 @@ export async function passhub<T>(path: string, init: { method?: string; body?: u
   if (res.status === 401 && !retried) {
     const err = await parseError(res);
     if (err.code === "UNAUTHORIZED") {
-      cached = null;
+      cache.delete(keyName);
       return passhub<T>(path, init, true);
     }
     throw err;
