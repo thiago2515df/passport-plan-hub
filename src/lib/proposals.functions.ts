@@ -23,6 +23,12 @@ export const saveProposal = createServerFn({ method: "POST" })
     await assertPermission(context.supabase, "create_proposals");
     const proposal = decodeProposal(data.payload);
     if (!proposal) throw new Error("Proposta inválida.");
+    const cost = z.number().finite().nonnegative();
+    for (const hotel of proposal.hotels) cost.parse(hotel.total);
+    if (proposal.s.transport?.price !== undefined) cost.parse(proposal.s.transport.price);
+    z.array(z.object({ name: z.string().trim().min(1).max(120), cost })).parse(proposal.s.extras ?? []);
+    if (proposal.s.adults !== undefined) z.number().int().nonnegative().parse(proposal.s.adults);
+    z.array(z.number().int().min(0).max(17)).parse(proposal.s.childAges ?? []);
     if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
     if (data.code) {
       const { data: saved, error } = await context.supabase.from("proposals").update({ payload: data.payload }).eq("code", data.code).select("code").maybeSingle();
@@ -46,7 +52,7 @@ export const getEditableProposal = createServerFn({ method: "GET" })
     const { data: row, error } = await context.supabase.from("proposals").select("code,payload,owner_id").eq("code", data).maybeSingle();
     const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
     if (error || !row || (!admin && row.owner_id !== context.userId)) throw new Error("Proposta não encontrada ou edição não permitida.");
-    return { code: row.code, payload: row.payload };
+    return { code: row.code, payload: row.payload, ownerId: row.owner_id };
   });
 
 export const setProposalStatus = createServerFn({ method: "POST" })

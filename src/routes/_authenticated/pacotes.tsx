@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, decodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
@@ -22,6 +22,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 import { useAccess } from "@/components/AccessProvider";
 import { SignOutButton } from "@/components/AuthScreen";
+import { getSellerCommissions } from "@/lib/commissions.functions";
+import { packagePricing, transportCost, emptyCommissions } from "@/lib/package-pricing";
+import { Input } from "@/components/ui/input";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -52,6 +55,9 @@ function Index() {
   const queryClient = useQueryClient();
   const loadEditable = useServerFn(getEditableProposal);
   const access = useAccess();
+  const [ownerId, setOwnerId] = useState<string | undefined>();
+  const readCommissions = useServerFn(getSellerCommissions);
+  const commissions = useQuery({ queryKey: ["seller-commissions", ownerId ?? access.userId], queryFn: () => readCommissions({ data: { userId: ownerId } }), enabled: access.allowed, refetchInterval: 10000 });
   const findHotels = useServerFn(searchHotels);
   const [s, setS] = useState<Search>({ destino: "", checkin: "2026-11-16", checkout: "2026-11-18", hospedes: "", rav: 0 });
   const [destId, setDestId] = useState("");
@@ -104,6 +110,7 @@ function Index() {
     loadEditable({ data: editingCode }).then(row => {
       if (!alive) return;
       const proposal = decodeProposal(row.payload);
+      setOwnerId(row.ownerId ?? undefined);
       if (!proposal) throw new Error("Proposta inválida.");
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
       setS(proposal.s); setHotels(restored); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
@@ -112,6 +119,8 @@ function Index() {
     return () => { alive = false; };
   }, [editingCode, loadEditable]);
   const transport = s.transport ?? makeTransport("none", s.destino);
+  const pricingSearch: Search = { ...s, rooms, adults, childAges: kids, hospedes: `${rooms} quarto · ${adults + kids.length} hóspedes` };
+  const effectiveTransport = transport.mode === "bus" && isCaldasNovas(s.destino) ? { ...transport, price: transportCost(pricingSearch) } : transport;
   const changeDestination = (destination: string) => setS(previous => {
     const current = previous.transport;
     const changedCity = previous.destino.split(",")[0] !== destination.split(",")[0];
@@ -258,7 +267,7 @@ function Index() {
                       <div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
                       <div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div>
                        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
-                         <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(h.total * COMMISSION)}</span>
+                          <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, pricingSearch, commissions.data ?? emptyCommissions).commission)}</span>
                          <Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button>
                        </div>
                      </div>
@@ -278,7 +287,7 @@ function Index() {
                <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
                <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
             </>}
-            {transport.mode === "bus" ? <TransportPanel s={s} value={transport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
+            {transport.mode === "bus" ? <TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
                 <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>
               ))}
@@ -289,11 +298,12 @@ function Index() {
               <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hotel" : "hotéis"}</span></div>
               {sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhum hotel selecionado.</p>}
               <div className="space-y-2">
-                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; return (
+                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; const price = packagePricing(h.total, pricingSearch, commissions.data ?? emptyCommissions); return (
                   <div key={id} className="rounded-xl border border-border p-3">
                     <div className="flex justify-between"><span className="text-sm font-semibold">{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
                     <div className="text-[11px] text-muted-foreground">{h.address}</div>
-                    <div className="mt-1 font-bold">{brl(h.nightly)} <span className="text-xs font-normal text-muted-foreground">/ noite</span></div>
+                    <label className="mt-2 block text-xs text-muted-foreground">Custo da hospedagem (R$)<Input aria-label={`Custo de ${h.name}`} type="number" min={0} step="0.01" value={h.total} onChange={e => { const total = Math.max(0, Number(e.target.value)); setHotels(previous => previous.map(item => item.id === id ? { ...item, total, nightly: total / nights } : item)); setLink(""); }} /></label>
+                    <dl className="mt-3 space-y-1 text-xs"><div className="flex justify-between"><dt>Custo dos serviços</dt><dd>{brl(price.cost)}</dd></div><div className="flex justify-between"><dt>Comissão</dt><dd>{brl(price.commission)}</dd></div><div className="flex justify-between pt-1 text-sm font-bold"><dt>Preço final do pacote</dt><dd>{brl(price.total)}</dd></div></dl>
                   </div>); })}
                </div>
                {(pickF.out || pickF.back) && <div className="mt-3 space-y-2">
@@ -305,6 +315,8 @@ function Index() {
                      <div className="mt-1 font-bold">{brl(f.price)}</div>
                    </div>))}
                </div>}
+               {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
+               <div className="mt-4 space-y-2 border-t border-border pt-3"><h3 className="text-sm font-semibold">Itens adicionais incluídos</h3>{(s.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Item adicional ${i + 1}`} placeholder="Item" value={item.name} onChange={e => setS(previous => ({ ...previous, extras: previous.extras?.map((v, j) => j === i ? { ...v, name: e.target.value } : v) }))} /><Input aria-label={`Custo adicional ${i + 1}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => setS(previous => ({ ...previous, extras: previous.extras?.map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) }))} /><Button aria-label={`Remover adicional ${i + 1}`} variant="ghost" size="icon" onClick={() => setS(previous => ({ ...previous, extras: previous.extras?.filter((_, j) => j !== i) }))}><Trash2 className="h-4 w-4" /></Button></div>)}<Button variant="outline" size="sm" onClick={() => setS(previous => ({ ...previous, extras: [...(previous.extras ?? []), { name: "", cost: 0 }] }))}>Adicionar item</Button></div>
                <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />

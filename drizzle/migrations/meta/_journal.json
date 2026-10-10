@@ -36,6 +36,13 @@
       "when": 1791426037421,
       "tag": "0004_proposal_kanban_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791647421750,
+      "tag": "0005_seller_commissions_private_package_prices",
+      "breakpoints": true
     }
   ]
 }

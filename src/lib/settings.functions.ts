@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { commissionsSchema } from "@/lib/commissions.functions";
+import { emptyCommissions } from "@/lib/package-pricing";
 
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
 const seller = z.object({ name: z.string().trim().min(2).max(100), phone: z.string().trim().max(30), email: z.string().email().max(200), permissions });
@@ -106,5 +108,10 @@ export const listMyProposals = createServerFn({ method: "GET" }).middleware([req
   if (error) throw new Error("Não foi possível carregar suas propostas.");
   const { data: people, error: peopleError } = await context.supabase.from("profiles").select("id,name,email");
   if (peopleError) throw new Error("Não foi possível carregar a equipe.");
-  return (data ?? []).map(row => ({ ...row, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" }));
+  const { data: commissions, error: commissionError } = await context.supabase.from("seller_commissions").select("*");
+  if (commissionError) throw new Error("Não foi possível carregar as comissões.");
+  return (data ?? []).map(row => {
+    const rule = commissions?.find(item => item.user_id === row.owner_id);
+    return { ...row, commissions: rule ? commissionsSchema.parse({ air: { kind: rule.air_kind, value: Number(rule.air_value) }, bus: { kind: rule.bus_kind, value: Number(rule.bus_value) } }) : emptyCommissions, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" };
+  });
 });

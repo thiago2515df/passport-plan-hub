@@ -121,6 +121,38 @@ export type Database = {
           },
         ]
       }
+      seller_commissions: {
+        Row: {
+          air_kind: string
+          air_value: number
+          bus_kind: string
+          bus_value: number
+          user_id: string
+        }
+        Insert: {
+          air_kind?: string
+          air_value?: number
+          bus_kind?: string
+          bus_value?: number
+          user_id: string
+        }
+        Update: {
+          air_kind?: string
+          air_value?: number
+          bus_kind?: string
+          bus_value?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_commissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_permissions: {
         Row: {
           create_proposals: boolean

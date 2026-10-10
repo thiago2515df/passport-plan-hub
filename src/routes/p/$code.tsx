@@ -28,7 +28,11 @@ function ShortProposal() {
   const [payload, setPayload] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
-    fetchProposal({ data: code }).then(r => setPayload(r.payload)).catch(() => setPayload(null));
+    let alive = true;
+    const refresh = () => fetchProposal({ data: code }).then(r => { if (alive) setPayload(r.payload); }).catch(() => { if (alive) setPayload(null); });
+    void refresh();
+    const timer = window.setInterval(refresh, 10000);
+    return () => { alive = false; window.clearInterval(timer); };
   }, [code, fetchProposal]);
 
   if (payload === undefined) {
