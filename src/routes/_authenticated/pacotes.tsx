@@ -71,6 +71,7 @@ function Index() {
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [gallery, setGallery] = useState<Hotel | null>(null);
   const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [err, setErr] = useState("");
   const [q, setQ] = useState("");
   const [sort, setSort] = useState<"asc" | "desc">("asc");
@@ -114,6 +115,7 @@ function Index() {
       if (!proposal) throw new Error("Proposta inválida.");
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
       setS(proposal.s); setHotels(restored); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
+      setHasSearched(true);
       setDestId(proposal.s.destinationId ?? ""); setRooms(proposal.s.rooms ?? 1); setAdults(proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2)); setKids(proposal.s.childAges ?? []); setCalMonth(toD(proposal.s.checkin));
     }).catch(error => { if (alive) setErr(error instanceof Error ? error.message : "Não foi possível abrir a proposta."); }).finally(() => { if (alive) setEditLoading(false); });
     return () => { alive = false; };
@@ -133,6 +135,7 @@ function Index() {
   const buscar = async () => {
     if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (!destId) { setErr("Escolha um destino da lista de sugestões."); return; }
+    setHasSearched(true);
     setErr(""); setLoading(true); setSel([]); setLink(""); setHotelPage(1);
     if (transport.mode === "air") {
       const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(s.destino);
@@ -236,7 +239,7 @@ function Index() {
         </div>
         {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
 
-        <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
+        {hasSearched && <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
           <section className="min-w-0">
             <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
               <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
@@ -325,7 +328,7 @@ function Index() {
               {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
             </div>
           </div>
-        </div>
+        </div>}
       </main>
       {gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} />}
     </div>
