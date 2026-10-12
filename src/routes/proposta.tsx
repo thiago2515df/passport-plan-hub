@@ -39,7 +39,13 @@ function Proposta() {
 
 export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>; code?: string }) {
   const contact = useServerFn(getAgencyContact);
-  const agency = useQuery({ queryKey: ["agency-contact"], queryFn: () => contact(), staleTime: 60000 });
+  const agency = useQuery({ queryKey: ["agency-contact"], queryFn: async () => {
+    try {
+      return await contact();
+    } catch {
+      return null;
+    }
+  }, staleTime: 60000 });
   const updateStatusFn = useServerFn(setProposalStatus);
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);

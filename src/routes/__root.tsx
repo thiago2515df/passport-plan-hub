@@ -40,7 +40,11 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    try {
+      reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    } catch (e) {
+      console.error(e);
+    }
   }, [error]);
 
   return (
@@ -50,13 +54,17 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
           Não foi possível carregar esta página
         </h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Ocorreu um erro. Tente novamente ou volte ao início.
+          Ocorreu um erro inesperado. Tente novamente ou volte ao início.
         </p>
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <button
             onClick={() => {
-              router.invalidate();
-              reset();
+              try {
+                router.invalidate();
+                reset();
+              } catch (e) {
+                window.location.href = "/";
+              }
             }}
             className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           >
