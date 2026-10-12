@@ -54,7 +54,7 @@ export default function AereoPage() {
     { from: "BPS", to: "BSB" },
   ]);
 
-  type LegState = { list: Flight[]; loading: boolean; error?: string };
+  type LegState = { list: Flight[]; loading: boolean; error?: string | undefined };
   const [outboundLeg, setOutboundLeg] = useState<LegState>({ list: [], loading: false });
   const [returnLeg, setReturnLeg] = useState<LegState>({ list: [], loading: false });
 
