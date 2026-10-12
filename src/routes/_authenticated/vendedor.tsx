@@ -65,11 +65,11 @@ function SellerPage() {
   const [selectedInbound, setSelectedInbound] = useState<Flight | null>(null);
   const [sortBy] = useState<"price" | "duration">("price");
 
-  const [outboundQuery, setOutboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string }>({
+  const [outboundQuery, setOutboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string | undefined }>({
     flights: [],
     loading: false,
   });
-  const [inboundQuery, setInboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string }>({
+  const [inboundQuery, setInboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string | undefined }>({
     flights: [],
     loading: false,
   });
