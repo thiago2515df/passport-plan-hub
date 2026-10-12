@@ -1,4 +1,5 @@
 # Transport proposal
+- [x] Standardize package flight-results header with hotel-style search, direct-flight filter and price sorting; ten tests passed and authenticated São Paulo search verified airport filtering and no-match state.
 - [x] Configure seller air/bus commissions as fixed amounts or percentages in authorized internal areas.
 - [x] Calculate full package selling prices and Caldas Novas bus costs by age; update prices automatically.
 - [x] Serve only safe customer proposal data and final prices, preserving included items and old links.

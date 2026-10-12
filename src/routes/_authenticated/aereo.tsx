@@ -19,7 +19,7 @@ import { getSellerCommissions } from "@/lib/commissions.functions";
 import { emptyCommissions } from "@/lib/package-pricing";
 
 export const Route = createFileRoute("/_authenticated/aereo")({
-  head: () => ({ meta: [{ title: "Aéreo — Excursão Brasília" }, { name: "description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }] }),
+  head: () => ({ meta: [{ title: "Aéreo — Excursão Brasília" }, { name: "description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:title", content: "Aéreo — Excursão Brasília" }, { property: "og:description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
   component: AereoPage,
 });
 

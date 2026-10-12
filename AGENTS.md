@@ -23,6 +23,7 @@
 - Generate proposal-sharing text through one browser-safe formatter for clipboard and WhatsApp so both actions always use identical personalized content.
 - Share versioned public proposal-preview artwork and absolute social-image metadata across short and legacy proposal routes so crawlers see the same branded preview without authentication.
 - Keep flight comparison cards container-responsive in a wider result track and hotel results compact and paginated through a shared pagination helper, so neither result type squeezes or clips the other.
+- Filter flight results through a browser-safe helper using airport reference names and codes, preserving original offers and selected itineraries while users refine the visible results.
 - Keep proposal selection transitions in a browser-safe helper and advance through focusable editor sections without hiding results, so automatic navigation preserves access to hotel alternatives and flight changes.
 - Normalize only verified PassHub flight fields in a browser-safe offer mapper; keep absent commercial terms and baggage allowances unknown instead of inferring them from sample artwork.
 - Map verified PassHub stops into ordered connection details before proposal encoding, preserving timestamps and airport changes; resolve city labels through an airport reference so customer dialogs never guess layover locations or times.
