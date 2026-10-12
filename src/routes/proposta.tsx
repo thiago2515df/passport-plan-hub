@@ -11,6 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAgencyContact } from "@/lib/settings.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { customerProposal } from "@/lib/customer-proposal";
+import { setProposalStatus } from "@/lib/proposals.functions";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
