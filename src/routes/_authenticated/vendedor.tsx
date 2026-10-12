@@ -65,11 +65,11 @@ function SellerPage() {
   const [selectedInbound, setSelectedInbound] = useState<Flight | null>(null);
   const [sortBy] = useState<"price" | "duration">("price");
 
-  const [outboundQuery, setOutboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string }>({
+  const [outboundQuery, setOutboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string | undefined }>({
     flights: [],
     loading: false,
   });
-  const [inboundQuery, setInboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string }>({
+  const [inboundQuery, setInboundQuery] = useState<{ flights: Flight[]; loading: boolean; error?: string | undefined }>({
     flights: [],
     loading: false,
   });
@@ -242,7 +242,7 @@ function SellerPage() {
                         <div>
                           <p className="font-bold text-sm">{flight.airline}</p>
                           <p className="text-xs text-muted-foreground">
-                            {flight.departureTime} ({flight.origin}) → {flight.arrivalTime} ({flight.destination}) · {flight.duration}
+                            {flight.departure} ({flight.from}) → {flight.arrival} ({flight.to}) · {flight.duration}
                           </p>
                         </div>
                       </div>
@@ -272,15 +272,15 @@ function SellerPage() {
                     {selectedOutbound && (
                       <div className="p-3 rounded-xl bg-background border border-border">
                         <p className="font-bold text-muted-foreground mb-1">IDA</p>
-                        <p className="font-bold">{selectedOutbound.airline} — {selectedOutbound.origin} → {selectedOutbound.destination}</p>
-                        <p className="text-muted-foreground">{selectedOutbound.departureTime} às {selectedOutbound.arrivalTime} · {brl(selectedOutbound.price)}</p>
+                        <p className="font-bold">{selectedOutbound.airline} — {selectedOutbound.from} → {selectedOutbound.to}</p>
+                        <p className="text-muted-foreground">{selectedOutbound.departure} às {selectedOutbound.arrival} · {brl(selectedOutbound.price)}</p>
                       </div>
                     )}
                     {selectedInbound && (
                       <div className="p-3 rounded-xl bg-background border border-border">
                         <p className="font-bold text-muted-foreground mb-1">VOLTA</p>
-                        <p className="font-bold">{selectedInbound.airline} — {selectedInbound.origin} → {selectedInbound.destination}</p>
-                        <p className="text-muted-foreground">{selectedInbound.departureTime} às {selectedInbound.arrivalTime} · {brl(selectedInbound.price)}</p>
+                        <p className="font-bold">{selectedInbound.airline} — {selectedInbound.from} → {selectedInbound.to}</p>
+                        <p className="text-muted-foreground">{selectedInbound.departure} às {selectedInbound.arrival} · {brl(selectedInbound.price)}</p>
                       </div>
                     )}
                   </div>

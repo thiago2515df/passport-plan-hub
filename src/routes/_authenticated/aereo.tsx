@@ -54,7 +54,7 @@ export default function AereoPage() {
     { from: "BPS", to: "BSB" },
   ]);
 
-  type LegState = { list: Flight[]; loading: boolean; error?: string };
+  type LegState = { list: Flight[]; loading: boolean; error?: string | undefined };
   const [outboundLeg, setOutboundLeg] = useState<LegState>({ list: [], loading: false });
   const [returnLeg, setReturnLeg] = useState<LegState>({ list: [], loading: false });
 
@@ -251,11 +251,11 @@ export default function AereoPage() {
                 <Input value={origin} onFocus={() => setCityFocus("origin")} onChange={e => setOrigin(e.target.value)} placeholder="Cidade ou aeroporto" className="rounded-xl bg-background pr-8" />
                 {origin && <button onClick={() => setOrigin("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">×</button>}
               </div>
-              {cityFocus === "origin" && originCities.length > 0 && (
+              {cityFocus === "origin" && originCities.items.length > 0 && (
                 <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
-                  {originCities.map(c => (
-                    <button key={c} onClick={() => { setOrigin(c); setCityFocus(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-secondary">
-                      {c}
+                  {originCities.items.map(c => (
+                    <button key={c.id} onClick={() => { setOrigin(c.name); setCityFocus(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-secondary">
+                      {c.name}
                     </button>
                   ))}
                 </div>
@@ -274,11 +274,11 @@ export default function AereoPage() {
                 <Input value={destination} onFocus={() => setCityFocus("destination")} onChange={e => setDestination(e.target.value)} placeholder="Cidade ou aeroporto" className="rounded-xl bg-background pr-8" />
                 {destination && <button onClick={() => setDestination("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">×</button>}
               </div>
-              {cityFocus === "destination" && destinationCities.length > 0 && (
+              {cityFocus === "destination" && destinationCities.items.length > 0 && (
                 <div className="absolute z-20 mt-1 max-h-56 w-full overflow-y-auto rounded-xl border border-border bg-card p-1 shadow-lg">
-                  {destinationCities.map(c => (
-                    <button key={c} onClick={() => { setDestination(c); setCityFocus(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-secondary">
-                      {c}
+                  {destinationCities.items.map(c => (
+                    <button key={c.id} onClick={() => { setDestination(c.name); setCityFocus(null); }} className="w-full rounded-lg px-3 py-2 text-left text-xs hover:bg-secondary">
+                      {c.name}
                     </button>
                   ))}
                 </div>
