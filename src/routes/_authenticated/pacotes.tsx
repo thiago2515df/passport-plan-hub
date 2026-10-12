@@ -25,6 +25,8 @@ import { SignOutButton } from "@/components/AuthScreen";
 import { getSellerCommissions } from "@/lib/commissions.functions";
 import { packagePricing, transportCost, emptyCommissions } from "@/lib/package-pricing";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
+import { filterFlightResults } from "@/lib/flight-results";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -97,6 +99,9 @@ function Index() {
   const [outF, setOutF] = useState<Leg>(empty);
   const [backF, setBackF] = useState<Leg>(empty);
   const [destIata, setDestIata] = useState("");
+  const [flightQuery, setFlightQuery] = useState("");
+  const [flightSort, setFlightSort] = useState<"asc" | "desc">("asc");
+  const [directOnly, setDirectOnly] = useState(false);
   const [picking, setPicking] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(() => toD("2026-11-16"));
   const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
@@ -138,7 +143,7 @@ function Index() {
     setHasSearched(true);
     setErr(""); setLoading(true); setSel([]); setLink(""); setHotelPage(1);
     if (transport.mode === "air") {
-      const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(s.destino);
+      const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(destIata) || cityIata(s.destino);
       setPickF({});
       if (!from || !to) { setOutF({ list: [], loading: false, error: "Não reconheci o aeroporto da origem ou do destino. Escreva a origem como 'Brasília (BSB)' ou preencha o campo do aeroporto de destino." }); setBackF(empty); }
       else {
@@ -155,6 +160,8 @@ function Index() {
   const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
   const hotelResults = paginateHotels(list, hotelPage);
+  const outboundResults = filterFlightResults(outF.list, flightQuery, directOnly, flightSort);
+  const returnResults = filterFlightResults(backF.list, flightQuery, directOnly, flightSort);
 
   const toggle = (id: string) => {
     setLink("");
@@ -241,7 +248,7 @@ function Index() {
 
         {hasSearched && <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
           <section className="min-w-0">
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-4 space-y-3">
               <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
               <div className="flex gap-2">
                 <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button>
@@ -286,9 +293,23 @@ function Index() {
 
           <div className="min-w-0 space-y-4">
             {transport.mode === "air" && <>
-              <label className="block text-sm">Aeroporto de destino (código)<input aria-label="Aeroporto de destino" placeholder="Ex.: MCZ" maxLength={3} value={destIata} onChange={e => setDestIata(e.target.value.toUpperCase())} className="mt-2 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /></label>
-               <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de ida" leg={outF} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
-               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de volta" leg={backF} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
+              <div>
+                <div className="mb-4 space-y-3">
+                  <h2 className="text-2xl font-semibold">Voos encontrados {(outF.list.length + backF.list.length) > 0 && <span className="text-base font-normal text-muted-foreground">({outF.list.length + backF.list.length})</span>}</h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Popover><PopoverTrigger asChild><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground"><Filter />Filtros{directOnly && <span className="text-primary">· 1</span>}</Button></PopoverTrigger><PopoverContent align="start" className="w-72 space-y-4">
+                      <label className="flex items-center gap-2 text-sm"><Checkbox checked={directOnly} onCheckedChange={value => setDirectOnly(value === true)} />Somente voos diretos</label>
+                      <label className="block space-y-2 text-sm"><span>Aeroporto de destino</span><Input aria-label="Aeroporto de destino" placeholder="Ex.: Maceió ou MCZ" value={destIata} onChange={e => setDestIata(e.target.value)} /></label>
+                      <Button variant="ghost" size="sm" onClick={() => { setDirectOnly(false); setDestIata(""); setFlightQuery(""); }}>Limpar filtros</Button>
+                    </PopoverContent></Popover>
+                    <Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground" onClick={() => setFlightSort(previous => previous === "asc" ? "desc" : "asc")}>{flightSort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown /></Button>
+                  </div>
+                </div>
+                <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Buscar por aeroporto, cidade ou companhia..." className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>
+                {(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}
+                <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
+              </div>
+               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
             </>}
             {transport.mode === "bus" ? <TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (

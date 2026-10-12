@@ -1,4 +1,5 @@
 # Transport proposal
+- [ ] Standardize the package flight-results header with hotel-style search, functional filters and price sorting; verify airport-name searches and preserved selection.
 - [x] Configure seller air/bus commissions as fixed amounts or percentages in authorized internal areas.
 - [x] Calculate full package selling prices and Caldas Novas bus costs by age; update prices automatically.
 - [x] Serve only safe customer proposal data and final prices, preserving included items and old links.
