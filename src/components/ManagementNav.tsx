@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/AuthScreen";
 import { useAccess } from "@/components/AccessProvider";
 
-export function ManagementNav({ current }: { current: "settings" | "seller" | "packages" }) {
+export function ManagementNav({ current }: { current: "settings" | "seller" | "packages" | "aereo" }) {
   const access = useAccess();
   const [collapsed, setCollapsed] = useState(false);
   const item = "w-full justify-start";
@@ -15,7 +15,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
     <Button variant="ghost" size="icon" className="mb-5 self-center" title={collapsed ? "Expandir menu" : "Recolher menu"} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
     <nav className={`space-y-2 ${collapsed ? "[&_span]:hidden" : "[&_span]:hidden lg:[&_span]:inline"}`} aria-label="Menu principal">
       <Button title="Pacotes" variant={current === "packages" ? "secondary" : "ghost"} className={item} asChild><Link to="/pacotes" search={{}}><Building2 /><span>Pacotes</span></Link></Button>
-      <Button title="Aéreo" variant="ghost" className={item} asChild><Link to="/pacotes" search={{ mode: "air" }}><Plane /><span>Aéreo</span></Link></Button>
+      <Button title="Aéreo" variant={current === "aereo" ? "secondary" : "ghost"} className={item} asChild><Link to="/aereo"><Plane /><span>Aéreo</span></Link></Button>
       <Button title="Rodoviário" variant="ghost" className={item} asChild><Link to="/pacotes" search={{ mode: "bus" }}><Bus /><span>Rodoviário</span></Link></Button>
       <Button title="Seguros — indisponível" variant="ghost" className={item} disabled><Shield /><span>Seguros</span></Button>
       <div className="my-4 border-t border-border" />

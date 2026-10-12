@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as PropostaRouteImport } from './routes/proposta'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as AuthenticatedAereoRouteImport } from './routes/_authenticated/aereo'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedPacotesRouteImport } from './routes/_authenticated/pacotes'
 import { Route as AuthenticatedVendedorRouteImport } from './routes/_authenticated/vendedor'
@@ -43,6 +44,11 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAereoRoute = AuthenticatedAereoRouteImport.update({
+  id: '/aereo',
+  path: '/aereo',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/aereo': typeof AuthenticatedAereoRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/pacotes': typeof AuthenticatedPacotesRoute
   '/vendedor': typeof AuthenticatedVendedorRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/aereo': typeof AuthenticatedAereoRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/pacotes': typeof AuthenticatedPacotesRoute
   '/vendedor': typeof AuthenticatedVendedorRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/proposta': typeof PropostaRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/_authenticated/aereo': typeof AuthenticatedAereoRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/pacotes': typeof AuthenticatedPacotesRoute
   '/_authenticated/vendedor': typeof AuthenticatedVendedorRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/proposta'
     | '/reset-password'
+    | '/aereo'
     | '/configuracoes'
     | '/pacotes'
     | '/vendedor'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/proposta'
     | '/reset-password'
+    | '/aereo'
     | '/configuracoes'
     | '/pacotes'
     | '/vendedor'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/proposta'
     | '/reset-password'
+    | '/_authenticated/aereo'
     | '/_authenticated/configuracoes'
     | '/_authenticated/pacotes'
     | '/_authenticated/vendedor'
@@ -191,6 +203,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/aereo': {
+      id: '/_authenticated/aereo'
+      path: '/aereo'
+      fullPath: '/aereo'
+      preLoaderRoute: typeof AuthenticatedAereoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -230,12 +249,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAereoRoute: typeof AuthenticatedAereoRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedPacotesRoute: typeof AuthenticatedPacotesRoute
   AuthenticatedVendedorRoute: typeof AuthenticatedVendedorRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAereoRoute: AuthenticatedAereoRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedPacotesRoute: AuthenticatedPacotesRoute,
   AuthenticatedVendedorRoute: AuthenticatedVendedorRoute,
