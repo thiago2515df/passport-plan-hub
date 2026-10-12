@@ -50,5 +50,5 @@ function ShortProposal() {
       </div>
     );
   }
-  return <ProposalView p={p} />;
+  return <ProposalView p={p} code={code} />;
 }

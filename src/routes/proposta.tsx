@@ -37,13 +37,15 @@ function Proposta() {
   return <ProposalView p={p} />;
 }
 
-export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
+export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>; code?: string }) {
   const contact = useServerFn(getAgencyContact);
   const agency = useQuery({ queryKey: ["agency-contact"], queryFn: () => contact(), staleTime: 60000 });
+  const updateStatusFn = useServerFn(setProposalStatus);
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(null);
   const [aiFailed, setAiFailed] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
   if (!p) {
     return (
@@ -68,9 +70,20 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
   const pick = chosen != null ? hotels[chosen] : null;
-  const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(
-    `Olá! Vi minha proposta para ${destino}${pick ? ` e escolhi o ${pick.name} (${brl(pick.total)}${hasTransport ? ", com passagem" : ""})` : ""}.`,
-  )}`;
+  const handleConfirmPackage = async () => {
+    if (!pick) return;
+    setConfirmed(true);
+    if (code) {
+      try {
+        await updateStatusFn({ data: { code, status: "approved" } });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
+  const waText = `Olá! Vi minha proposta para ${destino}${pick ? ` e confirmei o pacote ${pick.name} (${brl(pick.total)}${hasTransport ? ", com passagem" : ""})` : ""}.`;
+  const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(waText)}`;
 
   return (
     <div className="proposta min-h-screen bg-background pb-28 text-foreground">
@@ -128,7 +141,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
         {tab === 0 && (
           <>
             {p.s.transport && hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport} /></div>}
-            <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Escolha sua hospedagem</h2>
+            <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Selecione o seu pacote</h2>
             <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
@@ -140,7 +153,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
                       <HotelPhoto hotel={h} />
                       {meal && <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-semibold shadow"><Coffee className="h-3.5 w-3.5" />{meal}</span>}
-                      {sel && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"><Check className="h-3.5 w-3.5" />Selecionado</span>}
+                      {sel && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"><Check className="h-3.5 w-3.5" />Pacote selecionado</span>}
                     </button>
                     <div className="flex flex-1 flex-col px-2 pt-3">
                       <h3 className="text-lg font-extrabold leading-tight text-navy">{h.name}</h3>
@@ -160,7 +173,7 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
-                        <button onClick={() => setChosen(sel ? null : i)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground">{sel ? <><Check className="h-4 w-4" />Hospedagem selecionada</> : <>Selecionar hospedagem <ArrowRight className="h-4 w-4" /></>}</button>
+                        <button onClick={() => setChosen(sel ? null : i)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground">{sel ? <><Check className="h-4 w-4" />Pacote selecionado</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</button>
                       </div>
                     </div>
                   </article>
@@ -185,7 +198,14 @@ export function ProposalView({ p }: { p: ReturnType<typeof decodeProposal> }) {
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
             <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
-            <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Confirmar no WhatsApp</a>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
+                <Check className="h-4 w-4" /> {confirmed ? "Pacote confirmado!" : "Confirmar pacote"}
+              </Button>
+              <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10">
+                <MessageCircle className="h-4 w-4" /> WhatsApp
+              </a>
+            </div>
           </div>
         </div>
       )}
