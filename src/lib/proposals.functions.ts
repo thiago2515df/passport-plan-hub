@@ -5,6 +5,24 @@ import { decodeProposal } from "./hotels";
 
 const codeSchema = z.string().regex(/^[a-z0-9]{6,12}$/);
 
+export const acceptProposalPackage = createServerFn({ method: "POST" })
+  .inputValidator(data => z.object({ code: codeSchema, hotelIndex: z.number().int().nonnegative(), total: z.number().finite().nonnegative() }).parse(data))
+  .handler(async ({ data }) => {
+    const { createClient } = await import("@supabase/supabase-js");
+    const key = process.env['SUPABASE_PUBLISHABLE_KEY'];
+    const url = process.env['SUPABASE_URL'];
+    if (!key || !url) throw new Error("Serviço indisponível.");
+    const client = createClient(url, key, { auth: { persistSession: false }, global: { fetch: (input, init) => {
+      const headers = new Headers(init?.headers);
+      if (key.startsWith("sb_") && headers.get("Authorization") === `Bearer ${key}`) headers.delete("Authorization");
+      headers.set("apikey", key);
+      return fetch(input, { ...init, headers });
+    } } });
+    const { data: ok, error } = await client.rpc("accept_proposal_package", { _code: data.code, _index: data.hotelIndex, _expected_total: data.total });
+    if (error || !ok) throw new Error(error?.message ?? "Não foi possível confirmar o pacote.");
+    return { ok: true };
+  });
+
 /** Gera código curto aleatório (sem caracteres ambíguos). */
 const newCode = () => {
   const abc = "abcdefghjkmnpqrstuvwxyz23456789";
@@ -82,5 +100,7 @@ export const getProposal = createServerFn({ method: "GET" })
     } } });
     const { data: payload, error } = await client.rpc("public_proposal", { _code: data });
     if (error) throw new Error(error.message);
-    return { payload: typeof payload === "string" ? payload : null };
+    const { data: acceptance } = await client.rpc("proposal_acceptance_status", { _code: data });
+    const parsed = z.object({ hotelIndex: z.number().int(), acceptedAt: z.string(), total: z.number() }).safeParse(acceptance);
+    return { payload: typeof payload === "string" ? payload : null, acceptance: parsed.success ? parsed.data : null };
   });
