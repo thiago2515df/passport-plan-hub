@@ -83,6 +83,56 @@ export type Database = {
         }
         Relationships: []
       }
+      proposal_acceptances: {
+        Row: {
+          accepted_at: string
+          code: string
+          commission: number
+          commission_kind: string
+          commission_value: number
+          extras_cost: number
+          hotel_cost: number
+          hotel_index: number
+          payload: string
+          total: number
+          transport_cost: number
+        }
+        Insert: {
+          accepted_at?: string
+          code: string
+          commission: number
+          commission_kind: string
+          commission_value: number
+          extras_cost: number
+          hotel_cost: number
+          hotel_index: number
+          payload: string
+          total: number
+          transport_cost: number
+        }
+        Update: {
+          accepted_at?: string
+          code?: string
+          commission?: number
+          commission_kind?: string
+          commission_value?: number
+          extras_cost?: number
+          hotel_cost?: number
+          hotel_index?: number
+          payload?: string
+          total?: number
+          transport_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "proposal_acceptances_code_fkey"
+            columns: ["code"]
+            isOneToOne: true
+            referencedRelation: "proposals"
+            referencedColumns: ["code"]
+          },
+        ]
+      }
       proposals: {
         Row: {
           code: string
@@ -226,8 +276,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_proposal_package: {
+        Args: { _code: string; _expected_total: number; _index: number }
+        Returns: boolean
+      }
       agency_contact: { Args: never; Returns: Json }
       has_role: { Args: { _role: string; _user_id: string }; Returns: boolean }
+      my_proposal_acceptances: { Args: never; Returns: Json }
+      proposal_acceptance_status: { Args: { _code: string }; Returns: Json }
       public_proposal: { Args: { _code: string }; Returns: string }
       seller_can: { Args: { _permission: string }; Returns: boolean }
     }

@@ -1,0 +1,3 @@
+import { z } from "zod";
+export const acceptanceSchema = z.object({ code: z.string(), hotel_index: z.number().int().nonnegative(), accepted_at: z.string(), payload: z.string(), hotel_cost: z.coerce.number(), transport_cost: z.coerce.number(), extras_cost: z.coerce.number(), commission: z.coerce.number(), total: z.coerce.number(), commission_kind: z.enum(["fixed", "percent"]), commission_value: z.coerce.number() });
+export type ProposalAcceptance = z.infer<typeof acceptanceSchema>;

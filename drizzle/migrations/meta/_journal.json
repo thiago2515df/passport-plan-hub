@@ -43,6 +43,13 @@
       "when": 1791647421750,
       "tag": "0005_seller_commissions_private_package_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791907508522,
+      "tag": "0006_proposal_package_acceptance",
+      "breakpoints": true
     }
   ]
 }

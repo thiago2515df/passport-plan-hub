@@ -11,7 +11,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAgencyContact } from "@/lib/settings.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { customerProposal } from "@/lib/customer-proposal";
-import { setProposalStatus } from "@/lib/proposals.functions";
+import { acceptProposalPackage } from "@/lib/proposals.functions";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -38,7 +38,7 @@ function Proposta() {
   return <ProposalView p={p} />;
 }
 
-export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>; code?: string }) {
+export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof decodeProposal>; code?: string; acceptance?: { hotelIndex: number; acceptedAt: string; total: number } | null | undefined }) {
   const contact = useServerFn(getAgencyContact);
   const agency = useQuery({ queryKey: ["agency-contact"], queryFn: async () => {
     try {
@@ -47,12 +47,15 @@ export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>
       return null;
     }
   }, staleTime: 60000 });
-  const updateStatusFn = useServerFn(setProposalStatus);
+  const acceptPackage = useServerFn(acceptProposalPackage);
   const [active, setActive] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
-  const [chosen, setChosen] = useState<number | null>(null);
+  const [chosen, setChosen] = useState<number | null>(acceptance?.hotelIndex ?? null);
   const [aiFailed, setAiFailed] = useState(false);
   const [confirmed, setConfirmed] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [confirmError, setConfirmError] = useState("");
+  const isConfirmed = confirmed || !!acceptance;
 
   if (!p) {
     return (
@@ -76,17 +79,15 @@ export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
-  const pick = chosen != null ? hotels[chosen] : null;
+   const chosenIndex = acceptance?.hotelIndex ?? chosen;
+   const pick = chosenIndex != null ? hotels[chosenIndex] : null;
   const handleConfirmPackage = async () => {
-    if (!pick) return;
-    setConfirmed(true);
-    if (code) {
-      try {
-        await updateStatusFn({ data: { code, status: "approved" } });
-      } catch (e) {
-        console.error(e);
-      }
-    }
+    if (!pick || chosenIndex === null || confirming || isConfirmed) return;
+    if (!code) { setConfirmError("Solicite à agência o link atualizado para confirmar este pacote."); return; }
+    setConfirming(true); setConfirmError("");
+    try { await acceptPackage({ data: { code, hotelIndex: chosenIndex, total: pick.total } }); setConfirmed(true); }
+    catch (e) { setConfirmError(e instanceof Error ? e.message : "Não foi possível confirmar. Tente novamente."); }
+    finally { setConfirming(false); }
   };
 
   const waText = `Olá! Vi minha proposta para ${destino}${pick ? ` e confirmei o pacote ${pick.name} (${brl(pick.total)}${hasTransport ? ", com passagem" : ""})` : ""}.`;
@@ -153,7 +154,7 @@ export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>
             <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
-                const sel = chosen === i;
+                const sel = chosenIndex === i;
                 const included = [hasTransport ? (p.s.transport?.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã", ...(p.s.extras ?? []).map(item => item.name)].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
@@ -180,7 +181,7 @@ export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
-                        <button onClick={() => setChosen(sel ? null : i)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-2.5 text-sm font-semibold text-primary-foreground">{sel ? <><Check className="h-4 w-4" />Pacote selecionado</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</button>
+                         <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto w-full rounded-xl py-2.5">{sel ? <><Check className="h-4 w-4" />{isConfirmed ? "Pacote confirmado" : "Pacote selecionado"}</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</Button>
                       </div>
                     </div>
                   </article>
@@ -204,10 +205,10 @@ export function ProposalView({ p, code }: { p: ReturnType<typeof decodeProposal>
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(pick.total)}</div></div>
+             <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-xs text-destructive">{confirmError}</p>}</div>
             <div className="flex items-center gap-2">
-              <Button onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
-                <Check className="h-4 w-4" /> {confirmed ? "Pacote confirmado!" : "Confirmar pacote"}
+               <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
+                 <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
               </Button>
               <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10">
                 <MessageCircle className="h-4 w-4" /> WhatsApp
