@@ -26,10 +26,11 @@ function ShortProposal() {
   const { code } = Route.useParams();
   const fetchProposal = useServerFn(getProposal);
   const [payload, setPayload] = useState<string | null | undefined>(undefined);
+  const [acceptance, setAcceptance] = useState<{ hotelIndex: number; acceptedAt: string; total: number } | null>(null);
 
   useEffect(() => {
     let alive = true;
-    const refresh = () => fetchProposal({ data: code }).then(r => { if (alive) setPayload(r.payload); }).catch(() => { if (alive) setPayload(null); });
+    const refresh = () => fetchProposal({ data: code }).then(r => { if (alive) { setPayload(r.payload); setAcceptance(r.acceptance); } }).catch(() => { if (alive) setPayload(null); });
     void refresh();
     const timer = window.setInterval(refresh, 10000);
     return () => { alive = false; window.clearInterval(timer); };
@@ -50,5 +51,5 @@ function ShortProposal() {
       </div>
     );
   }
-  return <ProposalView p={p} code={code} />;
+  return <ProposalView p={p} code={code} acceptance={acceptance} />;
 }
