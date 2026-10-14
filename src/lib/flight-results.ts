@@ -21,10 +21,10 @@ function matchesFlightNumber(flight: Flight, query: string) {
   if (!/\d/.test(compactQuery)) return false;
   const compactNumber = normalize(flight.flightNumber).replace(/[^a-z0-9]/g, "");
   if (compactNumber.includes(compactQuery)) return true;
-  const numberMatch = compactQuery.match(/(\d{3,5})$/);
-  const requestedNumber = numberMatch?.[1];
+  const carrierAndNumber = compactQuery.match(/^([a-z0-9]{2})(\d{3,5})$/);
+  const requestedNumber = carrierAndNumber?.[2] ?? compactQuery.match(/^\d{3,5}$/)?.[0];
   if (!requestedNumber || !compactNumber.includes(requestedNumber)) return false;
-  const requestedCarrier = compactQuery.slice(0, -requestedNumber.length);
+  const requestedCarrier = carrierAndNumber?.[1] ?? "";
   if (!requestedCarrier) return true;
   const airline = normalize(flight.airline);
   return Object.entries(airlineCodes).some(([name, codes]) => airline.includes(name) && codes.includes(requestedCarrier));
