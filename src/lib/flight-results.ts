@@ -40,3 +40,9 @@ export function filterFlightResults(flights: Flight[], query: string, directOnly
     return terms.every(term => searchable.includes(term));
   }).sort((a, b) => sort === "asc" ? a.price - b.price : b.price - a.price);
 }
+const flightKey = (f: Flight) => `${f.flightNumber}|${f.departure}|${f.arrival}|${f.airline}|${f.price}`;
+export function mergeFlights(current: Flight[], incoming: Flight[]) {
+  const seen = new Set(current.map(flightKey));
+  const added = incoming.filter(f => !seen.has(flightKey(f)) && seen.add(flightKey(f)));
+  return added.length ? [...current, ...added.map((f, i) => ({ ...f, id: `${f.id}-n${current.length + i}` }))] : current;
+}
