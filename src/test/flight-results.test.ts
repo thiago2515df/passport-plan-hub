@@ -3,7 +3,7 @@ import { filterFlightResults } from "@/lib/flight-results";
 import { mapFlightOffer } from "@/lib/flight-offers";
 
 const flights = [
-  mapFlightOffer({ offerId: "direct", totalPrice: 300, stopCount: 0 }, 0, "BSB", "GRU"),
+  mapFlightOffer({ offerId: "direct", airline: "GOL Linhas Aéreas", flightNumber: "1682", totalPrice: 300, stopCount: 0 }, 0, "BSB", "GRU"),
   mapFlightOffer({ offerId: "connection", totalPrice: 200, stopCount: 1, stops: [{ airportCode: "SSA" }] }, 1, "BSB", "BPS"),
 ];
 describe("flight result search", () => {
@@ -18,5 +18,10 @@ describe("flight result search", () => {
     expect(filterFlightResults(flights, "", false, "asc").map(f => f.price)).toEqual([200, 300]);
     expect(filterFlightResults(flights, "", false, "desc").map(f => f.price)).toEqual([300, 200]);
     expect(flights.map(f => f.price)).toEqual([300, 200]);
+  });
+  it("finds a specific flight number with carrier code, spaces or punctuation", () => {
+    expect(filterFlightResults(flights, "G3 -1682", false, "asc").map(f => f.id)).toEqual(["direct"]);
+    expect(filterFlightResults(flights, "G3 1682", false, "asc").map(f => f.id)).toEqual(["direct"]);
+    expect(filterFlightResults(flights, "1682", false, "asc").map(f => f.id)).toEqual(["direct"]);
   });
 });
