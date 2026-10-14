@@ -26,7 +26,7 @@ import { getSellerCommissions } from "@/lib/commissions.functions";
 import { packagePricing, transportCost, emptyCommissions } from "@/lib/package-pricing";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { filterFlightResults } from "@/lib/flight-results";
+import { filterFlightResults, mergeFlights } from "@/lib/flight-results";
 
 const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -100,6 +100,9 @@ function Index() {
   const [backF, setBackF] = useState<Leg>(empty);
   const [destIata, setDestIata] = useState("");
   const [flightQuery, setFlightQuery] = useState("");
+  const [outNum, setOutNum] = useState(""), [backNum, setBackNum] = useState("");
+  const [numBusy, setNumBusy] = useState<{ out: boolean; back: boolean }>({ out: false, back: false });
+  const [numMsg, setNumMsg] = useState<{ out: string; back: string }>({ out: "", back: "" });
   const [flightSort, setFlightSort] = useState<"asc" | "desc">("asc");
   const [directOnly, setDirectOnly] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -160,8 +163,35 @@ function Index() {
   const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase()))
     .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
   const hotelResults = paginateHotels(list, hotelPage);
-  const outboundResults = filterFlightResults(outF.list, flightQuery, directOnly, flightSort);
-  const returnResults = filterFlightResults(backF.list, flightQuery, directOnly, flightSort);
+  const outboundResults = filterFlightResults(filterFlightResults(outF.list, flightQuery, directOnly, flightSort), outNum, false, flightSort);
+  const returnResults = filterFlightResults(filterFlightResults(backF.list, flightQuery, directOnly, flightSort), backNum, false, flightSort);
+  const searchByNumber = async (which: "out" | "back") => {
+    const number = (which === "out" ? outNum : backNum).trim();
+    if (!/\d/.test(number)) return;
+    const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(destIata) || cityIata(s.destino);
+    if (!from || !to) { setNumMsg(m => ({ ...m, [which]: "Não reconheci os aeroportos da rota." })); return; }
+    setNumBusy(b => ({ ...b, [which]: true })); setNumMsg(m => ({ ...m, [which]: "" }));
+    try {
+      const r = await findFlights({ data: which === "out" ? { from, to, date: s.checkin, adults, children: kids.length } : { from: to, to: from, date: s.checkout, adults, children: kids.length } });
+      const setLeg = which === "out" ? setOutF : setBackF;
+      const current = which === "out" ? outF.list : backF.list;
+      const merged = mergeFlights(current, r.flights);
+      setLeg(l => ({ ...l, list: mergeFlights(l.list, r.flights), error: undefined }));
+      const found = filterFlightResults(merged, number, false, "asc").length;
+      setNumMsg(m => ({ ...m, [which]: r.error ?? (found ? `Voo ${number} encontrado na API.` : `Voo ${number} não encontrado na API para esta data e rota.`) }));
+    } catch (e) { setNumMsg(m => ({ ...m, [which]: (e as Error).message })); }
+    finally { setNumBusy(b => ({ ...b, [which]: false })); }
+  };
+  const numberField = (which: "out" | "back") => (
+    <div className="mb-3">
+      <form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4">
+        <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+        <input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} />
+        <Button type="submit" size="sm" variant="outline" disabled={numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button>
+      </form>
+      {numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}
+    </div>
+  );
 
   const toggle = (id: string) => {
     setLink("");
@@ -307,9 +337,9 @@ function Index() {
                 </div>
                 <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Aeroporto, cidade, companhia ou voo (ex.: G3 1682)" className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>
                 {(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}
-                <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
+                <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("out")}<FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
               </div>
-               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring"><FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
+               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("back")}<FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
             </>}
             {transport.mode === "bus" ? <TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
               {list.slice(0, 40).map(h => (
