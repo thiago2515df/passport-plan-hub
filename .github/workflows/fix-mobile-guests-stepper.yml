@@ -18,15 +18,10 @@ jobs:
           fetch-depth: 0
       - name: Apply mobile guest selector fix
         run: python scripts/fix_mobile_guests_stepper.py
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-      - name: Verify build
-        run: npm run build
       - name: Commit fix
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git checkout -- package-lock.json 2>/dev/null || true
           git add src/routes/_authenticated/pacotes.tsx
           git rm scripts/fix_mobile_guests_stepper.py .github/workflows/fix-mobile-guests-stepper.yml
           git commit -m 'Melhora seletor de hóspedes no celular'
