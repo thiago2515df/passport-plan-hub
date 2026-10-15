@@ -1,3 +1,5 @@
+export type ExtraService = { name: string; cost: number };
+
 export type Hotel = {
   id: string; // offerId da PassHub
   hotelId?: number;
@@ -10,6 +12,7 @@ export type Hotel = {
   image: string;
   x: number; // posição no mapa (%)
   y: number;
+  extras?: ExtraService[];
 };
 
 export const COMMISSION = 0.0536;
@@ -31,7 +34,7 @@ export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: 
 /** Valor do pacote para o cliente: hotel + transporte. */
 export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + (t && t.mode !== "none" ? t.price ?? 0 : 0);
 export const hasBreakfast = (meal?: string) => !!meal && /caf[eé]|breakfast|meia|completa|all/i.test(meal) && !/sem|room only|no meal/i.test(meal);
-export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: { name: string; cost: number }[] };
+export type Search = { destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: ExtraService[] };
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
 
