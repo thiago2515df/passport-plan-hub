@@ -1,0 +1,28 @@
+name: Validate mobile proposal
+
+on:
+  push:
+    paths:
+      - '.github/workflows/validate-mobile-proposal.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install dependencies
+        run: npm ci
+      - name: Build application
+        run: npm run build
+      - name: Remove temporary workflow
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/validate-mobile-proposal.yml
+          git commit -m 'Valida proposta móvel'
+          git push
