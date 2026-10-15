@@ -72,6 +72,9 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const nights = nightsBetween(p.s.checkin, p.s.checkout);
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
+  const pricedHotels = hotels
+    .map((hotel, originalIndex) => ({ hotel, originalIndex }))
+    .sort((a, b) => a.hotel.total - b.hotel.total || a.originalIndex - b.originalIndex);
   const shortCity = (name: string) => (name.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)\s*/gi, "").trim();
   const destino = shortCity(p.s.destino ?? "");
   const cliente = p.s.cliente?.trim();
@@ -151,7 +154,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
             <h2 className="mt-6 text-xl font-extrabold text-navy sm:mt-8 sm:text-2xl md:text-3xl">Selecione o seu pacote</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {hotels.map((h, i) => {
+              {pricedHotels.map(({ hotel: h, originalIndex: i }) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosenIndex === i;
                 const included = [
