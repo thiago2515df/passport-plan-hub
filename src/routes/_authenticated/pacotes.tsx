@@ -37,7 +37,7 @@ export const Route = createFileRoute("/_authenticated/pacotes")({
   head: () => ({
     meta: [
       { title: "Pacotes — Excursão Brasília" },
-      { name: "description", content: "Busque hotéis, selecione opções e gere um link de proposta para o cliente." },
+      { name: "description", content: "Busque hotéis, selecione opções e gere propostas em segundos." },
       { property: "og:title", content: "Pacotes — Excursão Brasília" },
       { property: "og:description", content: "Busque hotéis e gere propostas em segundos." },
       { property: "og:type", content: "website" },
@@ -48,9 +48,7 @@ export const Route = createFileRoute("/_authenticated/pacotes")({
   component: Index,
 });
 
-const nav = [
-  ["COTAÇÕES", [[Building2, "Pacotes"], [Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"]]],
-] as const;
+const nav = [["COTAÇÕES", [[Building2, "Pacotes"], [Plane, "Aéreo"], [Bus, "Rodoviário"], [Shield, "Seguros"]]]] as const;
 
 function Index() {
   const { code: editingCode, mode } = Route.useSearch();
@@ -160,8 +158,7 @@ function Index() {
     } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
   };
 
-  const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase()))
-    .sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
+  const list = useMemo(() => hotels.filter(h => (h.name ?? "").toLowerCase().includes(q.toLowerCase())).sort((a, b) => sort === "asc" ? a.total - b.total : b.total - a.total), [hotels, q, sort]);
   const hotelResults = paginateHotels(list, hotelPage);
   const outboundResults = filterFlightResults(filterFlightResults(outF.list, flightQuery, directOnly, flightSort), outNum, false, flightSort);
   const returnResults = filterFlightResults(filterFlightResults(backF.list, flightQuery, directOnly, flightSort), backNum, false, flightSort);
@@ -182,22 +179,9 @@ function Index() {
     } catch (e) { setNumMsg(m => ({ ...m, [which]: (e as Error).message })); }
     finally { setNumBusy(b => ({ ...b, [which]: false })); }
   };
-  const numberField = (which: "out" | "back") => (
-    <div className="mb-3">
-      <form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4">
-        <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-        <input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} />
-        <Button type="submit" size="sm" variant="outline" disabled={numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button>
-      </form>
-      {numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}
-    </div>
-  );
+  const numberField = (which: "out" | "back") => <div className="mb-3"><form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} /><Button type="submit" size="sm" variant="outline" disabled={numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button></form>{numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}</div>;
 
-  const toggle = (id: string) => {
-    setLink("");
-    setSel(previous => toggleHotelSelection(previous, id));
-    if (sel.length === 0 && transport.mode === "air") setAdvanceTo("out");
-  };
+  const toggle = (id: string) => { setLink(""); setSel(previous => toggleHotelSelection(previous, id)); if (sel.length === 0 && transport.mode === "air") setAdvanceTo("out"); };
   const saveProp = useServerFn(saveProposal);
   const [saving, setSaving] = useState(false);
   const gerar = async () => {
@@ -205,187 +189,34 @@ function Index() {
     setSaving(true);
     try {
       const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, extras: undefined, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
-      const url = `${window.location.origin}/p/${code}`;
-      setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
-      queryClient.invalidateQueries({ queryKey: ["proposal-board"] });
-      queryClient.invalidateQueries({ queryKey: ["settings"] });
+      const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+      queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
-    const next = { ...pickF, [k]: f }; setPickF(next);
-    setLink("");
-    setAdvanceTo(nextFlightSelectionStep(k));
-    setS(prev => {
-      const t = prev.transport ?? makeTransport("air", prev.destino);
-      const leg = flightToTransportLeg;
-      return { ...prev, transport: { ...t,
-        ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}),
-        ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}),
-         price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: f.travelClass, bags: f.bags } };
-    });
+    const next = { ...pickF, [k]: f }; setPickF(next); setLink(""); setAdvanceTo(nextFlightSelectionStep(k));
+    setS(prev => { const t = prev.transport ?? makeTransport("air", prev.destino); const leg = flightToTransportLeg; return { ...prev, transport: { ...t, ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}), ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}), price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: f.travelClass, bags: f.bags } }; });
   };
   const field = "flex h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-sm";
   const num = "w-14 rounded-md border border-border bg-card px-2 py-1";
 
-  return (
-    <div className="flex min-h-screen bg-background font-sans text-foreground">
-      <ManagementNav current="packages" />
-
-      <main className="min-w-0 flex-1 p-4 md:p-6">
-        {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor" search={{ q: "" }}>Voltar às propostas</Link></Button></div>}
-        <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
-          <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>
-            {cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-              {originCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}
-              {originCities.error && <p className="px-4 py-2 text-destructive">{originCities.error}</p>}
-              {originCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} onMouseDown={e => e.preventDefault()} onClick={() => { setChosenOrigin(d.name); setS(prev => ({ ...prev, origem: d.name })); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}
-            </div>}
-          </div>
-          <div className="relative text-sm"><label htmlFor="destination-city">Destino</label><div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input id="destination-city" autoComplete="off" disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onFocus={() => setCityFocus("destination")} onBlur={() => setCityFocus(null)} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>
-            {cityFocus === "destination" && (destinationCities.loading || destinationCities.error || destinationCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">
-              {destinationCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}
-              {destinationCities.error && <p className="px-4 py-2 text-destructive">{destinationCities.error}</p>}
-              {destinationCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} disabled={uploading} onMouseDown={e => e.preventDefault()} onClick={() => { setDestId(d.id); changeDestination(d.name); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}
-            </div>}
-          </div>
-          <div className="text-sm">Ida e volta
-            <Popover>
-              <PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <DayPicker mode="range" locale={ptBR} numberOfMonths={2} month={calMonth} onMonthChange={setCalMonth} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: picking ? undefined : toD(s.checkout) }}
-                  onSelect={(_r, day) => {
-                    if (!day) return;
-                    if (!picking || day <= toD(s.checkin)) { setS(prev => ({ ...prev, checkin: isoD(day), checkout: isoD(new Date(day.getTime() + 86400000)) })); setPicking(true); return; }
-                    setS(prev => ({ ...prev, checkout: isoD(day) })); setPicking(false);
-                  }}
-                  className="pointer-events-auto p-3" />
-                <p className="px-3 pb-3 text-xs text-muted-foreground">{picking ? "Agora clique no dia da volta." : "Clique na ida e depois na volta."} {nights} {nights === 1 ? "noite" : "noites"}.</p>
-              </PopoverContent>
-            </Popover>
-          </div>
-          <details className="relative text-sm"><summary className="list-none">Quartos e hóspedes<div className={field + " mt-2 cursor-pointer"}><Users className="h-4 w-4" />{hosp}</div></summary>
-            <div className="absolute z-20 mt-1 w-64 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lg">
-              <div className="flex justify-between">Quartos<input type="number" min={1} max={9} className={num} value={rooms} onChange={e => setRooms(Math.max(1, Math.min(9, +e.target.value)))} /></div>
-              <div className="flex justify-between">Adultos<input type="number" min={1} max={9} className={num} value={adults} onChange={e => setAdults(Math.max(1, Math.min(9, +e.target.value)))} /></div>
-              <div className="flex justify-between">Crianças<input type="number" min={0} max={4} className={num} value={kids.length} onChange={e => { const n = Math.max(0, Math.min(4, +e.target.value)); setKids(k => Array.from({ length: n }, (_, i) => k[i] ?? 7)); }} /></div>
-              {kids.map((a, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground">Idade criança {i + 1}<input type="number" min={0} max={17} className={num} value={a} onChange={e => setKids(k => k.map((v, j) => j === i ? Math.max(0, Math.min(17, +e.target.value)) : v))} /></div>)}
-            </div>
-          </details>
-          <label className="text-sm">Transporte<div className={field + " mt-2"}><select aria-label="Transporte" disabled={uploading} className="min-w-0 w-full bg-transparent outline-none" value={transport.mode} onChange={e => setS(previous => ({ ...previous, transport: makeTransport(e.target.value as TransportMode, previous.destino) }))}><option value="none">Sem transporte</option><option value="air">Aéreo</option><option value="bus">Ônibus</option></select></div></label>
-          <button onClick={buscar} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-10 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading && <Loader2 className="h-4 w-4 animate-spin" />}BUSCAR</button>
-        </div>
-        {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
-
-        {hasSearched && <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}>
-          <section className="min-w-0">
-            <div className="mb-4 space-y-3">
-              <h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1>
-              <div className="flex gap-2">
-                <button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button>
-                 <button onClick={() => { setSort(sort === "asc" ? "desc" : "asc"); setHotelPage(1); }} className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground">{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></button>
-              </div>
-            </div>
-             <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 text-muted-foreground" /><input placeholder="Buscar nos hotéis..." className="w-full bg-transparent text-sm outline-none" value={q} onChange={e => { setQ(e.target.value); setHotelPage(1); }} /></div>
-            {loading && <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando nas operadoras... pode levar até 1 minuto.</div>}
-            {!loading && !hotels.length && !err && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Escolha o destino, as datas e clique em BUSCAR.</div>}
-            <div className="space-y-3">
-               {hotelResults.items.map(h => {
-                const on = sel.includes(h.id);
-                return (
-                   <article key={h.id} aria-label={h.name} className={`flex overflow-hidden rounded-lg border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}>
-                     <button type="button" onClick={() => setGallery(h)} className="w-20 shrink-0 sm:w-28 [&_img]:h-full [&_img]:min-h-32 [&_img]:w-full [&>div]:h-full [&>div]:min-h-32 [&>div]:w-full" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button>
-                     <div className="flex min-w-0 flex-1 flex-col p-2.5">
-                      <div className="flex items-start justify-between gap-2">
-                        <button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button>
-                        <div className="flex items-center gap-2">
-                          <div className="flex">{Array.from({ length: h.stars }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-star text-star" />)}</div>
-                          <button aria-label="Selecionar" onClick={() => toggle(h.id)} className={`grid h-6 w-6 place-items-center rounded-full border-2 ${on ? "border-primary" : "border-border"}`}>{on && <span className="h-3 w-3 rounded-full bg-primary" />}</button>
-                        </div>
-                      </div>
-                      <div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{h.address}</span></div>
-                      {h.room && <div className="mt-1 truncate text-xs text-muted-foreground">{h.room}</div>}
-                      <div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
-                      <div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div>
-                       <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
-                          <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).commission)}</span>
-                         <Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button>
-                       </div>
-                     </div>
-                   </article>
-                );
-              })}
-            </div>
-             {!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4">
-               <div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {list.length ? hotelResults.pages : 1}</span></div>
-               <div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div>
-             </nav>}
-          </section>
-
-          <div className="min-w-0 space-y-4">
-            {transport.mode === "air" && <>
-              <div>
-                <div className="mb-4 space-y-3">
-                  <h2 className="text-2xl font-semibold">Voos encontrados {(outF.list.length + backF.list.length) > 0 && <span className="text-base font-normal text-muted-foreground">({outF.list.length + backF.list.length})</span>}</h2>
-                  <div className="flex flex-wrap gap-2">
-                    <Popover><PopoverTrigger asChild><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground"><Filter />Filtros{directOnly && <span className="text-primary">· 1</span>}</Button></PopoverTrigger><PopoverContent align="start" className="w-72 space-y-4">
-                      <label className="flex items-center gap-2 text-sm"><Checkbox checked={directOnly} onCheckedChange={value => setDirectOnly(value === true)} />Somente voos diretos</label>
-                      <label className="block space-y-2 text-sm"><span>Aeroporto de destino</span><Input aria-label="Aeroporto de destino" placeholder="Ex.: Maceió ou MCZ" value={destIata} onChange={e => setDestIata(e.target.value)} /></label>
-                      <Button variant="ghost" size="sm" onClick={() => { setDirectOnly(false); setDestIata(""); setFlightQuery(""); }}>Limpar filtros</Button>
-                    </PopoverContent></Popover>
-                    <Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground" onClick={() => setFlightSort(previous => previous === "asc" ? "desc" : "asc")}>{flightSort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown /></Button>
-                  </div>
-                </div>
-                <div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Aeroporto, cidade, companhia ou voo (ex.: G3 1682)" className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>
-                {(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}
-                <div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("out")}<FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div>
-              </div>
-               <div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("back")}<FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div>
-            </>}
-            {transport.mode === "bus" ? <TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">
-              {list.slice(0, 40).map(h => (
-                <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>
-              ))}
-              {!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}
-            </div> : null}
-
-            <div ref={summaryRef} tabIndex={-1} aria-label="Resumo da proposta" className="scroll-mt-6 rounded-2xl border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring">
-              <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hotel" : "hotéis"}</span></div>
-              {sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhum hotel selecionado.</p>}
-              <div className="space-y-2">
-                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; const hotelSearch = { ...pricingSearch, extras: h.extras ?? [] }; const price = packagePricing(h.total, hotelSearch, commissions.data ?? emptyCommissions); return (
-                  <div key={id} className="rounded-xl border border-border p-3">
-                    <div className="flex justify-between"><span className="text-sm font-semibold">{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
-                    <div className="text-[11px] text-muted-foreground">{h.address}</div>
-                    <label className="mt-2 block text-xs text-muted-foreground">Custo da hospedagem (R$)<Input aria-label={`Custo de ${h.name}`} type="number" min={0} step="0.01" value={h.total} onChange={e => { const total = Math.max(0, Number(e.target.value)); setHotels(previous => previous.map(item => item.id === id ? { ...item, total, nightly: total / nights } : item)); setLink(""); }} /></label>
-                    <div className="mt-3 space-y-2 border-t border-border pt-3">
-                      <h3 className="text-xs font-semibold">Serviços adicionais deste hotel</h3>
-                      {(h.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Serviço adicional ${i + 1} de ${h.name}`} placeholder="Ex.: Almoço" value={item.name} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, name: e.target.value } : v) } : hotel)); }} /><Input aria-label={`Valor do serviço adicional ${i + 1} de ${h.name}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) } : hotel)); }} /><Button aria-label={`Remover serviço adicional ${i + 1} de ${h.name}`} variant="ghost" size="icon" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).filter((_, j) => j !== i) } : hotel)); }}><Trash2 className="h-4 w-4" /></Button></div>)}
-                      <div className="flex flex-wrap gap-2">{["Almoço", "Passeio"].map(n => <Button key={n} variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: n, cost: 0 }] } : hotel)); }}>+ {n}</Button>)}<Button variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: "", cost: 0 }] } : hotel)); }}>+ Adicionar serviço</Button></div>
-                    </div>
-                    <dl className="mt-3 space-y-1 text-xs"><div className="flex justify-between"><dt>Custo dos serviços</dt><dd>{brl(price.cost)}</dd></div><div className="flex justify-between"><dt>Comissão</dt><dd>{brl(price.commission)}</dd></div><div className="flex justify-between pt-1 text-sm font-bold"><dt>Preço final do pacote</dt><dd>{brl(price.total)}</dd></div></dl>
-                  </div>); })}
-               </div>
-               {(pickF.out || pickF.back) && <div className="mt-3 space-y-2">
-                 <h3 className="text-sm font-semibold">Voos selecionados</h3>
-                 {([["Ida", pickF.out], ["Volta", pickF.back]] as const).map(([label, f]) => f && (
-                   <div key={label} className="rounded-xl border border-primary/40 bg-primary/5 p-3">
-                     <div className="flex justify-between"><span className="text-sm font-semibold">{label} · {f.airline} {f.flightNumber}</span><button aria-label={`Remover voo de ${label}`} onClick={() => { const k = label === "Ida" ? "out" : "back"; const next = { ...pickF, [k]: undefined }; setPickF(next); setS(prev => { const t = prev.transport; if (!t) return prev; return { ...prev, transport: { ...t, price: (next.out?.price ?? 0) + (next.back?.price ?? 0) } }; }); }}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
-                     <div className="text-[11px] text-muted-foreground">{f.from} → {f.to} · {f.departure} – {f.arrival}</div>
-                     <div className="mt-1 font-bold">{brl(f.price)}</div>
-                   </div>))}
-               </div>}
-               {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
-               <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
-               <input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
-               <input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
-               <Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>
-               {!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}
-              {link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}
-            </div>
-          </div>
-        </div>}
-      </main>
-      {gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} />}
+  return <div className="flex min-h-screen bg-background font-sans text-foreground"><ManagementNav current="packages" /><main className="min-w-0 flex-1 p-4 md:p-6">
+    {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor" search={{ q: "" }}>Voltar às propostas</Link></Button></div>}
+    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-border bg-card p-4 md:grid-cols-2 2xl:grid-cols-[1.4fr_1.6fr_1.4fr_1.3fr_1.1fr_auto] md:items-end">
+      <div className="relative text-sm"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>{cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{originCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}{originCities.error && <p className="px-4 py-2 text-destructive">{originCities.error}</p>}{originCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} onMouseDown={e => e.preventDefault()} onClick={() => { setChosenOrigin(d.name); setS(prev => ({ ...prev, origem: d.name })); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}</div>}</div>
+      <div className="relative text-sm"><label htmlFor="destination-city">Destino</label><div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input id="destination-city" autoComplete="off" disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onFocus={() => setCityFocus("destination")} onBlur={() => setCityFocus(null)} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>{cityFocus === "destination" && (destinationCities.loading || destinationCities.error || destinationCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{destinationCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}{destinationCities.error && <p className="px-4 py-2 text-destructive">{destinationCities.error}</p>}{destinationCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} disabled={uploading} onMouseDown={e => e.preventDefault()} onClick={() => { setDestId(d.id); changeDestination(d.name); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}</div>}</div>
+      <div className="text-sm">Ida e volta<Popover><PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><DayPicker mode="range" locale={ptBR} numberOfMonths={2} month={calMonth} onMonthChange={setCalMonth} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: picking ? undefined : toD(s.checkout) }} onSelect={(_r, day) => { if (!day) return; if (!picking || day <= toD(s.checkin)) { setS(prev => ({ ...prev, checkin: isoD(day), checkout: isoD(new Date(day.getTime() + 86400000)) })); setPicking(true); return; } setS(prev => ({ ...prev, checkout: isoD(day) })); setPicking(false); }} className="pointer-events-auto p-3" /><p className="px-3 pb-3 text-xs text-muted-foreground">{picking ? "Agora clique no dia da volta." : "Clique na ida e depois na volta."} {nights} {nights === 1 ? "noite" : "noites"}.</p></PopoverContent></Popover></div>
+      <details className="relative text-sm"><summary className="list-none">Quartos e hóspedes<div className={field + " mt-2 cursor-pointer"}><Users className="h-4 w-4" />{hosp}</div></summary><div className="absolute z-20 mt-1 w-64 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lg"><div className="flex justify-between">Quartos<input type="number" min={1} max={9} className={num} value={rooms} onChange={e => setRooms(Math.max(1, Math.min(9, +e.target.value)))} /></div><div className="flex justify-between">Adultos<input type="number" min={1} max={9} className={num} value={adults} onChange={e => setAdults(Math.max(1, Math.min(9, +e.target.value)))} /></div><div className="flex justify-between">Crianças<input type="number" min={0} max={4} className={num} value={kids.length} onChange={e => { const n = Math.max(0, Math.min(4, +e.target.value)); setKids(k => Array.from({ length: n }, (_, i) => k[i] ?? 7)); }} /></div>{kids.map((a, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground">Idade criança {i + 1}<input type="number" min={0} max={17} className={num} value={a} onChange={e => setKids(k => k.map((v, j) => j === i ? Math.max(0, Math.min(17, +e.target.value)) : v))} /></div>)}</div></details>
+      <label className="text-sm">Transporte<div className={field + " mt-2"}><select aria-label="Transporte" disabled={uploading} className="min-w-0 w-full bg-transparent outline-none" value={transport.mode} onChange={e => setS(previous => ({ ...previous, transport: makeTransport(e.target.value as TransportMode, previous.destino) }))}><option value="none">Sem transporte</option><option value="air">Aéreo</option><option value="bus">Ônibus</option></select></div></label>
+      <button onClick={buscar} disabled={loading} className="flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-10 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60">{loading && <Loader2 className="h-4 w-4 animate-spin" />}BUSCAR</button>
     </div>
-  );
+    {err && <div className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}</div>}
+    {hasSearched && <div className={`mt-6 grid grid-cols-1 items-start gap-6 ${transport.mode === "air" ? "xl:grid-cols-[300px_minmax(0,1fr)] 2xl:grid-cols-[minmax(340px,.6fr)_minmax(0,1.4fr)]" : "xl:grid-cols-[minmax(0,1fr)_380px]"}`}><section className="min-w-0"><div className="mb-4 space-y-3"><h1 className="text-2xl font-semibold">Hotéis encontrados {hotels.length > 0 && <span className="text-base font-normal text-muted-foreground">({hotels.length})</span>}</h1><div className="flex gap-2"><button className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground"><Filter className="h-4 w-4" />Filtros</button><button onClick={() => { setSort(sort === "asc" ? "desc" : "asc"); setHotelPage(1); }} className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-sm text-muted-foreground">{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></button></div></div><div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 text-muted-foreground" /><input placeholder="Buscar nos hotéis..." className="w-full bg-transparent text-sm outline-none" value={q} onChange={e => { setQ(e.target.value); setHotelPage(1); }} /></div>{loading && <div className="flex items-center gap-2 rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando nas operadoras... pode levar até 1 minuto.</div>}{!loading && !hotels.length && !err && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Escolha o destino, as datas e clique em BUSCAR.</div>}<div className="space-y-3">{hotelResults.items.map(h => { const on = sel.includes(h.id); return <article key={h.id} aria-label={h.name} className={`flex overflow-hidden rounded-lg border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}><button type="button" onClick={() => setGallery(h)} className="w-20 shrink-0 sm:w-28 [&_img]:h-full [&_img]:min-h-32 [&_img]:w-full [&>div]:h-full [&>div]:min-h-32 [&>div]:w-full" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button><div className="flex min-w-0 flex-1 flex-col p-2.5"><div className="flex items-start justify-between gap-2"><button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button><div className="flex items-center gap-2"><div className="flex">{Array.from({ length: h.stars }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-star text-star" />)}</div><button aria-label="Selecionar" onClick={() => toggle(h.id)} className={`grid h-6 w-6 place-items-center rounded-full border-2 ${on ? "border-primary" : "border-border"}`}>{on && <span className="h-3 w-3 rounded-full bg-primary" />}</button></div></div><div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{h.address}</span></div>{h.room && <div className="mt-1 truncate text-xs text-muted-foreground">{h.room}</div>}<div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div><div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div><div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2"><span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).commission)}</span><Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button></div></div></article>; })}</div>{!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4"><div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {list.length ? hotelResults.pages : 1}</span></div><div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div></nav>}</section>
+      <div className="min-w-0 space-y-4">{transport.mode === "air" && <><div><div className="mb-4 space-y-3"><h2 className="text-2xl font-semibold">Voos encontrados {(outF.list.length + backF.list.length) > 0 && <span className="text-base font-normal text-muted-foreground">({outF.list.length + backF.list.length})</span>}</h2><div className="flex flex-wrap gap-2"><Popover><PopoverTrigger asChild><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground"><Filter />Filtros{directOnly && <span className="text-primary">· 1</span>}</Button></PopoverTrigger><PopoverContent align="start" className="w-72 space-y-4"><label className="flex items-center gap-2 text-sm"><Checkbox checked={directOnly} onCheckedChange={value => setDirectOnly(value === true)} />Somente voos diretos</label><label className="block space-y-2 text-sm"><span>Aeroporto de destino</span><Input aria-label="Aeroporto de destino" placeholder="Ex.: Maceió ou MCZ" value={destIata} onChange={e => setDestIata(e.target.value)} /></label><Button variant="ghost" size="sm" onClick={() => { setDirectOnly(false); setDestIata(""); setFlightQuery(""); }}>Limpar filtros</Button></PopoverContent></Popover><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground" onClick={() => setFlightSort(previous => previous === "asc" ? "desc" : "asc")}>{flightSort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown /></Button></div></div><div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Aeroporto, cidade, companhia ou voo (ex.: G3 1682)" className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>{(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}<div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("out")}<FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div></div><div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{numberField("back")}<FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div></>}
+        {transport.mode === "bus" ? <TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /> : transport.mode === "none" ? <div className="relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">{list.slice(0, 40).map(h => <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>)}{!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}</div> : null}
+        <div ref={summaryRef} tabIndex={-1} aria-label="Resumo da proposta" className="scroll-mt-6 rounded-2xl border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hotel" : "hotéis"}</span></div>{sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhum hotel selecionado.</p>}<div className="space-y-2">{sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; const hotelSearch = { ...pricingSearch, extras: h.extras ?? [] }; const price = packagePricing(h.total, hotelSearch, commissions.data ?? emptyCommissions); return <div key={id} className="rounded-xl border border-border p-3"><button type="button" className="summary-hotel-photo" aria-label={`Ver fotos de ${h.name}`} onClick={() => setGallery(h)}><HotelPhoto hotel={h} /></button><div className="flex justify-between"><span className="text-sm font-semibold">{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div><div className="text-[11px] text-muted-foreground">{h.address}</div><label className="mt-2 block text-xs text-muted-foreground">Custo da hospedagem (R$)<Input aria-label={`Custo de ${h.name}`} type="number" min={0} step="0.01" value={h.total} onChange={e => { const total = Math.max(0, Number(e.target.value)); setHotels(previous => previous.map(item => item.id === id ? { ...item, total, nightly: total / nights } : item)); setLink(""); }} /></label><div className="mt-3 space-y-2 border-t border-border pt-3"><h3 className="text-xs font-semibold">Serviços adicionais deste hotel</h3>{(h.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Serviço adicional ${i + 1} de ${h.name}`} placeholder="Ex.: Almoço" value={item.name} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, name: e.target.value } : v) } : hotel)); }} /><Input aria-label={`Valor do serviço adicional ${i + 1} de ${h.name}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) } : hotel)); }} /><Button aria-label={`Remover serviço adicional ${i + 1} de ${h.name}`} variant="ghost" size="icon" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).filter((_, j) => j !== i) } : hotel)); }}><Trash2 className="h-4 w-4" /></Button></div>)}<div className="flex flex-wrap gap-2">{["Almoço", "Passeio"].map(n => <Button key={n} variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: n, cost: 0 }] } : hotel)); }}>+ {n}</Button>)}<Button variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: "", cost: 0 }] } : hotel)); }}>+ Adicionar serviço</Button></div></div><dl className="mt-3 space-y-1 text-xs"><div className="flex justify-between"><dt>Custo dos serviços</dt><dd>{brl(price.cost)}</dd></div><div className="flex justify-between"><dt>Comissão</dt><dd>{brl(price.commission)}</dd></div><div className="flex justify-between pt-1 text-sm font-bold"><dt>Preço final do pacote</dt><dd>{brl(price.total)}</dd></div></dl></div>; })}</div>
+        {(pickF.out || pickF.back) && <div className="mt-3 space-y-2"><h3 className="text-sm font-semibold">Voos selecionados</h3>{([["Ida", pickF.out], ["Volta", pickF.back]] as const).map(([label, f]) => f && <div key={label} className="rounded-xl border border-primary/40 bg-primary/5 p-3"><div className="flex justify-between"><span className="text-sm font-semibold">{label} · {f.airline} {f.flightNumber}</span><button aria-label={`Remover voo de ${label}`} onClick={() => { const k = label === "Ida" ? "out" : "back"; const next = { ...pickF, [k]: undefined }; setPickF(next); setS(prev => { const t = prev.transport; if (!t) return prev; return { ...prev, transport: { ...t, price: (next.out?.price ?? 0) + (next.back?.price ?? 0) } }; }); }}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div><div className="text-[11px] text-muted-foreground">{f.from} → {f.to} · {f.departure} – {f.arrival}</div><div className="mt-1 font-bold">{brl(f.price)}</div></div>)}</div>}
+        {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
+        <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /><input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" /><input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" /><Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}</div></div></div>}
+  </main>{gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} /></div>;
 }
