@@ -185,12 +185,19 @@ function Index() {
   const toggle = (id: string) => { setLink(""); setSel(previous => toggleHotelSelection(previous, id)); if (sel.length === 0 && transport.mode === "air") setAdvanceTo("out"); };
   const saveProp = useServerFn(saveProposal);
   const [saving, setSaving] = useState(false);
+  const [clientNameError, setClientNameError] = useState("");
   const gerar = async () => {
+    const clientName = s.cliente?.trim();
+    if (!clientName) {
+      setClientNameError("Preencha o nome do cliente para gerar a proposta.");
+      return;
+    }
+    setClientNameError("");
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     setSaving(true);
     try {
-      const { extras: _extras, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
+      const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
+      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
@@ -239,6 +246,27 @@ function Index() {
           }}
         />
         {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
-        <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" /><input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" /><input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" /><Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}</div></div></div>}
+        <div className="mt-4">
+          <label htmlFor="client-name" className="mb-1 flex items-center justify-between text-sm font-semibold text-foreground">
+            <span>Nome do cliente</span>
+            <span className="text-xs font-bold text-destructive">* obrigatório</span>
+          </label>
+          <input
+            id="client-name"
+            required
+            disabled={editLoading}
+            aria-invalid={!!clientNameError}
+            aria-describedby={clientNameError ? "client-name-error" : undefined}
+            placeholder="Digite o nome do cliente"
+            value={s.cliente ?? ""}
+            onChange={e => { setLink(""); setClientNameError(""); setS({ ...s, cliente: e.target.value }); }}
+            className={`w-full rounded-xl border bg-card px-3 py-3 text-sm outline-none transition ${clientNameError ? "border-destructive ring-2 ring-destructive/25" : "border-border focus:border-primary focus:ring-2 focus:ring-primary/20"}`}
+          />
+          {clientNameError && (
+            <div id="client-name-error" role="alert" className="mt-3 rounded-xl border-2 border-destructive bg-destructive/10 px-4 py-4 text-center text-lg font-extrabold text-destructive shadow-sm">
+              ⚠️ {clientNameError}
+            </div>
+          )}
+        </div><Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}</div></div></div>}
   </main>{gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} />}</div>;
 }
