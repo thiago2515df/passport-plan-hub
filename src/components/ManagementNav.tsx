@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/AuthScreen";
 import { useAccess } from "@/components/AccessProvider";
 import "@/mobile-dashboard.css";
+import "@/desktop-calendar.css";
 
 export function ManagementNav({ current }: { current: "settings" | "seller" | "packages" | "aereo" }) {
   const access = useAccess();
