@@ -54,7 +54,7 @@ function formatDescription(raw: string) {
     if (match) {
       const title = match[1]?.trim();
       const text = match[2]?.trim() ?? "";
-      sections.push({ title, text });
+      sections.push({ ...(title ? { title } : {}), text });
     } else if (sections.length && !sections[sections.length - 1]!.text) {
       sections[sections.length - 1]!.text = block;
     } else {
