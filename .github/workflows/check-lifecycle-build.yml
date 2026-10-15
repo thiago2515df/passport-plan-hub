@@ -1,0 +1,24 @@
+name: Check proposal lifecycle build
+on:
+  push:
+    paths:
+      - .github/workflows/check-lifecycle-build.yml
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Build
+        run: bun run build
+      - name: Remove temporary workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/check-lifecycle-build.yml
+          git commit -m "Remove verificação temporária de build"
+          git push
