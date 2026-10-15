@@ -91,6 +91,14 @@ export function TransportPanel({ s, value, onChange, onBusyChange }: { s: Search
 
 const longDate = (d: string) => d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
 
+function CustomerBagIcon({ label, included, kind }: { label: string; included?: boolean; kind: "personal" | "carry" | "checked" }) {
+  const Icon = kind === "personal" ? BriefcaseBusiness : Luggage;
+  return <span role="img" aria-label={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} title={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground">
+    <Icon className="h-5 w-5" />
+    {included === true ? <Check className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-card text-emerald-600" /> : included === false ? <X className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-card text-destructive" /> : null}
+  </span>;
+}
+
 function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
   const [connectionLeg, setConnectionLeg] = useState<TransportLeg | null>(null);
   const passengers = passengerCounts(s);
@@ -102,10 +110,13 @@ function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
       const fallbackDate = out ? s.checkin : s.checkout;
       const airline = leg.airline || leg.company.split(" · ")[0] || "";
       const number = leg.flightNumber || leg.company.split(" · ").slice(1).join(" · ");
-      const included = leg.baggage?.carryOn;
+      const bagText = (value.bags ?? "").toLowerCase();
+      const personalBag = leg.baggage?.personal ?? (/pessoal|personal/.test(bagText) ? true : undefined);
+      const carryOnBag = leg.baggage?.carryOn ?? (/m[aã]o|carry|10\s*kg/.test(bagText) ? true : undefined);
+      const checkedBag = leg.baggage?.checked ?? (/despach|checked|23\s*kg/.test(bagText) ? true : undefined);
       const airports = leg.connections?.length ? leg.connections : leg.connectionDetails?.map(c => c.airport) ?? [];
       const hasConnection = airports.length > 0 || /parada|conex[aã]o/i.test(leg.stops ?? "");
-      return <article key={key} aria-label={`Passagem de ${out ? "ida" : "volta"}`} className="@container min-w-0 rounded-lg border border-border bg-card p-4 text-foreground sm:p-5">
+      return <article key={key} aria-label={`Passagem de ${out ? "ida" : "volta"}`} className="@container min-w-0 rounded-xl border-2 border-primary/80 bg-card p-4 text-foreground shadow-sm sm:p-5">
         <div className="grid min-w-0 grid-cols-1 gap-4 @min-[560px]:grid-cols-[88px_minmax(0,1fr)] @min-[560px]:gap-6">
           <div className="flex items-center justify-between gap-3 @min-[560px]:flex-col @min-[560px]:justify-center"><AirlineLogo airline={airline} /><span className="rounded-md bg-secondary px-2.5 py-1 text-xs font-bold text-primary">{out ? "IDA" : "VOLTA"}</span></div>
           <div className="min-w-0">
@@ -120,7 +131,11 @@ function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
                 <span className="flex items-center gap-1.5" aria-label={passengers.adults === undefined ? s.hospedes : `${passengers.adults} adultos`} title="Adultos"><UserRound className="h-5 w-5" />{passengers.adults ?? s.hospedes}</span>
                 {passengers.children > 0 && <span className="flex items-center gap-1.5" aria-label={`${passengers.children} crianças`} title="Crianças"><Baby className="h-5 w-5" />{passengers.children}</span>}
               </div>
-              <span role="img" aria-label={`Bagagem de mão: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} title={`Bagagem de mão: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} className="relative inline-flex h-7 w-6 items-center justify-center text-muted-foreground"><BriefcaseBusiness className="h-6 w-6" />{included === true ? <Check className="absolute -right-1 -top-1 h-3 w-3 text-success-foreground" /> : included === false ? <X className="absolute -right-1 -top-1 h-3 w-3 text-destructive" /> : null}</span>
+              <div className="flex items-center gap-2" aria-label="Franquia de bagagem">
+                <CustomerBagIcon label="Item pessoal" included={personalBag} kind="personal" />
+                <CustomerBagIcon label="Bagagem de mão" included={carryOnBag} kind="carry" />
+                <CustomerBagIcon label="Bagagem despachada" included={checkedBag} kind="checked" />
+              </div>
             </div>
             {leg.ticket && <TicketView ticket={leg.ticket} />}
           </div>
