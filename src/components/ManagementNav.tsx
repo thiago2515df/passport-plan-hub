@@ -5,6 +5,7 @@ import logo from "@/assets/excursao-brasilia.png.asset.json";
 import { Button } from "@/components/ui/button";
 import { SignOutButton } from "@/components/AuthScreen";
 import { useAccess } from "@/components/AccessProvider";
+import "@/mobile-dashboard.css";
 
 export function ManagementNav({ current }: { current: "settings" | "seller" | "packages" | "aereo" }) {
   const access = useAccess();
@@ -28,7 +29,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
       <div className={`mt-auto overflow-hidden border-t border-border pt-4 ${collapsed ? "[&_span]:hidden" : ""}`}><SignOutButton compact /></div>
     </aside>
 
-    <section className="mobile-dashboard-header lg:hidden" aria-label="Navegação rápida">
+    <section className={`mobile-dashboard-header mobile-current-${current} lg:hidden`} aria-label="Navegação rápida">
       <Link to="/pacotes" search={{}} className="mobile-brand-link" aria-label="Ir para Pacotes">
         <img src={logo.url} alt="Excursão Brasília" className="mobile-dashboard-logo" />
       </Link>
