@@ -59,7 +59,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
 
   if (!p) {
     return (
-      <div className="grid min-h-screen place-items-center bg-background text-muted-foreground">
+      <div className="grid min-h-screen place-items-center bg-background px-4 text-muted-foreground">
         <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-md">
           <Building2 className="mx-auto mb-3 h-12 w-12 text-primary/60" />
           <h2 className="text-xl font-semibold text-foreground">Proposta inválida ou expirada</h2>
@@ -94,11 +94,11 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(waText)}`;
 
   return (
-    <div className="proposta min-h-screen bg-background pb-28 text-foreground">
+    <div className="proposta min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background pb-40 text-foreground sm:pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <img src={logoAsset.url} alt="Excursão Brasília" className="h-12 w-auto object-contain" />
-          <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border-2 border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary hover:text-primary-foreground">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-4 sm:py-3">
+          <img src={logoAsset.url} alt="Excursão Brasília" className="h-9 w-auto object-contain sm:h-12" />
+          <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-primary px-3 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground sm:gap-2 sm:px-4 sm:text-sm">
             <MessageCircle className="h-4 w-4" /> Fale conosco
           </a>
         </div>
@@ -111,24 +111,24 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
           hero && <img src={hero} alt="" className="absolute inset-0 h-full w-full object-cover" />
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
-        <div className="relative mx-auto max-w-6xl px-5 pb-16 pt-10 text-card md:pb-24 md:pt-16">
-          <h1 className="mt-2 text-4xl font-extrabold break-words md:text-6xl">
+        <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 text-card sm:px-5 sm:pb-16 sm:pt-10 md:pb-24 md:pt-16">
+          <h1 className="text-3xl font-extrabold leading-tight break-words sm:mt-2 sm:text-4xl md:text-6xl">
             <span>{destino}</span>
           </h1>
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-3 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
             {[
               [Calendar, `${fmt(p.s.checkin)} a ${fmt(p.s.checkout)}`],
               [Moon, `${nights} ${nights === 1 ? "noite" : "noites"}`],
               [Users, p.s.hospedes],
             ].map(([I, txt], k) => {
               const Icon = I as typeof Calendar;
-              return <span key={k} className="flex items-center gap-2 rounded-full border border-card/40 bg-card/15 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
+              return <span key={k} className="flex items-center gap-1.5 rounded-full border border-card/40 bg-card/15 px-3 py-1.5 text-xs backdrop-blur sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{txt as string}</span>;
             })}
           </div>
           {cliente && (
-            <div className="mt-6 flex max-w-full items-start gap-3 border-l-2 border-turquoise pl-4">
-              <Sparkles className="mt-1 h-5 w-5 shrink-0 text-turquoise" aria-hidden="true" />
-              <p className="min-w-0 text-base leading-relaxed md:text-lg">
+            <div className="mt-4 flex max-w-full items-start gap-2 border-l-2 border-turquoise pl-3 sm:mt-6 sm:gap-3 sm:pl-4">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-turquoise sm:mt-1 sm:h-5 sm:w-5" aria-hidden="true" />
+              <p className="min-w-0 text-sm leading-relaxed sm:text-base md:text-lg">
                 Proposta exclusiva para <span className="font-bold break-words">{cliente}</span>
               </p>
             </div>
@@ -136,21 +136,21 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         </div>
       </section>
 
-      <div className="relative z-10 mx-auto max-w-6xl px-4">
-        <nav className="mt-4 grid grid-cols-3 rounded-t-2xl border-b border-border bg-card">
+      <div className="relative z-10 mx-auto max-w-6xl px-3 sm:px-4">
+        <nav className="sticky top-[57px] z-20 mt-2 grid grid-cols-3 overflow-hidden rounded-xl border border-border bg-card shadow-sm sm:static sm:mt-4 sm:rounded-t-2xl sm:border-x-0 sm:border-t-0 sm:shadow-none">
           {TABS.map((n, k) => (
-            <Button variant="ghost" key={n} onClick={() => setTab(k)} className={`h-auto rounded-none whitespace-normal border-b-[3px] px-1 py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
-              <span className={`grid h-8 w-8 place-items-center rounded-full ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{k + 1}</span>{n}
+            <Button variant="ghost" key={n} onClick={() => setTab(k)} className={`h-auto min-w-0 gap-1 rounded-none whitespace-normal border-b-[3px] px-0.5 py-2 text-xs font-semibold transition sm:gap-2 sm:px-1 sm:py-3 sm:text-sm ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
+              <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs sm:h-8 sm:w-8 ${tab === k ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{k + 1}</span>{n}
             </Button>
           ))}
         </nav>
 
         {tab === 0 && (
           <>
-            {p.s.transport && hasTransport && <div className="mt-8"><h2 className="mb-3 text-2xl font-extrabold text-navy md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport} /></div>}
-            <h2 className="mt-8 text-2xl font-extrabold text-navy md:text-3xl">Selecione o seu pacote</h2>
-            <p className="text-sm text-muted-foreground">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
-            <div className="mt-5 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {p.s.transport && hasTransport && <div className="mt-5 sm:mt-8"><h2 className="mb-2 text-xl font-extrabold text-navy sm:mb-3 sm:text-2xl md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport} /></div>}
+            <h2 className="mt-6 text-xl font-extrabold text-navy sm:mt-8 sm:text-2xl md:text-3xl">Selecione o seu pacote</h2>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
+            <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosenIndex === i;
@@ -161,31 +161,31 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                   ...(h.extras ?? p.s.extras ?? []).map(item => item.name.trim()),
                 ].filter(Boolean) as string[];
                 return (
-                  <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
-                    <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
+                  <article key={i} className={`flex min-w-0 flex-col rounded-2xl bg-card p-2 shadow-sm transition sm:rounded-3xl sm:p-3 ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
+                    <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-xl sm:rounded-2xl [&_img]:!h-40 [&_img]:!w-full [&_img]:!object-cover sm:[&_img]:!h-56 [&>div]:!h-40 [&>div]:!w-full sm:[&>div]:!h-56">
                       <HotelPhoto hotel={h} />
-                      {meal && <span className="absolute left-3 top-3 flex items-center gap-1.5 rounded-full bg-card px-3 py-1 text-xs font-semibold shadow"><Coffee className="h-3.5 w-3.5" />{meal}</span>}
-                      {sel && <span className="absolute right-3 top-3 flex items-center gap-1 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground"><Check className="h-3.5 w-3.5" />Pacote selecionado</span>}
+                      {meal && <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[11px] font-semibold shadow sm:left-3 sm:top-3 sm:gap-1.5 sm:px-3 sm:text-xs"><Coffee className="h-3.5 w-3.5" />{meal}</span>}
+                      {sel && <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground sm:right-3 sm:top-3 sm:px-3 sm:text-xs"><Check className="h-3.5 w-3.5" />Pacote selecionado</span>}
                     </button>
-                    <div className="flex flex-1 flex-col px-2 pt-3">
-                      <h3 className="text-lg font-extrabold leading-tight text-navy">{h.name}</h3>
-                      <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                        <MapPin className="h-4 w-4 shrink-0 text-primary" /><span className="truncate">{h.address || destino}</span>
-                        <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver no mapa</a>
+                    <div className="flex min-w-0 flex-1 flex-col px-1 pt-2 sm:px-2 sm:pt-3">
+                      <h3 className="text-base font-extrabold leading-tight text-navy sm:text-lg">{h.name}</h3>
+                      <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:gap-1.5 sm:text-sm">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" /><span className="min-w-0 flex-1 truncate">{h.address || destino}</span>
+                        <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver mapa</a>
                       </div>
-                      {h.stars > 0 && <div className="mt-2 flex gap-0.5">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-4 w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
-                      {room && <div className="mt-2 text-xs text-muted-foreground">{room}</div>}
-                      <ul className="mt-3 space-y-1 text-sm">
-                        <li className="text-xs font-semibold text-muted-foreground">O que está incluso</li>
-                        {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" />{x}</li>)}
+                      {h.stars > 0 && <div className="mt-1.5 flex gap-0.5 sm:mt-2">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
+                      {room && <div className="mt-1.5 text-[11px] text-muted-foreground sm:mt-2 sm:text-xs">{room}</div>}
+                      <ul className="mt-2 space-y-0.5 text-xs leading-relaxed sm:mt-3 sm:space-y-1 sm:text-sm">
+                        <li className="text-[11px] font-semibold text-muted-foreground sm:text-xs">O que está incluso</li>
+                        {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />{x}</li>)}
                       </ul>
-                      <div className="mt-3 border-t border-border pt-3">
-                        <div className="text-xs text-muted-foreground">Pacote completo · {p.s.hospedes}</div>
-                        <div className="text-2xl font-black">{brl(h.total)}</div>
+                      <div className="mt-2 border-t border-border pt-2 sm:mt-3 sm:pt-3">
+                        <div className="text-[11px] text-muted-foreground sm:text-xs">Pacote completo · {p.s.hospedes}</div>
+                        <div className="text-xl font-black sm:text-2xl">{brl(h.total)}</div>
                       </div>
-                      <div className="mt-auto space-y-2 pt-3">
-                        <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
-                        <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto w-full rounded-xl py-2.5">{sel ? <><Check className="h-4 w-4" />{isConfirmed ? "Pacote confirmado" : "Pacote selecionado"}</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</Button>
+                      <div className="mt-auto grid grid-cols-2 gap-2 pt-2 sm:block sm:space-y-2 sm:pt-3">
+                        <button onClick={() => setActive(h)} className="flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border-2 border-primary px-2 py-2 text-center text-xs font-semibold text-primary sm:gap-2 sm:py-2.5 sm:text-sm">Ver detalhes <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
+                        <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto min-h-10 w-full rounded-xl px-2 py-2 text-xs sm:py-2.5 sm:text-sm">{sel ? <><Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{isConfirmed ? "Confirmado" : "Selecionado"}</> : <>Selecionar <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></>}</Button>
                       </div>
                     </div>
                   </article>
@@ -194,28 +194,28 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
             </div>
           </>
         )}
-        {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-8 max-w-3xl"><TransportPanel s={p.s} value={p.s.transport} /></div>}
+        {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-5 max-w-3xl sm:mt-8"><TransportPanel s={p.s} value={p.s.transport} /></div>}
         {(tab === 2 || (tab === 1 && (!p.s.transport || p.s.transport.mode === "none"))) && (
-          <div className="mt-10 rounded-3xl bg-card p-10 text-center shadow-md">
+          <div className="mt-6 rounded-2xl bg-card p-6 text-center shadow-md sm:mt-10 sm:rounded-3xl sm:p-10">
             {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
             <h2 className="mt-3 text-xl font-bold">{TABS[tab]}</h2>
             {tab === 2 && pick?.extras?.length ? <ul className="mt-4 space-y-2 text-sm">{pick.extras.map((item, i) => <li key={i} className="flex items-center justify-center gap-2"><Check className="h-4 w-4 text-primary" />{item.name}</li>)}</ul> : <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : pick ? "Este pacote não possui serviços adicionais." : "Selecione um pacote para ver os serviços adicionais incluídos."}</p>}
             <a href={wa} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Fale conosco</a>
           </div>
         )}
-        <p className="mt-10 text-center text-xs text-muted-foreground">Valores sujeitos à disponibilidade no momento da confirmação.</p>
+        <p className="mt-8 text-center text-[11px] text-muted-foreground sm:mt-10 sm:text-xs">Valores sujeitos à disponibilidade no momento da confirmação.</p>
       </div>
 
       {pick && (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
-          <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-xs text-destructive">{confirmError}</p>}</div>
-            <div className="flex items-center gap-2">
-              <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/98 shadow-2xl backdrop-blur">
+          <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
+            <div className="min-w-0"><div className="truncate text-[11px] text-muted-foreground sm:text-xs">{pick.name}</div><div className="text-lg font-black sm:text-xl">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-[11px] text-destructive sm:text-xs">{confirmError}</p>}</div>
+            <div className="grid grid-cols-[minmax(0,1fr)_42px] gap-2 sm:flex sm:items-center">
+              <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground sm:shrink-0 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm">
                 <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
               </Button>
-              <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10">
-                <MessageCircle className="h-4 w-4" /> WhatsApp
+              <a href={wa} target="_blank" rel="noreferrer" aria-label="Falar no WhatsApp" className="flex h-[42px] w-[42px] items-center justify-center rounded-xl border border-primary text-primary hover:bg-primary/10 sm:h-auto sm:w-auto sm:shrink-0 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm sm:font-semibold">
+                <MessageCircle className="h-4 w-4" /><span className="hidden sm:inline">WhatsApp</span>
               </a>
             </div>
           </div>
