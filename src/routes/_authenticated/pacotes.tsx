@@ -188,7 +188,8 @@ function Index() {
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     setSaving(true);
     try {
-      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, extras: undefined, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
+      const { extras: _extras, ...proposalSearch } = s;
+      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
