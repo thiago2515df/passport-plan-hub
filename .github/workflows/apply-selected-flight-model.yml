@@ -62,12 +62,6 @@ jobs:
           p.write_text(s)
           PY
 
-      - name: Install dependencies
-        run: npm install --no-audit --no-fund
-
-      - name: Build
-        run: npm run build
-
       - name: Commit changes
         shell: bash
         run: |
