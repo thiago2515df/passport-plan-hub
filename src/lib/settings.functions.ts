@@ -38,6 +38,8 @@ export const getAccess = createServerFn({ method: "GET" }).middleware([requireSu
 export const getSettings = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { assertAdmin } = await import("./access.server");
   await assertAdmin(context.supabase, context.userId);
+  const { maintainProposalLifecycle } = await import("./proposal-lifecycle.server");
+  await maintainProposalLifecycle();
   const [people, rights, settings, activities, proposals] = await Promise.all([
     context.supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     context.supabase.from("seller_permissions").select("*"),
@@ -100,6 +102,8 @@ export const saveSettings = createServerFn({ method: "POST" }).middleware([requi
   });
 
 export const listMyProposals = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const { maintainProposalLifecycle } = await import("./proposal-lifecycle.server");
+  await maintainProposalLifecycle();
   const { data: admin } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" });
   const { data: seller } = await context.supabase.rpc("has_role", { _user_id: context.userId, _role: "seller" });
   if (!admin && !seller) throw new Error("Acesso suspenso ou não autorizado.");
