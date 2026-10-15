@@ -26,8 +26,17 @@ export type Flight = {
   baggage?: { personal?: boolean; carryOn?: boolean; checked?: boolean };
   installments?: { count: number; interestFree?: boolean }; commission?: number; fareRules?: string;
 };
-/** Extrai código IATA ("Brasília (BSB)" → "BSB"). */
-export const iataOf = (v?: string) => { const m = (v ?? "").toUpperCase().match(/\(([A-Z]{3})\)|^\s*([A-Z]{3})\s*$/); return m ? m[1] ?? m[2] ?? "" : ""; };
+/**
+ * Extrai o IATA principal de rótulos da PassHub.
+ * Exemplos: "Brasília (BSB)" → BSB, "São Paulo (CGH/SBSP)" → CGH.
+ */
+export const iataOf = (v?: string) => {
+  const value = (v ?? "").toUpperCase();
+  const paren = value.match(/\(([A-Z]{3})(?:\/[A-Z0-9]{4})?\)/);
+  if (paren?.[1]) return paren[1];
+  const plain = value.match(/^\s*([A-Z]{3})\s*$/);
+  return plain?.[1] ?? "";
+};
 export type Ticket = { path: string; name: string; type: string };
 export type TransportLeg = { company: string; departure: string; arrival: string; ticket?: Ticket | undefined; from?: string; to?: string; duration?: string; stops?: string; airline?: string | undefined; flightNumber?: string | undefined; departureDate?: string | undefined; arrivalDate?: string | undefined; fareCategory?: string | undefined; connections?: string[] | undefined; connectionDetails?: FlightConnection[] | undefined; baggage?: Flight["baggage"] | undefined };
 export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: TransportLeg; standard?: boolean; price?: number | undefined; travelClass?: string; bags?: string };
@@ -38,9 +47,10 @@ export type Search = { destino: string; checkin: string; checkout: string; hospe
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
 
-// Aeroporto mais próximo de destinos comuns (usado para buscar voos sem digitar o código).
+// Aeroporto/código metropolitano usado quando o usuário escolhe uma cidade genérica.
+// SAO e RIO são expandidos no servidor para todos os aeroportos principais da região.
 const CITY_IATA: [RegExp, string][] = [
-  [/caldas\s+novas?/i, "CLV"], [/rio\s+de\s+janeiro/i, "GIG"], [/macei/i, "MCZ"], [/s[aã]o\s+paulo/i, "GRU"],
+  [/caldas\s+novas?/i, "CLV"], [/rio\s+de\s+janeiro/i, "RIO"], [/macei/i, "MCZ"], [/s[aã]o\s+paulo/i, "SAO"],
   [/bras[ií]lia/i, "BSB"], [/salvador/i, "SSA"], [/fortaleza/i, "FOR"], [/recife/i, "REC"], [/natal/i, "NAT"],
   [/porto\s+seguro/i, "BPS"], [/florian/i, "FLN"], [/curitiba/i, "CWB"], [/belo\s+horizonte/i, "CNF"],
   [/goi[aâ]nia/i, "GYN"], [/foz\s+do\s+igua/i, "IGU"], [/manaus/i, "MAO"], [/bel[eé]m/i, "BEL"],
