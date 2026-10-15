@@ -1,0 +1,31 @@
+name: Fix Lovable build
+
+on:
+  push:
+    paths:
+      - '.github/workflows/fix-lovable-build.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Restore last compiling packages page
+        run: git checkout ffffaf678725909fdcb5fe1fb0a4188518431276 -- src/routes/_authenticated/pacotes.tsx
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify build
+        run: npm run build
+      - name: Commit repair
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/fix-lovable-build.yml
+          git add src/routes/_authenticated/pacotes.tsx
+          git commit -m 'Corrige compilação da página de pacotes'
+          git push
