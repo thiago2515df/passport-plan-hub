@@ -1,0 +1,133 @@
+name: Compact proposal cards more
+
+on:
+  push:
+    paths:
+      - '.github/workflows/compact-kanban-more.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: oven-sh/setup-bun@v2
+      - name: Compact cards and add quick manual status
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/routes/_authenticated/vendedor.tsx')
+          s = p.read_text()
+
+          replacements = {
+            'import { FileText, Send, CheckCircle2, Clock, Plus, ExternalLink, Pencil, Phone, UserRound, CalendarDays, MapPin, XCircle, Search, GripVertical, Loader2, Archive } from "lucide-react";':
+            'import { FileText, Send, CheckCircle2, Clock, Plus, ExternalLink, Pencil, Phone, UserRound, CalendarDays, MapPin, XCircle, Search, GripVertical, Loader2, Archive, ArrowRightLeft } from "lucide-react";',
+
+            '<main className="min-w-0 flex-1 px-4 py-5 sm:px-6 space-y-5">':
+            '<main className="min-w-0 flex-1 px-3 py-4 sm:px-4 space-y-4">',
+
+            '<header className="mb-4 flex flex-wrap items-center justify-between gap-3">':
+            '<header className="mb-3 flex flex-wrap items-center justify-between gap-2">',
+
+            '<p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">':
+            '<p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">',
+
+            '<h1 className="text-2xl font-bold">Propostas</h1>':
+            '<h1 className="text-xl font-bold">Propostas</h1>',
+
+            '<div className="mb-4 flex flex-wrap items-center gap-2 border-b border-border pb-4">':
+            '<div className="mb-3 flex flex-wrap items-center gap-2 border-b border-border pb-3">',
+
+            'className="h-9 min-w-0 max-w-md flex-1 bg-card"':
+            'className="h-8 min-w-0 max-w-sm flex-1 bg-card text-xs"',
+
+            '<div className="grid grid-cols-1 items-start gap-3 lg:grid-cols-3">':
+            '<div className="grid grid-cols-1 items-start gap-2 lg:grid-cols-3">',
+
+            'className="min-w-0 rounded-2xl bg-secondary/30 p-2.5"':
+            'className="min-w-0 rounded-xl bg-secondary/25 p-2"',
+
+            '<div className={`mb-2 flex items-center justify-between border-b-2 ${column.line} pb-2`}><h2 className="flex items-center gap-2 text-sm font-semibold"><column.icon className={`h-4 w-4 ${column.tone}`} />{column.title}</h2><span className="grid h-6 min-w-6 place-items-center rounded-md bg-secondary px-1 text-xs font-semibold">{cards.length}</span></div>':
+            '<div className={`mb-1.5 flex items-center justify-between border-b-2 ${column.line} pb-1.5`}><h2 className="flex items-center gap-1.5 text-xs font-semibold"><column.icon className={`h-3.5 w-3.5 ${column.tone}`} />{column.title}</h2><span className="grid h-5 min-w-5 place-items-center rounded bg-secondary px-1 text-[10px] font-semibold">{cards.length}</span></div>',
+
+            '<div className="min-h-40 space-y-2">':
+            '<div className="min-h-28 space-y-1.5">',
+
+            'className="rounded-xl border border-border bg-card p-3 shadow-none transition hover:border-primary/35"':
+            'className="rounded-lg border border-border bg-card p-2 shadow-none transition hover:border-primary/35"',
+
+            '<div className="mb-2 flex items-start justify-between gap-2"><div className="min-w-0"><p className="text-[10px] text-muted-foreground">#{row.code}</p><h3 className="mt-0.5 truncate text-sm font-semibold">{s?.cliente || "Cliente não informado"}</h3></div><GripVertical aria-label="Mover proposta" className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" /></div>':
+            '<div className="mb-1.5 flex items-start justify-between gap-1.5"><div className="min-w-0"><p className="text-[9px] leading-none text-muted-foreground">#{row.code}</p><h3 className="mt-1 truncate text-[13px] font-semibold leading-tight">{s?.cliente || "Cliente não informado"}</h3></div><div className="flex shrink-0 items-center gap-1"><label className="sr-only" htmlFor={`move-${row.code}`}>Mover proposta manualmente</label><div className="relative"><ArrowRightLeft className="pointer-events-none absolute left-1.5 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" /><select id={`move-${row.code}`} aria-label="Mover proposta manualmente" value={row.status === "approved" ? "approved" : row.status} onChange={e => request(row.code, e.target.value as Status)} className="h-6 max-w-[94px] appearance-none rounded-md border border-border bg-background pl-5 pr-4 text-[9px] font-medium outline-none hover:border-primary/50 focus:border-primary"><option value="created">Criada</option><option value="awaiting">Aguardando</option><option value="approved">Concluída</option></select></div><GripVertical aria-label="Arrastar proposta" className="h-3.5 w-3.5 cursor-grab text-muted-foreground" /></div></div>',
+
+            'className={`mb-2 inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-semibold':
+            'className={`mb-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[9px] font-semibold',
+
+            '<div className="space-y-1.5 text-[11px]">':
+            '<div className="space-y-1 text-[10px] leading-tight">',
+
+            '<MapPin className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />':
+            '<MapPin className="h-3 w-3 shrink-0 text-muted-foreground" />',
+
+            '<CalendarDays className="h-3.5 w-3.5 text-muted-foreground" />':
+            '<CalendarDays className="h-3 w-3 text-muted-foreground" />',
+
+            '<Phone className="h-3.5 w-3.5 text-muted-foreground" />':
+            '<Phone className="h-3 w-3 text-muted-foreground" />',
+
+            '<div className="mt-1 flex items-end justify-between gap-3 border-t border-border pt-2"><span className="text-[10px] text-muted-foreground">':
+            '<div className="mt-1 flex items-end justify-between gap-2 border-t border-border pt-1.5"><span className="text-[9px] text-muted-foreground">',
+
+            '<p className="text-sm font-bold">':
+            '<p className="text-xs font-bold">',
+
+            '<details className="mt-2 rounded-lg bg-secondary/50 px-2.5 py-2 text-[11px]">':
+            '<details className="mt-1.5 rounded-md bg-secondary/50 px-2 py-1.5 text-[10px]">',
+
+            '<div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 text-[10px] text-muted-foreground">':
+            '<div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-0.5 border-t border-border pt-1.5 text-[9px] text-muted-foreground">',
+
+            '<UserRound className="h-3.5 w-3.5 shrink-0" />':
+            '<UserRound className="h-3 w-3 shrink-0" />',
+
+            '<div className="mt-2 flex flex-wrap gap-1.5"><Button variant="outline" size="sm" asChild>':
+            '<div className="mt-1.5 flex flex-wrap gap-1"><Button variant="outline" size="sm" className="h-7 px-2 text-[10px]" asChild>',
+
+            '<Button variant="ghost" size="sm" asChild><Link to="/pacotes" search={{ code: row.code }}><Pencil />Editar</Link></Button>':
+            '<Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" asChild><Link to="/pacotes" search={{ code: row.code }}><Pencil />Editar</Link></Button>',
+
+            '<div className="mt-2 flex flex-wrap gap-1.5">{row.status === "created" && <Button size="sm" className="w-full" onClick={() => request(row.code, "awaiting")}><Send />Enviar proposta</Button>}{row.status === "awaiting" && <Button size="sm" variant="secondary" onClick={() => request(row.code, "approved")}><CheckCircle2 />Aprovar</Button>}{row.status !== "cancelled" && row.status !== "approved" && <Button size="sm" variant="ghost" onClick={() => request(row.code, "cancelled")}><XCircle />Cancelar</Button>}</div>':
+            '<div className="mt-1 flex flex-wrap gap-1">{row.status === "created" && <Button size="sm" className="h-7 flex-1 px-2 text-[10px]" onClick={() => request(row.code, "awaiting")}><Send />Enviar</Button>}{row.status === "awaiting" && <Button size="sm" variant="secondary" className="h-7 flex-1 px-2 text-[10px]" onClick={() => request(row.code, "approved")}><CheckCircle2 />Aprovar</Button>}{row.status !== "cancelled" && row.status !== "approved" && <Button size="sm" variant="ghost" className="h-7 px-2 text-[10px]" onClick={() => request(row.code, "cancelled")}><XCircle />Cancelar</Button>}</div>',
+
+            'className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border text-xs text-muted-foreground"':
+            'className="flex min-h-24 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-[10px] text-muted-foreground"',
+
+            '<column.icon className="h-6 w-6" />':
+            '<column.icon className="h-5 w-5" />',
+          }
+
+          missed = []
+          for old, new in replacements.items():
+              if old not in s:
+                  missed.append(old[:120])
+              else:
+                  s = s.replace(old, new)
+          if missed:
+              raise SystemExit('Missing expected snippets: ' + '\n'.join(missed))
+          p.write_text(s)
+          PY
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify build
+        run: bun run build
+      - name: Commit changes
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/compact-kanban-more.yml
+          git add src/routes/_authenticated/vendedor.tsx
+          git commit -m 'Reduz cards do kanban e adiciona troca rápida de status'
+          git push
