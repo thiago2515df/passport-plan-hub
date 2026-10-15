@@ -4,20 +4,6 @@
 
 @custom-variant dark (&:is(.dark *));
 
-/*
- * Design system definition.
- *
- * The @theme inline block maps CSS custom properties to Tailwind utility
- * classes (e.g. --color-primary -> bg-primary, text-primary).
- *
- * The :root and .dark blocks define the actual color values using oklch.
- * All colors MUST use oklch format.
- *
- * To add a new semantic color:
- * 1. Add the variable to :root (light value) and .dark (dark value)
- * 2. Register it in @theme inline as --color-<name>: var(--<name>)
- */
-
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -144,30 +130,23 @@
 }
 
 @layer base {
-  * {
-    border-color: var(--color-border);
-  }
-
-  body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
-  }
+  * { border-color: var(--color-border); }
+  body { background-color: var(--color-background); color: var(--color-foreground); }
 }
 
-/* Paleta da página de proposta (Excursão Brasília) */
 .proposta {
-  --primary: oklch(0.49 0.19 258);          /* #005BCC */
+  --primary: oklch(0.49 0.19 258);
   --primary-foreground: oklch(1 0 0);
-  --navy: oklch(0.21 0.07 268);             /* #0B173A */
-  --turquoise: oklch(0.73 0.13 215);        /* #08BBDD */
-  --background: oklch(0.982 0.004 255);     /* #F7F9FC */
+  --navy: oklch(0.21 0.07 268);
+  --turquoise: oklch(0.73 0.13 215);
+  --background: oklch(0.982 0.004 255);
   --card: oklch(1 0 0);
   --foreground: oklch(0.21 0.07 268);
-  --muted-foreground: oklch(0.58 0.03 255); /* #718096 */
-  --border: oklch(0.93 0.012 250);          /* #E3EAF2 */
-  --secondary: oklch(0.96 0.008 250);       /* #EFF3F8 */
-  --rating: oklch(0.56 0.1 185);            /* #008D83 */
-  --star: oklch(0.81 0.16 85);              /* #F5B817 */
+  --muted-foreground: oklch(0.58 0.03 255);
+  --border: oklch(0.93 0.012 250);
+  --secondary: oklch(0.96 0.008 250);
+  --rating: oklch(0.56 0.1 185);
+  --star: oklch(0.81 0.16 85);
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 @theme inline {
@@ -176,26 +155,26 @@
   --color-rating: var(--rating);
 }
 
-/* Resumo visual dos pacotes */
+/* Resumo compacto com foto, seguindo a referência visual */
 [aria-label="Resumo da proposta"] {
-  border-radius: 1.5rem;
-  padding: 1.15rem;
+  border-radius: 1.25rem;
+  padding: .8rem;
   background: linear-gradient(180deg, oklch(1 0 0), oklch(0.985 0.006 252));
-  box-shadow: 0 18px 55px oklch(0.34 0.07 258 / 0.08);
+  box-shadow: 0 12px 36px oklch(0.34 0.07 258 / 0.07);
 }
 
 [aria-label="Resumo da proposta"] > .mb-3 {
   align-items: center;
-  margin-bottom: 1rem;
-  padding: 0 .15rem .85rem;
+  margin-bottom: .65rem;
+  padding: 0 .1rem .55rem;
   border-bottom: 1px solid var(--color-border);
 }
 
 [aria-label="Resumo da proposta"] > .mb-3 h2 {
   display: flex;
   align-items: center;
-  gap: .65rem;
-  font-size: 1.2rem;
+  gap: .5rem;
+  font-size: 1.05rem;
   font-weight: 800;
   color: var(--color-primary);
 }
@@ -204,95 +183,103 @@
   content: "▤";
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: .7rem;
+  width: 1.7rem;
+  height: 1.7rem;
+  border-radius: .55rem;
   background: oklch(0.96 0.03 260);
   border: 1px solid oklch(0.9 0.035 260);
   color: var(--color-primary);
-  font-size: 1.05rem;
+  font-size: .9rem;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 {
   display: grid;
-  gap: .9rem;
+  gap: .65rem;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: .7rem;
+  grid-template-columns: 88px repeat(3, minmax(0, 1fr));
+  gap: .45rem .55rem;
   margin: 0;
-  padding: 1rem;
-  border-radius: 1.15rem;
+  padding: .55rem;
+  border-radius: 1rem;
   border: 1px solid oklch(0.91 0.015 255);
   background: oklch(1 0 0);
-  box-shadow: 0 7px 24px oklch(0.35 0.05 260 / 0.055);
+  box-shadow: 0 5px 18px oklch(0.35 0.05 260 / 0.045);
+  overflow: hidden;
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-child {
-  grid-column: 1 / -1;
+.summary-hotel-photo {
+  grid-column: 1;
+  grid-row: 1 / span 5;
+  width: 88px;
+  min-height: 132px;
+  overflow: hidden;
+  border-radius: .8rem;
+  background: var(--color-secondary);
+}
+
+.summary-hotel-photo img,
+.summary-hotel-photo > div {
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 132px !important;
+  object-fit: cover !important;
+}
+
+[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-of-type {
+  grid-column: 2 / -1;
   align-items: flex-start;
-  gap: .75rem;
+  gap: .5rem;
   min-width: 0;
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-child > span {
+[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-of-type > span {
   min-width: 0;
-  font-size: .98rem;
-  line-height: 1.25;
+  font-size: .82rem;
+  line-height: 1.2;
   font-weight: 800;
   color: oklch(0.28 0.08 264);
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-child > button {
+[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-of-type > button {
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 1.8rem;
+  height: 1.8rem;
   flex: 0 0 auto;
   border: 1px solid var(--color-border);
-  border-radius: .65rem;
+  border-radius: .55rem;
   background: var(--color-secondary);
-  transition: .18s ease;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-child > button:hover {
-  border-color: oklch(0.75 0.08 25);
-  background: oklch(0.97 0.03 25);
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .text-\[11px\] {
-  grid-column: 1 / -1;
-  margin-top: -.45rem;
+  grid-column: 2 / -1;
+  margin-top: -.25rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: .72rem;
+  font-size: .62rem;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > label.mt-2 {
-  grid-column: 1;
+  grid-column: 2;
   margin: 0;
-  padding: .75rem .8rem;
+  padding: .5rem .55rem;
   border: 1px solid oklch(0.91 0.02 255);
-  border-radius: .9rem;
+  border-radius: .75rem;
   background: linear-gradient(180deg, oklch(0.99 0.004 255), oklch(0.97 0.01 255));
   color: var(--color-muted-foreground);
-  font-size: .68rem;
-  line-height: 1.25;
+  font-size: 0;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > label.mt-2::before {
   content: "Hospedagem";
   display: block;
-  margin-bottom: .25rem;
+  margin-bottom: .12rem;
   color: var(--color-muted-foreground);
-  font-size: .68rem;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > label.mt-2 {
-  font-size: 0;
+  font-size: .58rem;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > label.mt-2 input {
@@ -303,13 +290,11 @@
   box-shadow: none;
   background: transparent;
   color: var(--color-foreground);
-  font-size: 1rem;
+  font-size: .82rem;
   font-weight: 800;
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl {
-  display: contents;
-}
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl { display: contents; }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div {
   display: flex;
@@ -317,122 +302,92 @@
   flex-direction: column;
   align-items: flex-start;
   justify-content: center;
-  gap: .2rem;
-  padding: .75rem .8rem;
+  gap: .08rem;
+  padding: .5rem .55rem;
   border: 1px solid oklch(0.91 0.02 255);
-  border-radius: .9rem;
+  border-radius: .75rem;
   background: linear-gradient(180deg, oklch(0.99 0.004 255), oklch(0.97 0.01 255));
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) {
-  grid-column: 2;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2) {
-  grid-column: 3;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) dt::before {
-  content: "Serviços";
-  font-size: .68rem;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) dt {
-  font-size: 0;
-}
-
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) { grid-column: 3; }
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2) { grid-column: 4; }
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) dt { font-size: 0; }
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) dt::before { content: "Serviços"; font-size: .58rem; }
 [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1) dt::before,
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2) dt {
-  color: var(--color-muted-foreground);
-  font-weight: 500;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(-n+2) dd {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--color-foreground);
-}
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2) dt { color: var(--color-muted-foreground); font-weight: 500; font-size: .58rem; }
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(-n+2) dd { font-size: .82rem; font-weight: 800; color: var(--color-foreground); }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
+  grid-row: 4;
   margin: 0;
-  padding: .75rem 0 0;
+  padding: .4rem 0 0;
   border-top: 1px solid var(--color-border);
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 > h3 {
+  margin-bottom: -.05rem;
   color: oklch(0.31 0.06 262);
-  font-size: .72rem;
+  font-size: .6rem;
   font-weight: 800;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 > .grid {
   align-items: center;
-  padding: .25rem;
-  border-radius: .8rem;
+  padding: .15rem;
+  border-radius: .65rem;
   background: var(--color-secondary);
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 input {
-  height: 2.15rem;
-  border-radius: .65rem;
+  height: 1.85rem;
+  border-radius: .55rem;
   background: var(--color-card);
-  font-size: .78rem;
+  font-size: .7rem;
 }
 
+[aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 .flex.flex-wrap { gap: .3rem; }
 [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 .flex.flex-wrap button {
-  height: 2rem;
+  height: 1.7rem;
   border-radius: 999px;
-  padding-inline: .8rem;
+  padding-inline: .65rem;
   background: oklch(0.97 0.01 255);
-  font-size: .72rem;
+  font-size: .62rem;
   font-weight: 700;
 }
 
 [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) {
-  grid-column: 1 / -1;
+  grid-column: 2 / -1;
+  grid-row: 5;
   display: flex;
   flex-direction: row;
   align-items: center;
   justify-content: space-between;
-  margin-top: .05rem;
-  padding: .85rem 1rem;
+  margin-top: 0;
+  padding: .52rem .7rem;
   border-color: oklch(0.87 0.05 258);
   background: linear-gradient(90deg, oklch(0.97 0.025 255), oklch(0.94 0.04 255));
   color: var(--color-primary);
 }
 
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dt {
-  font-size: .8rem;
-  font-weight: 800;
-}
-
-[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dd {
-  font-size: 1.35rem;
-  line-height: 1;
-  font-weight: 900;
-  color: var(--color-primary);
-}
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dt { font-size: .66rem; font-weight: 800; }
+[aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dd { font-size: 1.05rem; line-height: 1; font-weight: 900; color: var(--color-primary); }
 
 @media (max-width: 760px) {
-  [aria-label="Resumo da proposta"] {
-    padding: .85rem;
-    border-radius: 1.1rem;
-  }
-
-  [aria-label="Resumo da proposta"] > .space-y-2 > div {
-    grid-template-columns: 1fr;
-    padding: .85rem;
-  }
-
+  [aria-label="Resumo da proposta"] { padding: .65rem; border-radius: 1rem; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div { grid-template-columns: 72px minmax(0, 1fr); gap: .4rem .5rem; padding: .5rem; }
+  .summary-hotel-photo { width: 72px; min-height: 112px; grid-row: 1 / span 4; }
+  .summary-hotel-photo img, .summary-hotel-photo > div { min-height: 112px !important; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > .flex:first-of-type,
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > .text-\[11px\],
   [aria-label="Resumo da proposta"] > .space-y-2 > div > label.mt-2,
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2,
   [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1),
   [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2),
-  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) {
-    grid-column: 1;
-  }
-
-  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dd {
-    font-size: 1.1rem;
-  }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) { grid-column: 2; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(1),
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(2) { display: none; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > .mt-3.space-y-2 { grid-row: auto; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) { grid-row: auto; }
+  [aria-label="Resumo da proposta"] > .space-y-2 > div > dl > div:nth-child(3) dd { font-size: .92rem; }
 }
