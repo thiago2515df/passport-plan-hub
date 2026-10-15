@@ -60,6 +60,12 @@ const payloadForPublicView = (payload: string) => {
 export const acceptProposalPackage = createServerFn({ method: "POST" })
   .inputValidator(data => z.object({ code: codeSchema, hotelIndex: z.number().int().nonnegative(), total: z.number().finite().nonnegative() }).parse(data))
   .handler(async ({ data }) => {
+    const { getProposalLifecycleState } = await import("./proposal-lifecycle.server");
+    const lifecycle = await getProposalLifecycleState(data.code);
+    if (lifecycle.state !== "active" && lifecycle.state !== "approved") {
+      throw new Error("Esta proposta não está mais válida. Solicite uma nova proposta ao seu agente.");
+    }
+
     const { createClient } = await import("@supabase/supabase-js");
     const key = process.env['SUPABASE_PUBLISHABLE_KEY'];
     const url = process.env['SUPABASE_URL'];
@@ -145,6 +151,12 @@ export const setProposalStatus = createServerFn({ method: "POST" })
 export const getProposal = createServerFn({ method: "GET" })
   .inputValidator((data) => codeSchema.parse(data))
   .handler(async ({ data }) => {
+    const { getProposalLifecycleState } = await import("./proposal-lifecycle.server");
+    const lifecycle = await getProposalLifecycleState(data);
+    if (lifecycle.state === "missing" || lifecycle.state === "cancelled" || lifecycle.state === "expired") {
+      return { payload: null, acceptance: null, state: lifecycle.state, expiresAt: lifecycle.expiresAt };
+    }
+
     const { createClient } = await import("@supabase/supabase-js");
     const key = process.env['SUPABASE_PUBLISHABLE_KEY'];
     const url = process.env['SUPABASE_URL'];
@@ -160,5 +172,5 @@ export const getProposal = createServerFn({ method: "GET" })
     const { data: acceptance } = await client.rpc("proposal_acceptance_status", { _code: data });
     const parsed = z.object({ hotelIndex: z.number().int(), acceptedAt: z.string(), total: z.number() }).safeParse(acceptance);
     const publicPayload = typeof payload === "string" ? payloadForPublicView(payload) : null;
-    return { payload: publicPayload, acceptance: parsed.success ? parsed.data : null };
+    return { payload: publicPayload, acceptance: parsed.success ? parsed.data : null, state: lifecycle.state, expiresAt: lifecycle.expiresAt };
   });
