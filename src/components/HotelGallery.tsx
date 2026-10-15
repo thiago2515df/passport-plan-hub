@@ -84,6 +84,12 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
   const description = d?.description ? formatDescription(d.description) : [];
 
   useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = previous; };
+  }, []);
+
+  useEffect(() => {
     const k = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
       if (e.key === "ArrowRight") setI((x) => (x + 1) % Math.max(1, photos.length));
@@ -94,46 +100,46 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
   }, [photos.length]);
 
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/70 p-4" onClick={onClose}>
-      <div className="max-h-[92vh] w-full max-w-4xl overflow-auto rounded-2xl bg-card p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="mb-3 flex items-start justify-between gap-4">
-          <div>
-            <div className="text-lg font-bold text-foreground">{hotel.name}</div>
-            <div className="text-xs text-muted-foreground">{hotel.address}</div>
+    <div className="fixed inset-0 z-50 grid place-items-end bg-foreground/70 p-0 sm:place-items-center sm:p-4" onClick={onClose}>
+      <div className="h-[100dvh] max-h-[100dvh] w-full max-w-4xl overflow-y-auto overscroll-contain bg-card p-3 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-2xl sm:p-4" onClick={(e) => e.stopPropagation()}>
+        <div className="sticky -top-3 z-10 -mx-3 -mt-3 mb-3 flex items-start justify-between gap-3 border-b border-border bg-card/95 px-3 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:pb-0">
+          <div className="min-w-0">
+            <div className="truncate text-base font-bold text-foreground sm:text-lg">{hotel.name}</div>
+            <div className="truncate text-[11px] text-muted-foreground sm:text-xs">{hotel.address}</div>
           </div>
-          <button aria-label="Fechar" onClick={onClose} className="rounded-full p-1.5 hover:bg-secondary"><X className="h-5 w-5" /></button>
+          <button aria-label="Fechar" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary hover:bg-secondary/80"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="relative grid aspect-video place-items-center overflow-hidden rounded-xl bg-secondary">
-          {!d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+        <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-secondary sm:aspect-video">
+          {!d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
-            <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 rounded-full bg-card/90 p-2"><ChevronLeft className="h-5 w-5" /></button>
-            <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 rounded-full bg-card/90 p-2"><ChevronRight className="h-5 w-5" /></button>
+            <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
+            <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
             <span className="absolute bottom-2 right-3 rounded bg-card/90 px-2 py-0.5 text-xs">{Math.min(i, photos.length - 1) + 1}/{photos.length}</span>
           </>}
         </div>
 
-        {photos.length > 1 && <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-          {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-16 w-24 object-cover" /></button>)}
+        {photos.length > 1 && <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1">
+          {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 snap-start overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-14 w-20 object-cover sm:h-16 sm:w-24" /></button>)}
         </div>}
 
         {!!d?.amenities.length && (
-          <section className="mt-4 border-t border-border pt-4">
+          <section className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
             <h3 className="mb-2 text-sm font-semibold text-foreground">Comodidades</h3>
             <div className="flex flex-wrap gap-1.5">
-              {d.amenities.slice(0, 20).map((a) => <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-xs text-foreground">{a}</span>)}
+              {d.amenities.slice(0, 20).map((a) => <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] text-foreground sm:text-xs">{a}</span>)}
             </div>
           </section>
         )}
 
         {!!description.length && (
-          <section className="mt-4 border-t border-border pt-4">
+          <section className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
             <h3 className="mb-3 text-base font-bold text-foreground">Sobre o hotel</h3>
             <div className="space-y-3">
               {description.map((part, index) => (
                 <div key={`${part.title ?? "texto"}-${index}`}>
                   {part.title && <h4 className="mb-1 text-sm font-semibold text-foreground">{part.title}</h4>}
-                  {part.text && <p className="text-sm leading-6 text-muted-foreground">{part.text}</p>}
+                  {part.text && <p className="text-[13px] leading-5 text-muted-foreground sm:text-sm sm:leading-6">{part.text}</p>}
                 </div>
               ))}
             </div>
