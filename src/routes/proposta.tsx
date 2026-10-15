@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
-import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, packageTotal, type Hotel } from "@/lib/hotels";
+import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, type Hotel } from "@/lib/hotels";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
 import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
@@ -74,13 +74,13 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const hotels = p.hotels as Hotel[];
   const shortCity = (name: string) => (name.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)\s*/gi, "").trim();
   const destino = shortCity(p.s.destino ?? "");
-   const cliente = p.s.cliente?.trim();
+  const cliente = p.s.cliente?.trim();
   const hero = hotels.find((h) => h.image)?.image;
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
-   const chosenIndex = acceptance?.hotelIndex ?? chosen;
-   const pick = chosenIndex != null ? hotels[chosenIndex] : null;
+  const chosenIndex = acceptance?.hotelIndex ?? chosen;
+  const pick = chosenIndex != null ? hotels[chosenIndex] : null;
   const handleConfirmPackage = async () => {
     if (!pick || chosenIndex === null || confirming || isConfirmed) return;
     if (!code) { setConfirmError("Solicite à agência o link atualizado para confirmar este pacote."); return; }
@@ -125,19 +125,18 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
               return <span key={k} className="flex items-center gap-2 rounded-full border border-card/40 bg-card/15 px-4 py-2 text-sm backdrop-blur"><Icon className="h-4 w-4" />{txt as string}</span>;
             })}
           </div>
-           {cliente && (
-             <div className="mt-6 flex max-w-full items-start gap-3 border-l-2 border-turquoise pl-4">
-               <Sparkles className="mt-1 h-5 w-5 shrink-0 text-turquoise" aria-hidden="true" />
-               <p className="min-w-0 text-base leading-relaxed md:text-lg">
-                 Proposta exclusiva para <span className="font-bold break-words">{cliente}</span>
-               </p>
-             </div>
-           )}
+          {cliente && (
+            <div className="mt-6 flex max-w-full items-start gap-3 border-l-2 border-turquoise pl-4">
+              <Sparkles className="mt-1 h-5 w-5 shrink-0 text-turquoise" aria-hidden="true" />
+              <p className="min-w-0 text-base leading-relaxed md:text-lg">
+                Proposta exclusiva para <span className="font-bold break-words">{cliente}</span>
+              </p>
+            </div>
+          )}
         </div>
       </section>
 
       <div className="relative z-10 mx-auto max-w-6xl px-4">
-
         <nav className="mt-4 grid grid-cols-3 rounded-t-2xl border-b border-border bg-card">
           {TABS.map((n, k) => (
             <Button variant="ghost" key={n} onClick={() => setTab(k)} className={`h-auto rounded-none whitespace-normal border-b-[3px] px-1 py-3 text-sm font-semibold transition ${tab === k ? "border-primary text-primary" : "border-transparent text-muted-foreground"}`}>
@@ -159,7 +158,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                   hasTransport ? (p.s.transport?.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null,
                   `Hospedagem · ${nights} ${nights === 1 ? "noite" : "noites"}`,
                   hasBreakfast(meal) ? `Café da manhã${meal ? ` (${meal})` : ""}` : null,
-                  ...(p.s.extras ?? []).map(item => item.name.trim()),
+                  ...(h.extras ?? p.s.extras ?? []).map(item => item.name.trim()),
                 ].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
@@ -186,7 +185,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                       </div>
                       <div className="mt-auto space-y-2 pt-3">
                         <button onClick={() => setActive(h)} className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-primary py-2.5 text-sm font-semibold text-primary">Ver fotos e detalhes <ArrowRight className="h-4 w-4" /></button>
-                         <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto w-full rounded-xl py-2.5">{sel ? <><Check className="h-4 w-4" />{isConfirmed ? "Pacote confirmado" : "Pacote selecionado"}</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</Button>
+                        <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto w-full rounded-xl py-2.5">{sel ? <><Check className="h-4 w-4" />{isConfirmed ? "Pacote confirmado" : "Pacote selecionado"}</> : <>Selecionar pacote <ArrowRight className="h-4 w-4" /></>}</Button>
                       </div>
                     </div>
                   </article>
@@ -200,7 +199,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
           <div className="mt-10 rounded-3xl bg-card p-10 text-center shadow-md">
             {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
             <h2 className="mt-3 text-xl font-bold">{TABS[tab]}</h2>
-             {tab === 2 && p.s.extras?.length ? <ul className="mt-4 space-y-2 text-sm">{p.s.extras.map((item, i) => <li key={i} className="flex items-center justify-center gap-2"><Check className="h-4 w-4 text-primary" />{item.name}</li>)}</ul> : <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : "Fale com a gente para incluir passeios, transfer e seguro na sua viagem."}</p>}
+            {tab === 2 && pick?.extras?.length ? <ul className="mt-4 space-y-2 text-sm">{pick.extras.map((item, i) => <li key={i} className="flex items-center justify-center gap-2"><Check className="h-4 w-4 text-primary" />{item.name}</li>)}</ul> : <p className="mt-1 text-sm text-muted-foreground">{tab === 1 ? "Sem transporte incluído nesta proposta." : pick ? "Este pacote não possui serviços adicionais." : "Selecione um pacote para ver os serviços adicionais incluídos."}</p>}
             <a href={wa} target="_blank" rel="noreferrer" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"><MessageCircle className="h-4 w-4" />Fale conosco</a>
           </div>
         )}
@@ -210,10 +209,10 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card shadow-2xl">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
-             <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-xs text-destructive">{confirmError}</p>}</div>
+            <div className="min-w-0"><div className="truncate text-xs text-muted-foreground">{pick.name}</div><div className="text-xl font-black">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-xs text-destructive">{confirmError}</p>}</div>
             <div className="flex items-center gap-2">
-               <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
-                 <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
+              <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex shrink-0 items-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground">
+                <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
               </Button>
               <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-2 rounded-xl border border-primary px-4 py-3 text-sm font-semibold text-primary hover:bg-primary/10">
                 <MessageCircle className="h-4 w-4" /> WhatsApp
