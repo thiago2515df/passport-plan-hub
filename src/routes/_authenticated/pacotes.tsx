@@ -204,7 +204,7 @@ function Index() {
     const chosen = sel.map(id => hotels.find(h => h.id === id)).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     setSaving(true);
     try {
-      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...s, extras: undefined, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] });
@@ -307,7 +307,7 @@ function Index() {
                       <div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{brl(h.nightly)}</span><span className="text-xs text-muted-foreground">/ noite</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div>
                       <div className="text-[11px] text-muted-foreground">Total de {brl(h.total)}</div>
                        <div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">
-                          <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, pricingSearch, commissions.data ?? emptyCommissions).commission)}</span>
+                          <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).commission)}</span>
                          <Button size="sm" variant="secondary" onClick={() => toggle(h.id)}>{on ? "Remover" : "Adicionar"}</Button>
                        </div>
                      </div>
@@ -316,7 +316,7 @@ function Index() {
               })}
             </div>
              {!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4">
-               <div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {hotelResults.pages}</span></div>
+               <div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {list.length ? hotelResults.pages : 1}</span></div>
                <div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div>
              </nav>}
           </section>
@@ -352,11 +352,16 @@ function Index() {
               <div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hotel" : "hotéis"}</span></div>
               {sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhum hotel selecionado.</p>}
               <div className="space-y-2">
-                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; const price = packagePricing(h.total, pricingSearch, commissions.data ?? emptyCommissions); return (
+                {sel.map(id => { const h = hotels.find(x => x.id === id); if (!h) return null; const hotelSearch = { ...pricingSearch, extras: h.extras ?? [] }; const price = packagePricing(h.total, hotelSearch, commissions.data ?? emptyCommissions); return (
                   <div key={id} className="rounded-xl border border-border p-3">
                     <div className="flex justify-between"><span className="text-sm font-semibold">{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div>
                     <div className="text-[11px] text-muted-foreground">{h.address}</div>
                     <label className="mt-2 block text-xs text-muted-foreground">Custo da hospedagem (R$)<Input aria-label={`Custo de ${h.name}`} type="number" min={0} step="0.01" value={h.total} onChange={e => { const total = Math.max(0, Number(e.target.value)); setHotels(previous => previous.map(item => item.id === id ? { ...item, total, nightly: total / nights } : item)); setLink(""); }} /></label>
+                    <div className="mt-3 space-y-2 border-t border-border pt-3">
+                      <h3 className="text-xs font-semibold">Serviços adicionais deste hotel</h3>
+                      {(h.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Serviço adicional ${i + 1} de ${h.name}`} placeholder="Ex.: Almoço" value={item.name} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, name: e.target.value } : v) } : hotel)); }} /><Input aria-label={`Valor do serviço adicional ${i + 1} de ${h.name}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) } : hotel)); }} /><Button aria-label={`Remover serviço adicional ${i + 1} de ${h.name}`} variant="ghost" size="icon" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: (hotel.extras ?? []).filter((_, j) => j !== i) } : hotel)); }}><Trash2 className="h-4 w-4" /></Button></div>)}
+                      <div className="flex flex-wrap gap-2">{["Almoço", "Passeio"].map(n => <Button key={n} variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: n, cost: 0 }] } : hotel)); }}>+ {n}</Button>)}<Button variant="outline" size="sm" onClick={() => { setLink(""); setHotels(previous => previous.map(hotel => hotel.id === id ? { ...hotel, extras: [...(hotel.extras ?? []), { name: "", cost: 0 }] } : hotel)); }}>+ Adicionar serviço</Button></div>
+                    </div>
                     <dl className="mt-3 space-y-1 text-xs"><div className="flex justify-between"><dt>Custo dos serviços</dt><dd>{brl(price.cost)}</dd></div><div className="flex justify-between"><dt>Comissão</dt><dd>{brl(price.commission)}</dd></div><div className="flex justify-between pt-1 text-sm font-bold"><dt>Preço final do pacote</dt><dd>{brl(price.total)}</dd></div></dl>
                   </div>); })}
                </div>
@@ -370,7 +375,6 @@ function Index() {
                    </div>))}
                </div>}
                {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
-               <div className="mt-4 space-y-2 border-t border-border pt-3"><h3 className="text-sm font-semibold">Serviços adicionais (almoço, passeio…)</h3>{(s.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Item adicional ${i + 1}`} placeholder="Ex.: Almoço" value={item.name} onChange={e => setS(previous => ({ ...previous, extras: (previous.extras ?? []).map((v, j) => j === i ? { ...v, name: e.target.value } : v) }))} /><Input aria-label={`Custo adicional ${i + 1}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => setS(previous => ({ ...previous, extras: (previous.extras ?? []).map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) }))} /><Button aria-label={`Remover adicional ${i + 1}`} variant="ghost" size="icon" onClick={() => setS(previous => ({ ...previous, extras: (previous.extras ?? []).filter((_, j) => j !== i) }))}><Trash2 className="h-4 w-4" /></Button></div>)}<div className="flex flex-wrap gap-2">{["Almoço","Passeio"].map(n => <Button key={n} variant="outline" size="sm" onClick={() => { setLink(""); setS(previous => ({ ...previous, extras: [...(previous.extras ?? []), { name: n, cost: 0 }] })); }}>+ {n}</Button>)}<Button variant="outline" size="sm" onClick={() => { setLink(""); setS(previous => ({ ...previous, extras: [...(previous.extras ?? []), { name: "", cost: 0 }] })); }}>+ Adicionar serviço</Button></div></div>
                <input disabled={editLoading} placeholder="Nome do cliente" value={s.cliente ?? ""} onChange={e => { setLink(""); setS({ ...s, cliente: e.target.value }); }} className="mt-4 w-full rounded-xl border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="Telefone do cliente" placeholder="Telefone do cliente" type="tel" value={s.telefone ?? ""} onChange={e => setS({ ...s, telefone: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
                <input aria-label="E-mail do cliente" placeholder="E-mail do cliente" type="email" value={s.email ?? ""} onChange={e => setS({ ...s, email: e.target.value })} className="mt-2 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm" />
