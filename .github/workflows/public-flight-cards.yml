@@ -1,0 +1,90 @@
+name: Public flight cards
+
+on:
+  push:
+    paths:
+      - '.github/workflows/public-flight-cards.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Patch public flight cards
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('src/components/TransportPanel.tsx')
+          s = p.read_text()
+
+          helper_anchor = 'function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {'
+          helper = '''function CustomerBagIcon({ label, included, kind }: { label: string; included?: boolean; kind: "personal" | "carry" | "checked" }) {
+  const Icon = kind === "personal" ? BriefcaseBusiness : Luggage;
+  return <span role="img" aria-label={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} title={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground">
+    <Icon className="h-5 w-5" />
+    {included === true ? <Check className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-card text-emerald-600" /> : included === false ? <X className="absolute -right-1 -top-1 h-3.5 w-3.5 rounded-full bg-card text-destructive" /> : null}
+  </span>;
+}
+
+'''
+          if 'function CustomerBagIcon' not in s:
+              if helper_anchor not in s:
+                  raise SystemExit('CustomerFlightTickets anchor not found')
+              s = s.replace(helper_anchor, helper + helper_anchor, 1)
+
+          old_vars = '      const included = leg.baggage?.carryOn;\n'
+          new_vars = '''      const bagText = (value.bags ?? "").toLowerCase();
+      const personalBag = leg.baggage?.personal ?? (/pessoal|personal/.test(bagText) ? true : undefined);
+      const carryOnBag = leg.baggage?.carryOn ?? (/m[aã]o|carry|10\\s*kg/.test(bagText) ? true : undefined);
+      const checkedBag = leg.baggage?.checked ?? (/despach|checked|23\\s*kg/.test(bagText) ? true : undefined);
+'''
+          if old_vars in s:
+              s = s.replace(old_vars, new_vars, 1)
+
+          old_article = '      return <article key={key} aria-label={`Passagem de ${out ? "ida" : "volta"}`} className="@container min-w-0 rounded-lg border border-border bg-card p-4 text-foreground sm:p-5">'
+          new_article = '      return <article key={key} aria-label={`Passagem de ${out ? "ida" : "volta"}`} className="@container min-w-0 rounded-xl border-2 border-primary/80 bg-card p-4 text-foreground shadow-sm sm:p-5">'
+          if old_article in s:
+              s = s.replace(old_article, new_article, 1)
+
+          old_footer = '''            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-border pt-3">
+              <div className="flex items-center gap-4 text-sm font-semibold">
+                <span className="flex items-center gap-1.5" aria-label={passengers.adults === undefined ? s.hospedes : `${passengers.adults} adultos`} title="Adultos"><UserRound className="h-5 w-5" />{passengers.adults ?? s.hospedes}</span>
+                {passengers.children > 0 && <span className="flex items-center gap-1.5" aria-label={`${passengers.children} crianças`} title="Crianças"><Baby className="h-5 w-5" />{passengers.children}</span>}
+              </div>
+              <span role="img" aria-label={`Bagagem de mão: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} title={`Bagagem de mão: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} className="relative inline-flex h-7 w-6 items-center justify-center text-muted-foreground"><BriefcaseBusiness className="h-6 w-6" />{included === true ? <Check className="absolute -right-1 -top-1 h-3 w-3 text-success-foreground" /> : included === false ? <X className="absolute -right-1 -top-1 h-3 w-3 text-destructive" /> : null}</span>
+            </div>'''
+          new_footer = '''            <div className="mt-4 flex flex-wrap items-center justify-between gap-x-5 gap-y-3 border-t border-border pt-3">
+              <div className="flex items-center gap-4 text-sm font-semibold">
+                <span className="flex items-center gap-1.5" aria-label={passengers.adults === undefined ? s.hospedes : `${passengers.adults} adultos`} title="Adultos"><UserRound className="h-5 w-5" />{passengers.adults ?? s.hospedes}</span>
+                {passengers.children > 0 && <span className="flex items-center gap-1.5" aria-label={`${passengers.children} crianças`} title="Crianças"><Baby className="h-5 w-5" />{passengers.children}</span>}
+              </div>
+              <div className="flex items-center gap-2" aria-label="Franquia de bagagem">
+                <CustomerBagIcon label="Item pessoal" included={personalBag} kind="personal" />
+                <CustomerBagIcon label="Bagagem de mão" included={carryOnBag} kind="carry" />
+                <CustomerBagIcon label="Bagagem despachada" included={checkedBag} kind="checked" />
+              </div>
+            </div>'''
+          if old_footer not in s:
+              raise SystemExit('Public flight footer not found')
+          s = s.replace(old_footer, new_footer, 1)
+
+          p.write_text(s)
+          PY
+
+      - name: Commit public proposal update
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/public-flight-cards.yml
+          git add src/components/TransportPanel.tsx
+          git commit -m 'Melhora cards de voo da proposta pública'
+          git push
