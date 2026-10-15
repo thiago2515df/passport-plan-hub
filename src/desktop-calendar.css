@@ -1,0 +1,148 @@
+@media (min-width: 1024px) {
+  [data-slot="popover-content"]:has([data-slot="calendar"]) {
+    width: auto !important;
+    max-width: none !important;
+    overflow: hidden;
+    padding: 0 !important;
+    border: 1px solid #dce5f0 !important;
+    border-radius: 22px !important;
+    background: #fff !important;
+    box-shadow: 0 24px 60px rgba(20, 45, 85, 0.18) !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) [data-slot="calendar"] {
+    width: auto !important;
+    padding: 18px !important;
+    background: #fff !important;
+    --cell-size: 2.5rem;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-months {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 28px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-month {
+    min-width: 292px;
+    gap: 12px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-month + .rdp-month {
+    padding-left: 24px;
+    border-left: 1px solid #e7edf4;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-month_caption {
+    height: 42px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-caption_label {
+    color: #12213d;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    text-transform: capitalize;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-nav {
+    top: 18px !important;
+    left: 18px !important;
+    right: 18px !important;
+    width: auto !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-button_previous,
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-button_next {
+    width: 34px !important;
+    height: 34px !important;
+    border: 1px solid #dbe4ee !important;
+    border-radius: 10px !important;
+    background: #f8fafc !important;
+    color: var(--color-primary) !important;
+    box-shadow: 0 2px 8px rgba(15, 35, 65, 0.06);
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-button_previous:hover,
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-button_next:hover {
+    border-color: color-mix(in srgb, var(--color-primary) 40%, #dbe4ee);
+    background: color-mix(in srgb, var(--color-primary) 8%, #fff) !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-weekdays {
+    margin-bottom: 6px;
+    padding: 7px 4px;
+    border-radius: 12px;
+    background: #f5f7fb;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-weekday {
+    color: #788397 !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-week {
+    margin-top: 3px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-day button {
+    min-width: 38px !important;
+    min-height: 38px !important;
+    border-radius: 12px;
+    color: #17233d;
+    font-size: 13px;
+    transition: background-color 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-day button:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--color-primary) 9%, #fff);
+    color: var(--color-primary);
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-today button:not([data-range-start="true"]):not([data-range-end="true"]) {
+    color: var(--color-primary) !important;
+    font-weight: 800 !important;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-primary) 35%, transparent);
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-selected-single="true"],
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-start="true"],
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-end="true"] {
+    background: var(--color-primary) !important;
+    color: var(--color-primary-foreground) !important;
+    font-weight: 800 !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-middle="true"] {
+    border-radius: 0 !important;
+    background: color-mix(in srgb, var(--color-primary) 14%, #fff) !important;
+    color: var(--color-primary) !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-start="true"] {
+    border-radius: 999px 0 0 999px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-end="true"] {
+    border-radius: 0 999px 999px 0 !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) button[data-range-start="true"][data-range-end="true"] {
+    border-radius: 999px !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-outside button,
+  [data-slot="popover-content"]:has([data-slot="calendar"]) .rdp-disabled button {
+    color: #b7bfca !important;
+  }
+
+  [data-slot="popover-content"]:has([data-slot="calendar"]) > p {
+    margin: 0 !important;
+    padding: 12px 18px 16px !important;
+    border-top: 1px solid #e7edf4;
+    background: #fbfcfe;
+    color: #667085 !important;
+    font-size: 12px !important;
+  }
+}
