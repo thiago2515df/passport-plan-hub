@@ -155,7 +155,12 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
               {hotels.map((h, i) => {
                 const [room, meal] = (h.room ?? "").split(" · ");
                 const sel = chosenIndex === i;
-                const included = [hasTransport ? (p.s.transport?.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null, `Hotel · ${nights} ${nights === 1 ? "noite" : "noites"}`, hasBreakfast(meal) ? `Com café da manhã${meal ? ` (${meal})` : ""}` : "Sem café da manhã", ...(p.s.extras ?? []).map(item => item.name.trim())].filter(Boolean) as string[];
+                const included = [
+                  hasTransport ? (p.s.transport?.mode === "bus" ? "Passagem de ônibus (ida e volta)" : "Passagem aérea (ida e volta)") : null,
+                  `Hospedagem · ${nights} ${nights === 1 ? "noite" : "noites"}`,
+                  hasBreakfast(meal) ? `Café da manhã${meal ? ` (${meal})` : ""}` : null,
+                  ...(p.s.extras ?? []).map(item => item.name.trim()),
+                ].filter(Boolean) as string[];
                 return (
                   <article key={i} className={`flex flex-col rounded-3xl bg-card p-3 shadow-sm transition ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-2xl [&_img]:!h-56 [&_img]:!w-full [&>div]:!h-56 [&>div]:!w-full">
