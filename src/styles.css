@@ -604,3 +604,43 @@
     font-size: 1.1rem;
   }
 }
+
+
+/* Busca de pacotes: layout compacto, legível e com identidade Excursão Brasília. */
+.package-search-compact { max-width: 1500px; margin-inline: auto; }
+.package-search-heading {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-bottom: 0; padding: 13px 16px;
+  border-radius: 16px 16px 0 0;
+  background: #2439bf; color: #fff;
+}
+.package-search-heading > span { font-size: 16px; font-weight: 800; letter-spacing: -.02em; }
+.package-search-heading > small { font-size: 11px; color: #e1e8ff; }
+.package-search-fields { border-radius: 0 0 16px 16px; border-top: 0; }
+.package-search-fields > div > label,
+.package-search-fields > label,
+.package-search-fields > details > summary {
+  color: #697386; font-size: 11px; font-weight: 750; letter-spacing: .025em;
+}
+.package-search-fields > details > summary { cursor: pointer; }
+.package-search-fields input,
+.package-search-fields select { font-size: 14px; }
+.package-search-fields svg { flex-shrink: 0; color: #2439bf; }
+.package-search-fields > button svg { color: #fff; }
+@media (max-width: 767px) {
+  .package-search-heading { padding: 11px 13px; }
+  .package-search-fields { gap: 10px; padding: 12px; }
+  .package-search-fields > div > label,
+  .package-search-fields > label,
+  .package-search-fields > details > summary { font-size: 10px; }
+  .package-search-fields > div > .mt-2,
+  .package-search-fields > label > .mt-2,
+  .package-search-fields > details > summary > .mt-2,
+  .package-search-fields > div > button.mt-2 { margin-top: 5px; }
+  .package-search-fields > details > summary > div {
+    overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+    font-size: 12px; padding-inline: 9px;
+  }
+  .package-search-fields > div > button { font-size: 12px; }
+  .package-search-fields > button { margin-top: 2px; height: 42px; }
+}
