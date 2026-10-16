@@ -1,0 +1,19 @@
+{
+  "name": "Excursão Brasília",
+  "short_name": "Excursão Brasília",
+  "description": "Sistema de propostas de viagens",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
