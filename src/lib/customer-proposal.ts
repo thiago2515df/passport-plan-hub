@@ -11,7 +11,7 @@ export function customerProposal(p: NonNullable<ReturnType<typeof decodeProposal
       name: h.name, address: h.address, stars: h.stars, room: h.room ?? "", image: h.image,
       ...(h.hotelId !== undefined ? { hotelId: h.hotelId } : {}),
       // Keep only public Airbnb identity, photos and review metadata. Without
-      // providerListingId the customer detail modal cannot request the PDP.
+      // providerListingId and the saved PDP snapshot keep client details available.
       ...(h.provider === "airbnb" ? {
         provider: "airbnb" as const,
         ...(h.providerListingId ? { providerListingId: h.providerListingId } : {}),
