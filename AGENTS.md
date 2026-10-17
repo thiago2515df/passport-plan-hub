@@ -30,3 +30,4 @@
 - Preserve per-leg flight metadata through a browser-safe customer itinerary mapper and reuse AirlineLogo for airline identity, so customer tickets retain dates and baggage without exposing commercial terms.
 - Keep seller commissions in an owner/admin-protected table and calculate each hotel alternative with the shared package-pricing helper; public exact-code lookup projects only customer fields and final totals at read time so commission updates reach existing links without exposing internal costs.
 - Customer acceptance uses an exact-code transactional database function to validate the selected alternative and displayed price; store the accepted payload and pricing snapshot in an owner/admin-readable table, exposing only confirmation and final total publicly.
+- Preserve public Airbnb identity and saved detail snapshots in both database and browser customer projections so shared galleries work without paid anonymous API calls or exposing internal prices.

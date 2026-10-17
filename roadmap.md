@@ -1,5 +1,5 @@
 # Transport proposal
-- [ ] Fix Airbnb photos and full details in internal galleries and shared customer proposals; verify a real listing.
+- [x] Fix public Airbnb gallery projection; verified the real Curitiba proposal with nine photos, full description, next-photo navigation and mobile layout, without anonymous paid API requests.
 - [x] Allow flight-result search by exact flight number, accepting carrier formats such as G3 1682 and G3-1682.
 - [x] Remove the flight search form from the seller page, keeping only the proposals board and commission settings; verified signed-in that Origem/Destino/BUSCAR no longer appear and the three Kanban columns still load.
 - [x] Record customer-selected package, approval timestamp and internal pricing/commission snapshot; verified anonymous acceptance and reload, authorized concluded card with hotel/transport/costs/commission, and removed temporary test proposal.
