@@ -3,15 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Hotel } from "./hotels";
 import { nightsBetween } from "./hotels";
-
-function parseBrlTotal(label?: string) {
-  if (!label) return undefined;
-  const match = label.match(/R\$\s*([\d.]+(?:,\d{1,2})?)/i);
-  if (!match?.[1]) return undefined;
-  const normalized = match[1].replace(/\./g, "").replace(",", ".");
-  const value = Number(normalized);
-  return Number.isFinite(value) ? value : undefined;
-}
+import { geckoAirbnbPrice } from "./gecko-price";
 
 export const searchAirbnb = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -45,15 +37,15 @@ export const searchAirbnb = createServerFn({ method: "POST" })
         const ratio = (value - min) / (max - min);
         return 8 + (invert ? 1 - ratio : ratio) * 84;
       };
-      const listings: Hotel[] = items.map((item) => {
-        const nightly = Math.max(0, Number(item.price ?? 0));
-        const parsedTotal = parseBrlTotal(item.totalPriceLabel);
-        const total = parsedTotal ?? nightly * nights;
+      const listings: Hotel[] = items.flatMap((item) => {
+        // Never advertise an unknown or foreign-currency price as R$ 0,00.
+        const price = geckoAirbnbPrice(item, nights);
+        if (!item.listingId?.trim() || !price) return [];
         const images = (item.images ?? []).map((image) => image.url ?? "").filter(Boolean);
         const highlights = item.highlights ?? [];
-        return {
+        return [{
           id: `airbnb:${item.listingId}`,
-          provider: "airbnb",
+          provider: "airbnb" as const,
           providerListingId: item.listingId,
           sourceUrl: item.url,
           name: item.name || item.title || "Airbnb",
@@ -61,14 +53,15 @@ export const searchAirbnb = createServerFn({ method: "POST" })
           stars: 0,
           rating: item.aggregateRating?.rating,
           reviewCount: item.aggregateRating?.reviewCount,
-          nightly,
-          total,
+          nightly: price.nightly,
+          total: price.total,
+          totalEstimated: price.totalEstimated,
           room: highlights.join(" · "),
           image: item.thumbnail || images[0] || "",
           images,
           x: pos(item.longitude, minLng, maxLng),
           y: pos(item.latitude, minLat, maxLat, true),
-        };
+        }];
       });
       return {
         listings,
