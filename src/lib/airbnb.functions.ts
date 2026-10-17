@@ -82,7 +82,7 @@ export const searchAirbnb = createServerFn({ method: "POST" })
 export const getAirbnbDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((value) => z.object({
-    listingId: z.string().regex(/^\\d{6,22}$/),
+    listingId: z.string().regex(/^\d{6,22}$/),
   }).parse(value))
   .handler(async ({ data, context }): Promise<{
     photos: string[]; description: string; amenities: string[];
