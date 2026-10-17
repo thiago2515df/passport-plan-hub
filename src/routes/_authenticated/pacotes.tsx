@@ -314,5 +314,5 @@ function Index() {
             </div>
           )}
         </div><Button disabled={!access.allowed || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}</div></div></div>}
-  </main>{gallery && <HotelGallery hotel={gallery} onClose={() => setGallery(null)} />}</div>;
+  </main>{gallery && <HotelGallery hotel={gallery} stay={{ checkin: s.checkin, checkout: s.checkout, adults }} onClose={() => setGallery(null)} />}</div>;
 }

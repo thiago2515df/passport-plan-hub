@@ -105,6 +105,11 @@ export type GeckoAirbnbPdpResponse = {
       description?: string;
       propertyType?: string;
       city?: string;
+      personCapacity?: number;
+      roomType?: string;
+      isSuperhost?: boolean;
+      aggregateRating?: { rating?: number; reviewCount?: number };
+      badges?: string[];
       mainImage?: { url?: string };
       image?: { url?: string }[];
       amenities?: string[];
@@ -115,7 +120,10 @@ export type GeckoAirbnbPdpResponse = {
   };
 };
 
-export async function geckoAirbnbDetails(listingId: string): Promise<GeckoAirbnbPdpResponse> {
+export async function geckoAirbnbDetails(input: {
+  listingId: string; startDate?: string; endDate?: string; numAdults?: number;
+}): Promise<GeckoAirbnbPdpResponse> {
+  const { listingId, startDate, endDate, numAdults } = input;
   if (!/^\d{6,22}$/.test(listingId)) {
     throw new GeckoApiError(400, "INVALID_LISTING", "Identificador de imóvel Airbnb inválido.");
   }
@@ -130,6 +138,9 @@ export async function geckoAirbnbDetails(listingId: string): Promise<GeckoAirbnb
       target: "airbnb.com.br",
       type: "pdp",
       url,
+      ...(startDate ? { startDate } : {}),
+      ...(endDate ? { endDate } : {}),
+      ...(numAdults ? { numAdults } : {}),
     }),
     signal: AbortSignal.timeout(45000),
   });

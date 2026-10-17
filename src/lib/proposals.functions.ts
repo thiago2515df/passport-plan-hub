@@ -110,7 +110,15 @@ export const saveProposal = createServerFn({ method: "POST" })
     if (proposal.s.adults !== undefined) z.number().int().nonnegative().parse(proposal.s.adults);
     z.array(z.number().int().min(0).max(17)).parse(proposal.s.childAges ?? []);
     if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
-    const storedPayload = payloadForStorage(data.payload);
+    // Preload public Airbnb details while the authenticated seller generates the
+    // proposal. This costs at most one GeckoAPI PDP request per selected listing
+    // (up to eight); viewers of the public proposal need no API token or auth.
+    const { addAirbnbDetailsToProposal } = await import("./airbnb-proposal-snapshot.server");
+    const detailsHotels = await addAirbnbDetailsToProposal(proposal.hotels, proposal.s);
+    const enrichedPayload = encodeProposal({ ...proposal, hotels: detailsHotels });
+    const storedPayload = payloadForStorage(
+      enrichedPayload.length <= 200_000 ? enrichedPayload : data.payload,
+    );
     if (data.code) {
       const { data: saved, error } = await context.supabase.from("proposals").update({ payload: storedPayload }).eq("code", data.code).select("code").maybeSingle();
       if (error || !saved) throw new Error("Proposta não encontrada ou edição não permitida.");
