@@ -21,3 +21,8 @@ jobs:
         run: bun install --frozen-lockfile
       - name: Validar compilação web
         run: bun run build
+      - name: Testar preços Airbnb
+        run: bun run test src/lib/gecko-price.test.ts
+      - name: Verificar tipagem
+        run: bunx tsc --noEmit
+        continue-on-error: true
