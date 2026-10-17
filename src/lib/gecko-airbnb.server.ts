@@ -90,3 +90,49 @@ export async function geckoAirbnbSearch(input: {
   if (!response.ok) throw await readError(response);
   return (await response.json()) as GeckoAirbnbResponse;
 }
+
+/**
+ * Extracts a single Airbnb listing (PDP) for gallery, description and amenities.
+ * Construct URL only from a numeric listing ID to avoid passing untrusted URLs.
+ */
+export type GeckoAirbnbPdpResponse = {
+  notFound?: boolean;
+  data?: null | {
+    data?: null | {
+      listingId?: string;
+      name?: string;
+      title?: string;
+      description?: string;
+      propertyType?: string;
+      city?: string;
+      mainImage?: { url?: string };
+      image?: { url?: string }[];
+      amenities?: string[];
+      highlights?: string[];
+      cancellationPolicy?: string;
+      host?: { name?: string; isSuperhost?: boolean; highlights?: string[] };
+    };
+  };
+};
+
+export async function geckoAirbnbDetails(listingId: string): Promise<GeckoAirbnbPdpResponse> {
+  if (!/^\\d{6,22}$/.test(listingId)) {
+    throw new GeckoApiError(400, "INVALID_LISTING", "Identificador de imóvel Airbnb inválido.");
+  }
+  const url = `https://www.airbnb.com.br/rooms/${listingId}`;
+  const response = await fetch(`${GECKO_BASE}/extract`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token()}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      target: "airbnb.com.br",
+      type: "pdp",
+      url,
+    }),
+    signal: AbortSignal.timeout(45000),
+  });
+  if (!response.ok) throw await readError(response);
+  return (await response.json()) as GeckoAirbnbPdpResponse;
+}
