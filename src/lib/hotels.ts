@@ -1,11 +1,31 @@
 export type ExtraService = { name: string; cost: number };
 
+/** Public information about a selected Airbnb, saved with the client proposal. */
+export type AirbnbPropertyDetails = {
+  photos: string[];
+  description: string;
+  amenities: string[];
+  highlights: string[];
+  propertyType: string;
+  cancellationPolicy: string;
+  hostName: string;
+  rating?: number;
+  reviewCount?: number;
+  personCapacity?: number;
+  roomType?: string;
+  city?: string;
+  badges?: string[];
+  isSuperhost?: boolean;
+};
+
 export type Hotel = {
   id: string; // offerId da PassHub ou id normalizado do fornecedor
   hotelId?: number;
   /** Origem da hospedagem, preservada ao gerar e reabrir propostas. */
   provider?: "hotel" | "airbnb";
   providerListingId?: string;
+  /** Cached PDP details: avoids paid public API calls when clients view a proposal. */
+  publicDetails?: AirbnbPropertyDetails;
   /** True when GeckoAPI did not return a stay total including fees. */
   totalEstimated?: boolean;
   sourceUrl?: string;
