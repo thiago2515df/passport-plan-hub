@@ -19,7 +19,7 @@ export async function addAirbnbDetailsToProposal(
   let calls = 0;
 
   return Promise.all(hotels.map(async hotel => {
-    if (hotel.provider !== "airbnb" || hotel.publicDetails?.photos.length) return hotel;
+    if (hotel.provider !== "airbnb" || hotel.publicDetails && (hotel.publicDetails.photos.length > 0 || hotel.publicDetails.description.length > 0)) return hotel;
     const id = hotel.providerListingId;
     if (!id || !/^\d{6,22}$/.test(id) || calls >= MAX_AUTO_DETAILS_PER_PROPOSAL) return hotel;
 
