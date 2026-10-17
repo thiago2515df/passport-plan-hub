@@ -116,7 +116,7 @@ export type GeckoAirbnbPdpResponse = {
 };
 
 export async function geckoAirbnbDetails(listingId: string): Promise<GeckoAirbnbPdpResponse> {
-  if (!/^\\d{6,22}$/.test(listingId)) {
+  if (!/^\d{6,22}$/.test(listingId)) {
     throw new GeckoApiError(400, "INVALID_LISTING", "Identificador de imóvel Airbnb inválido.");
   }
   const url = `https://www.airbnb.com.br/rooms/${listingId}`;
