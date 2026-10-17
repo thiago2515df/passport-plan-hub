@@ -28,11 +28,6 @@ const decodeEntities = (value: string) => value
   .replace(/&lt;/gi, "<")
   .replace(/&gt;/gi, ">");
 
-/**
- * Algumas fichas da API chegam com HTML cru (ex.: <p><b>Localização</b><br/>...).
- * Normalizamos isso para texto limpo, com títulos e parágrafos consistentes,
- * sem renderizar HTML vindo de terceiros.
- */
 function formatDescription(raw: string) {
   const normalized = decodeEntities(raw)
     .replace(/<\s*br\s*\/?>/gi, "\n")
@@ -47,7 +42,6 @@ function formatDescription(raw: string) {
 
   const knownTitles = /^(Localização do estabelecimento|Localização|Quartos|Comodidades|Alimentação|Restaurantes|Serviços|Lazer|Sobre o hotel|Informações importantes|Políticas|Taxas)(?:\s*[:\-–—]?\s*)(.*)$/i;
   const blocks = normalized.split(/\n+/).map(x => x.trim()).filter(Boolean);
-
   const sections: { title?: string; text: string }[] = [];
   for (const block of blocks) {
     const match = block.match(knownTitles);
@@ -64,21 +58,25 @@ function formatDescription(raw: string) {
   return sections;
 }
 
-/** Foto de capa; se a busca não trouxe ou a imagem falhar, usa a 1ª foto da ficha do hotel. */
 export function HotelPhoto({ hotel }: { hotel: Hotel }) {
   const [broken, setBroken] = useState(false);
-  const need = !hotel.image || broken;
-  const d = useDetails(hotel.hotelId, need);
+  const apiImages = hotel.images ?? [];
+  const needPasshub = hotel.provider !== "airbnb" && (!hotel.image || broken);
+  const d = useDetails(hotel.hotelId, needPasshub);
   const [idx, setIdx] = useState(0);
-  const src = need ? d?.photos[idx] : hotel.image;
+  const candidates = hotel.provider === "airbnb" ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
+  const src = candidates[idx];
   if (!src) return <div className="grid h-36 w-44 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>;
-  return <img src={src} alt={hotel.name} loading="lazy" onError={() => (need ? setIdx((i) => i + 1) : setBroken(true))} className="h-36 w-44 object-cover" />;
+  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
 }
 
 export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => void }) {
-  const d = useDetails(hotel.hotelId);
+  const d = useDetails(hotel.hotelId, hotel.provider !== "airbnb");
   const [bad, setBad] = useState<Set<string>>(new Set());
-  const photos = (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []).filter((p) => !bad.has(p));
+  const sourcePhotos = hotel.provider === "airbnb"
+    ? [hotel.image, ...(hotel.images ?? [])].filter(Boolean)
+    : (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []);
+  const photos = Array.from(new Set(sourcePhotos)).filter((p) => !bad.has(p));
   const [i, setI] = useState(0);
   const cur = photos[Math.min(i, photos.length - 1)];
   const description = d?.description ? formatDescription(d.description) : [];
@@ -111,7 +109,7 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
         </div>
 
         <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-secondary sm:aspect-video">
-          {!d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+          {hotel.provider !== "airbnb" && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
@@ -134,7 +132,7 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
 
         {!!description.length && (
           <section className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
-            <h3 className="mb-3 text-base font-bold text-foreground">Sobre o hotel</h3>
+            <h3 className="mb-3 text-base font-bold text-foreground">Sobre a hospedagem</h3>
             <div className="space-y-3">
               {description.map((part, index) => (
                 <div key={`${part.title ?? "texto"}-${index}`}>

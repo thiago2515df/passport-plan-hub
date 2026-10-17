@@ -1,13 +1,20 @@
 export type ExtraService = { name: string; cost: number };
 
 export type Hotel = {
-  id: string; // offerId da PassHub
+  id: string; // offerId da PassHub ou id normalizado do fornecedor
   hotelId?: number;
+  /** Origem da hospedagem, preservada ao gerar e reabrir propostas. */
+  provider?: "hotel" | "airbnb";
+  providerListingId?: string;
+  sourceUrl?: string;
+  rating?: number;
+  reviewCount?: number;
+  images?: string[];
   name: string;
   address: string;
   stars: number;
-  nightly: number; // já com RAV
-  total: number; // total da estadia, já com RAV e impostos
+  nightly: number; // valor exibido por noite
+  total: number; // total da estadia, incluindo taxas quando a origem informar
   room?: string;
   image: string;
   x: number; // posição no mapa (%)
