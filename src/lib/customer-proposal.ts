@@ -19,6 +19,7 @@ export function customerProposal(p: NonNullable<ReturnType<typeof decodeProposal
         ...(h.rating != null ? { rating: h.rating } : {}),
         ...(h.reviewCount != null ? { reviewCount: h.reviewCount } : {}),
         images: h.images ?? [],
+        ...(h.publicDetails ? { publicDetails: h.publicDetails } : {}),
         ...(h.totalEstimated ? { totalEstimated: true } : {}),
       } : {}),
       extras: extras.map(item => ({ name: item.name, cost: 0 })), nightly: 0, total: packagePricing(h.total, { ...s, extras }, commissions).total };
