@@ -119,7 +119,7 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
   const d = useDetails(hotel.hotelId, !isAirbnb);
   const airbnbId = hotel.providerListingId ?? hotel.id.replace(/^airbnb:/, "");
   const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
-    useAirbnbDetails(airbnbId, isAirbnb && /^\\d{6,22}$/.test(airbnbId));
+    useAirbnbDetails(airbnbId, isAirbnb && /^\d{6,22}$/.test(airbnbId));
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(airbnbDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
