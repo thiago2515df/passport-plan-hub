@@ -73,3 +73,57 @@ export const searchAirbnb = createServerFn({ method: "POST" })
       return { listings: [], totalResults: 0, page: data.page, error: error instanceof Error ? error.message : "Não foi possível consultar o Airbnb." };
     }
   });
+
+/**
+ * Details are fetched only when a user opens an Airbnb apartment.
+ * PLP listings contain thumbnails, but the PDP response carries the
+ * description, complete image array, amenities and cancellation policy.
+ */
+export const getAirbnbDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value) => z.object({
+    listingId: z.string().regex(/^\\d{6,22}$/),
+  }).parse(value))
+  .handler(async ({ data, context }): Promise<{
+    photos: string[]; description: string; amenities: string[];
+    highlights: string[]; propertyType: string; cancellationPolicy: string;
+    hostName: string; error?: string;
+  }> => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "search_hotels");
+    try {
+      const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
+      const response = await geckoAirbnbDetails(data.listingId);
+      const detail = response.data?.data;
+      if (response.notFound || !detail) {
+        return { photos: [], description: "", amenities: [], highlights: [],
+          propertyType: "", cancellationPolicy: "", hostName: "",
+          error: "Detalhes deste imóvel não disponíveis na GeckoAPI." };
+      }
+      const safePhoto = (url?: string) => {
+        if (typeof url !== "string") return "";
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== "https:") return "";
+          return parsed.href;
+        } catch { return ""; }
+      };
+      const photos = Array.from(new Set([
+        safePhoto(detail.mainImage?.url),
+        ...(detail.image ?? []).map(image => safePhoto(image.url)),
+      ].filter(Boolean)));
+      return {
+        photos,
+        description: detail.description?.trim() ?? "",
+        amenities: detail.amenities?.filter(Boolean) ?? [],
+        highlights: detail.highlights?.filter(Boolean) ?? [],
+        propertyType: detail.propertyType ?? "",
+        cancellationPolicy: detail.cancellationPolicy ?? "",
+        hostName: detail.host?.name ?? "",
+      };
+    } catch (error) {
+      return { photos: [], description: "", amenities: [], highlights: [],
+        propertyType: "", cancellationPolicy: "", hostName: "",
+        error: error instanceof Error ? error.message : "Não foi possível consultar os detalhes Airbnb." };
+    }
+  });
