@@ -83,17 +83,22 @@ export const getAirbnbDetails = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((value) => z.object({
     listingId: z.string().regex(/^\d{6,22}$/),
+    startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    numAdults: z.number().int().min(1).max(30).optional(),
   }).parse(value))
   .handler(async ({ data, context }): Promise<{
     photos: string[]; description: string; amenities: string[];
     highlights: string[]; propertyType: string; cancellationPolicy: string;
-    hostName: string; error?: string;
+    hostName: string; rating?: number; reviewCount?: number;
+    personCapacity?: number; roomType?: string; city?: string;
+    badges?: string[]; isSuperhost?: boolean; error?: string;
   }> => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "search_hotels");
     try {
       const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
-      const response = await geckoAirbnbDetails(data.listingId);
+      const response = await geckoAirbnbDetails(data);
       const detail = response.data?.data;
       if (response.notFound || !detail) {
         return { photos: [], description: "", amenities: [], highlights: [],
@@ -120,6 +125,13 @@ export const getAirbnbDetails = createServerFn({ method: "POST" })
         propertyType: detail.propertyType ?? "",
         cancellationPolicy: detail.cancellationPolicy ?? "",
         hostName: detail.host?.name ?? "",
+        rating: detail.aggregateRating?.rating,
+        reviewCount: detail.aggregateRating?.reviewCount,
+        personCapacity: detail.personCapacity,
+        roomType: detail.roomType ?? "",
+        city: detail.city ?? "",
+        badges: detail.badges?.filter(Boolean) ?? [],
+        isSuperhost: detail.isSuperhost ?? detail.host?.isSuperhost ?? false,
       };
     } catch (error) {
       return { photos: [], description: "", amenities: [], highlights: [],
