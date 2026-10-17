@@ -172,11 +172,19 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                     </button>
                     <div className="flex min-w-0 flex-1 flex-col px-1 pt-2 sm:px-2 sm:pt-3">
                       <h3 className="text-base font-extrabold leading-tight text-navy sm:text-lg">{h.name}</h3>
+                      {h.provider === "airbnb" && <span className="mt-1 inline-flex w-fit rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Airbnb</span>}
                       <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:gap-1.5 sm:text-sm">
                         <MapPin className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" /><span className="min-w-0 flex-1 truncate">{h.address || destino}</span>
                         <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver mapa</a>
                       </div>
-                      {h.stars > 0 && <div className="mt-1.5 flex gap-0.5 sm:mt-2">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
+                      {h.provider === "airbnb" && typeof h.rating === "number" && h.rating >= 0 && h.rating <= 5 &&
+                        <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-xs sm:mt-2">
+                          <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                          <strong>{h.rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 })}</strong>
+                          {typeof h.reviewCount === "number" && h.reviewCount > 0 &&
+                            <span className="text-muted-foreground">({h.reviewCount.toLocaleString("pt-BR")} avaliações)</span>}
+                        </div>}
+                      {h.provider !== "airbnb" && h.stars > 0 && <div className="mt-1.5 flex gap-0.5 sm:mt-2">{Array.from({ length: 5 }).map((_, k) => <Star key={k} className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${k < h.stars ? "fill-star text-star" : "text-muted-foreground/40"}`} />)}</div>}
                       {room && <div className="mt-1.5 text-[11px] text-muted-foreground sm:mt-2 sm:text-xs">{room}</div>}
                       <ul className="mt-2 space-y-0.5 text-xs leading-relaxed sm:mt-3 sm:space-y-1 sm:text-sm">
                         <li className="text-[11px] font-semibold text-muted-foreground sm:text-xs">O que está incluso</li>
@@ -225,7 +233,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         </div>
       )}
 
-      {active && <HotelGallery hotel={active} onClose={() => setActive(null)} />}
+      {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} onClose={() => setActive(null)} />}
     </div>
   );
 }
