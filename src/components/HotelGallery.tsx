@@ -67,7 +67,7 @@ export function HotelPhoto({ hotel }: { hotel: Hotel }) {
   const candidates = hotel.provider === "airbnb" ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
   const src = candidates[idx];
   if (!src) return <div className="grid h-36 w-44 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>;
-  return <img src={src} alt={hotel.name} loading="lazy" onError={() => setIdx((i) => i + 1)} className="h-36 w-44 object-cover" />;
+  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
 }
 
 export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => void }) {
