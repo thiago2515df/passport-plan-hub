@@ -3,15 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Hotel } from "./hotels";
 import { nightsBetween } from "./hotels";
-
-function parseBrlTotal(label?: string) {
-  if (!label) return undefined;
-  const match = label.match(/R\$\s*([\d.]+(?:,\d{1,2})?)/i);
-  if (!match?.[1]) return undefined;
-  const normalized = match[1].replace(/\./g, "").replace(",", ".");
-  const value = Number(normalized);
-  return Number.isFinite(value) ? value : undefined;
-}
+import { geckoAirbnbPrice } from "./gecko-price";
 
 export const searchAirbnb = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -19,7 +11,7 @@ export const searchAirbnb = createServerFn({ method: "POST" })
     destination: z.string().min(2).max(120),
     checkin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     checkout: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    adults: z.number().int().min(1).max(9),
+    adults: z.number().int().min(1).max(30),
     page: z.number().int().min(1).max(50).default(1),
   }).parse(value))
   .handler(async ({ data, context }): Promise<{ listings: Hotel[]; totalResults: number; page: number; nextPage?: number; error?: string }> => {
@@ -45,15 +37,15 @@ export const searchAirbnb = createServerFn({ method: "POST" })
         const ratio = (value - min) / (max - min);
         return 8 + (invert ? 1 - ratio : ratio) * 84;
       };
-      const listings: Hotel[] = items.map((item) => {
-        const nightly = Math.max(0, Number(item.price ?? 0));
-        const parsedTotal = parseBrlTotal(item.totalPriceLabel);
-        const total = parsedTotal ?? nightly * nights;
+      const listings: Hotel[] = items.flatMap((item) => {
+        // Never advertise an unknown or foreign-currency price as R$ 0,00.
+        const price = geckoAirbnbPrice(item, nights);
+        if (!item.listingId?.trim() || !price) return [];
         const images = (item.images ?? []).map((image) => image.url ?? "").filter(Boolean);
         const highlights = item.highlights ?? [];
-        return {
+        return [{
           id: `airbnb:${item.listingId}`,
-          provider: "airbnb",
+          provider: "airbnb" as const,
           providerListingId: item.listingId,
           sourceUrl: item.url,
           name: item.name || item.title || "Airbnb",
@@ -61,14 +53,15 @@ export const searchAirbnb = createServerFn({ method: "POST" })
           stars: 0,
           rating: item.aggregateRating?.rating,
           reviewCount: item.aggregateRating?.reviewCount,
-          nightly,
-          total,
+          nightly: price.nightly,
+          total: price.total,
+          totalEstimated: price.totalEstimated,
           room: highlights.join(" · "),
           image: item.thumbnail || images[0] || "",
           images,
           x: pos(item.longitude, minLng, maxLng),
           y: pos(item.latitude, minLat, maxLat, true),
-        };
+        }];
       });
       return {
         listings,
@@ -78,5 +71,59 @@ export const searchAirbnb = createServerFn({ method: "POST" })
       };
     } catch (error) {
       return { listings: [], totalResults: 0, page: data.page, error: error instanceof Error ? error.message : "Não foi possível consultar o Airbnb." };
+    }
+  });
+
+/**
+ * Details are fetched only when a user opens an Airbnb apartment.
+ * PLP listings contain thumbnails, but the PDP response carries the
+ * description, complete image array, amenities and cancellation policy.
+ */
+export const getAirbnbDetails = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((value) => z.object({
+    listingId: z.string().regex(/^\d{6,22}$/),
+  }).parse(value))
+  .handler(async ({ data, context }): Promise<{
+    photos: string[]; description: string; amenities: string[];
+    highlights: string[]; propertyType: string; cancellationPolicy: string;
+    hostName: string; error?: string;
+  }> => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "search_hotels");
+    try {
+      const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
+      const response = await geckoAirbnbDetails(data.listingId);
+      const detail = response.data?.data;
+      if (response.notFound || !detail) {
+        return { photos: [], description: "", amenities: [], highlights: [],
+          propertyType: "", cancellationPolicy: "", hostName: "",
+          error: "Detalhes deste imóvel não disponíveis na GeckoAPI." };
+      }
+      const safePhoto = (url?: string) => {
+        if (typeof url !== "string") return "";
+        try {
+          const parsed = new URL(url);
+          if (parsed.protocol !== "https:") return "";
+          return parsed.href;
+        } catch { return ""; }
+      };
+      const photos = Array.from(new Set([
+        safePhoto(detail.mainImage?.url),
+        ...(detail.image ?? []).map(image => safePhoto(image.url)),
+      ].filter(Boolean)));
+      return {
+        photos,
+        description: detail.description?.trim() ?? "",
+        amenities: detail.amenities?.filter(Boolean) ?? [],
+        highlights: detail.highlights?.filter(Boolean) ?? [],
+        propertyType: detail.propertyType ?? "",
+        cancellationPolicy: detail.cancellationPolicy ?? "",
+        hostName: detail.host?.name ?? "",
+      };
+    } catch (error) {
+      return { photos: [], description: "", amenities: [], highlights: [],
+        propertyType: "", cancellationPolicy: "", hostName: "",
+        error: error instanceof Error ? error.message : "Não foi possível consultar os detalhes Airbnb." };
     }
   });

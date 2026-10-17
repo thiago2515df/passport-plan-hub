@@ -6,6 +6,8 @@ export type Hotel = {
   /** Origem da hospedagem, preservada ao gerar e reabrir propostas. */
   provider?: "hotel" | "airbnb";
   providerListingId?: string;
+  /** True when GeckoAPI did not return a stay total including fees. */
+  totalEstimated?: boolean;
   sourceUrl?: string;
   rating?: number;
   reviewCount?: number;

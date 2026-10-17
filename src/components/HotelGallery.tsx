@@ -2,10 +2,54 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Building2, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { getHotelDetails } from "@/lib/passhub.functions";
+import { getAirbnbDetails } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
 
 type Details = { photos: string[]; description: string; amenities: string[] };
 const cache = new Map<number, Promise<Details>>();
+type AirbnbDetails = {
+  photos: string[]; description: string; amenities: string[];
+  highlights: string[]; propertyType: string; cancellationPolicy: string;
+  hostName: string; error?: string;
+};
+const airbnbDetailsCache = new Map<string, Promise<AirbnbDetails>>();
+
+function useAirbnbDetails(listingId?: string, enabled = false) {
+  const load = useServerFn(getAirbnbDetails);
+  const [details, setDetails] = useState<AirbnbDetails | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  useEffect(() => {
+    if (!listingId || !enabled) {
+      setDetails(null); setLoading(false); setError("");
+      return;
+    }
+    let active = true;
+    setDetails(null); setLoading(true); setError("");
+    if (!airbnbDetailsCache.has(listingId)) {
+      airbnbDetailsCache.set(listingId, load({ data: { listingId } }));
+    }
+    airbnbDetailsCache.get(listingId)!.then(response => {
+      if (!active) return;
+      if (response.error) {
+        airbnbDetailsCache.delete(listingId);
+        setError(response.error);
+      }
+      setDetails(response);
+    }).catch(reason => {
+      if (!active) return;
+      airbnbDetailsCache.delete(listingId);
+      setError(reason instanceof Error ? reason.message : "Não foi possível buscar detalhes Airbnb.");
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [listingId, enabled, load, attempt]);
+  const retry = () => {
+    if (listingId) airbnbDetailsCache.delete(listingId);
+    setAttempt(n => n + 1);
+  };
+  return { details, loading, error, retry };
+}
 
 function useDetails(hotelId?: number, enabled = true) {
   const fn = useServerFn(getHotelDetails);
@@ -71,15 +115,21 @@ export function HotelPhoto({ hotel }: { hotel: Hotel }) {
 }
 
 export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => void }) {
-  const d = useDetails(hotel.hotelId, hotel.provider !== "airbnb");
+  const isAirbnb = hotel.provider === "airbnb";
+  const d = useDetails(hotel.hotelId, !isAirbnb);
+  const airbnbId = hotel.providerListingId ?? hotel.id.replace(/^airbnb:/, "");
+  const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
+    useAirbnbDetails(airbnbId, isAirbnb && /^\d{6,22}$/.test(airbnbId));
   const [bad, setBad] = useState<Set<string>>(new Set());
-  const sourcePhotos = hotel.provider === "airbnb"
-    ? [hotel.image, ...(hotel.images ?? [])].filter(Boolean)
+  const sourcePhotos = isAirbnb
+    ? [...(airbnbDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
     : (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []);
   const photos = Array.from(new Set(sourcePhotos)).filter((p) => !bad.has(p));
   const [i, setI] = useState(0);
   const cur = photos[Math.min(i, photos.length - 1)];
-  const description = d?.description ? formatDescription(d.description) : [];
+  const description = isAirbnb
+    ? formatDescription(airbnbDetails?.description ?? "")
+    : d?.description ? formatDescription(d.description) : [];
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -108,8 +158,8 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
           <button aria-label="Fechar" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary hover:bg-secondary/80"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-secondary sm:aspect-video">
-          {hotel.provider !== "airbnb" && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+        <div className="relative grid h-[260px] place-items-center overflow-hidden rounded-xl bg-secondary sm:h-[350px]">
+          {!isAirbnb && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
@@ -121,18 +171,38 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
           {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 snap-start overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-14 w-20 object-cover sm:h-16 sm:w-24" /></button>)}
         </div>}
 
-        {!!d?.amenities.length && (
+        {isAirbnb && detailsLoading && (
+          <div role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Carregando fotos, descrição e comodidades do apartamento...
+          </div>
+        )}
+        {isAirbnb && detailsError && !detailsLoading && (
+          <div role="alert" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+            Não foi possível carregar a ficha completa: {detailsError}
+            <button type="button" onClick={retry} className="ml-2 font-semibold underline">Tentar novamente</button>
+          </div>
+        )}
+        {isAirbnb && !!airbnbDetails?.highlights?.length && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {airbnbDetails.highlights.map((value, index) => <span key={index} className="rounded-full bg-secondary px-2.5 py-1 text-xs text-foreground">{value}</span>)}
+          </div>
+        )}
+        {(isAirbnb ? !!airbnbDetails?.amenities.length : !!d?.amenities.length) && (
           <section className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
             <h3 className="mb-2 text-sm font-semibold text-foreground">Comodidades</h3>
             <div className="flex flex-wrap gap-1.5">
-              {d.amenities.slice(0, 20).map((a) => <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] text-foreground sm:text-xs">{a}</span>)}
+              {(isAirbnb ? airbnbDetails?.amenities ?? [] : d?.amenities ?? []).slice(0, 30).map((a) => <span key={a} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] text-foreground sm:text-xs">{a}</span>)}
             </div>
           </section>
         )}
 
+        {isAirbnb && !detailsLoading && !detailsError && !description.length && (
+          <p className="mt-3 text-xs text-muted-foreground">O anúncio não disponibilizou uma descrição completa pela API.</p>
+        )}
         {!!description.length && (
           <section className="mt-3 border-t border-border pt-3 sm:mt-4 sm:pt-4">
-            <h3 className="mb-3 text-base font-bold text-foreground">Sobre a hospedagem</h3>
+            <h3 className="mb-3 text-base font-bold text-foreground">{isAirbnb ? "Descrição do apartamento" : "Sobre a hospedagem"}</h3>
             <div className="space-y-3">
               {description.map((part, index) => (
                 <div key={`${part.title ?? "texto"}-${index}`}>
@@ -142,6 +212,18 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
               ))}
             </div>
           </section>
+        )}
+        {isAirbnb && airbnbDetails?.cancellationPolicy && (
+          <section className="mt-3 border-t border-border pt-3">
+            <h3 className="text-sm font-semibold">Política de cancelamento</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{airbnbDetails.cancellationPolicy}</p>
+          </section>
+        )}
+        {isAirbnb && airbnbDetails?.hostName && (
+          <p className="mt-3 text-xs text-muted-foreground">Anfitrião: {airbnbDetails.hostName}</p>
+        )}
+        {isAirbnb && hotel.sourceUrl?.startsWith("https://www.airbnb.com.br/rooms/") && (
+          <a className="mt-3 inline-block text-sm font-semibold text-primary underline" href={hotel.sourceUrl} target="_blank" rel="noopener noreferrer">Ver anúncio no Airbnb</a>
         )}
       </div>
     </div>
