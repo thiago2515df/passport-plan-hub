@@ -11,7 +11,7 @@ export const searchAirbnb = createServerFn({ method: "POST" })
     destination: z.string().min(2).max(120),
     checkin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     checkout: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    adults: z.number().int().min(1).max(9),
+    adults: z.number().int().min(1).max(30),
     page: z.number().int().min(1).max(50).default(1),
   }).parse(value))
   .handler(async ({ data, context }): Promise<{ listings: Hotel[]; totalResults: number; page: number; nextPage?: number; error?: string }> => {
