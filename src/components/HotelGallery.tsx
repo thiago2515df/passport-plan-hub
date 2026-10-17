@@ -4,6 +4,7 @@ import { Building2, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
 import { getHotelDetails } from "@/lib/passhub.functions";
 import { getAirbnbDetails } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
+import { airbnbListingId } from "@/lib/hotel-listing-id";
 
 type Details = { photos: string[]; description: string; amenities: string[] };
 const cache = new Map<number, Promise<Details>>();
@@ -117,9 +118,9 @@ export function HotelPhoto({ hotel }: { hotel: Hotel }) {
 export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => void }) {
   const isAirbnb = hotel.provider === "airbnb";
   const d = useDetails(hotel.hotelId, !isAirbnb);
-  const airbnbId = hotel.providerListingId ?? hotel.id.replace(/^airbnb:/, "");
+  const airbnbId = airbnbListingId(hotel);
   const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
-    useAirbnbDetails(airbnbId, isAirbnb && /^\d{6,22}$/.test(airbnbId));
+    useAirbnbDetails(airbnbId, isAirbnb && Boolean(airbnbId));
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(airbnbDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
