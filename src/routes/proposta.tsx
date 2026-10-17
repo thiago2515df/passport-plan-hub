@@ -233,7 +233,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         </div>
       )}
 
-      {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} onClose={() => setActive(null)} />}
+      {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} allowRemoteDetails={false} onClose={() => setActive(null)} />}
     </div>
   );
 }
