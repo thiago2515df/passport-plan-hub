@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Building2, ChevronLeft, ChevronRight, Loader2, X } from "lucide-react";
+import { Building2, CalendarDays, ChevronLeft, ChevronRight, Loader2, Star, Users, X } from "lucide-react";
 import { getHotelDetails } from "@/lib/passhub.functions";
 import { getAirbnbDetails } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
@@ -11,11 +11,17 @@ const cache = new Map<number, Promise<Details>>();
 type AirbnbDetails = {
   photos: string[]; description: string; amenities: string[];
   highlights: string[]; propertyType: string; cancellationPolicy: string;
-  hostName: string; error?: string;
+  hostName: string; rating?: number; reviewCount?: number;
+  personCapacity?: number; roomType?: string; city?: string;
+  badges?: string[]; isSuperhost?: boolean; error?: string;
 };
 const airbnbDetailsCache = new Map<string, Promise<AirbnbDetails>>();
 
-function useAirbnbDetails(listingId?: string, enabled = false) {
+function useAirbnbDetails(
+  listingId?: string,
+  enabled = false,
+  stay?: { checkin: string; checkout: string; adults: number },
+) {
   const load = useServerFn(getAirbnbDetails);
   const [details, setDetails] = useState<AirbnbDetails | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,25 +34,31 @@ function useAirbnbDetails(listingId?: string, enabled = false) {
     }
     let active = true;
     setDetails(null); setLoading(true); setError("");
-    if (!airbnbDetailsCache.has(listingId)) {
-      airbnbDetailsCache.set(listingId, load({ data: { listingId } }));
+    const cacheKey = [listingId, stay?.checkin ?? "", stay?.checkout ?? "", stay?.adults ?? ""].join(":");
+    if (!airbnbDetailsCache.has(cacheKey)) {
+      airbnbDetailsCache.set(cacheKey, load({ data: {
+        listingId,
+        ...(stay?.checkin ? { startDate: stay.checkin } : {}),
+        ...(stay?.checkout ? { endDate: stay.checkout } : {}),
+        ...(stay?.adults ? { numAdults: stay.adults } : {}),
+      } }));
     }
-    airbnbDetailsCache.get(listingId)!.then(response => {
+    airbnbDetailsCache.get(cacheKey)!.then(response => {
       if (!active) return;
       if (response.error) {
-        airbnbDetailsCache.delete(listingId);
+        airbnbDetailsCache.delete(cacheKey);
         setError(response.error);
       }
       setDetails(response);
     }).catch(reason => {
       if (!active) return;
-      airbnbDetailsCache.delete(listingId);
+      airbnbDetailsCache.delete(cacheKey);
       setError(reason instanceof Error ? reason.message : "Não foi possível buscar detalhes Airbnb.");
     }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [listingId, enabled, load, attempt]);
+  }, [listingId, enabled, load, attempt, stay?.checkin, stay?.checkout, stay?.adults]);
   const retry = () => {
-    if (listingId) airbnbDetailsCache.delete(listingId);
+    if (listingId) airbnbDetailsCache.delete([listingId, stay?.checkin ?? "", stay?.checkout ?? "", stay?.adults ?? ""].join(":"));
     setAttempt(n => n + 1);
   };
   return { details, loading, error, retry };
@@ -115,12 +127,18 @@ export function HotelPhoto({ hotel }: { hotel: Hotel }) {
   return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
 }
 
-export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => void }) {
+export function HotelGallery({
+  hotel, onClose, stay,
+}: {
+  hotel: Hotel;
+  onClose: () => void;
+  stay?: { checkin: string; checkout: string; adults: number };
+}) {
   const isAirbnb = hotel.provider === "airbnb";
   const d = useDetails(hotel.hotelId, !isAirbnb);
   const airbnbId = airbnbListingId(hotel);
   const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
-    useAirbnbDetails(airbnbId, isAirbnb && Boolean(airbnbId));
+    useAirbnbDetails(airbnbId, isAirbnb && Boolean(airbnbId), stay);
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(airbnbDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
@@ -131,6 +149,10 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
   const description = isAirbnb
     ? formatDescription(airbnbDetails?.description ?? "")
     : d?.description ? formatDescription(d.description) : [];
+  const rating = isAirbnb ? airbnbDetails?.rating ?? hotel.rating : undefined;
+  const reviews = isAirbnb ? airbnbDetails?.reviewCount ?? hotel.reviewCount : undefined;
+  const hasRating = typeof rating === "number" && Number.isFinite(rating) && rating >= 0 && rating <= 5;
+  const ratingText = hasRating ? rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) : "";
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -171,6 +193,43 @@ export function HotelGallery({ hotel, onClose }: { hotel: Hotel; onClose: () => 
         {photos.length > 1 && <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1">
           {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 snap-start overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-14 w-20 object-cover sm:h-16 sm:w-24" /></button>)}
         </div>}
+
+        {isAirbnb && (
+          <section className="mt-3 rounded-xl border border-border bg-card p-3 sm:p-4" aria-label="Informações do apartamento">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <h3 className="text-sm font-bold text-foreground sm:text-base">{airbnbDetails?.propertyType || "Apartamento Airbnb"}</h3>
+              {airbnbDetails?.city && <span className="text-xs text-muted-foreground">· {airbnbDetails.city}</span>}
+            </div>
+            {hasRating && (
+              <div className="mt-2 flex flex-wrap items-center gap-1.5 text-sm" aria-label={`Avaliação ${ratingText} de 5`}>
+                <Star className="h-4 w-4 fill-amber-400 text-amber-400" aria-hidden="true" />
+                <strong className="font-semibold">{ratingText}</strong>
+                {typeof reviews === "number" && reviews > 0 && (
+                  <span className="text-xs text-muted-foreground">({reviews.toLocaleString("pt-BR")} avaliações)</span>
+                )}
+              </div>
+            )}
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              {stay?.checkin && stay?.checkout && (
+                <span className="inline-flex items-center gap-1.5"><CalendarDays className="h-3.5 w-3.5" aria-hidden="true" />
+                  {new Date(stay.checkin + "T12:00").toLocaleDateString("pt-BR")} a {new Date(stay.checkout + "T12:00").toLocaleDateString("pt-BR")}
+                </span>
+              )}
+              {(airbnbDetails?.personCapacity || stay?.adults) && (
+                <span className="inline-flex items-center gap-1.5"><Users className="h-3.5 w-3.5" aria-hidden="true" />
+                  {airbnbDetails?.personCapacity ? `Até ${airbnbDetails.personCapacity} hóspedes` : `${stay?.adults} adultos`}
+                </span>
+              )}
+            </div>
+            {(airbnbDetails?.isSuperhost || !!airbnbDetails?.badges?.length) && (
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {Array.from(new Set([...(airbnbDetails?.isSuperhost ? ["Superhost"] : []), ...(airbnbDetails?.badges ?? [])])).map(badge =>
+                  <span key={badge} className="rounded-full bg-secondary px-2.5 py-1 text-[11px] font-medium text-foreground">{badge}</span>
+                )}
+              </div>
+            )}
+          </section>
+        )}
 
         {isAirbnb && detailsLoading && (
           <div role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
