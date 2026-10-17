@@ -50,6 +50,13 @@
       "when": 1791907508522,
       "tag": "0006_proposal_package_acceptance",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792281223624,
+      "tag": "0007_preserve_public_airbnb_gallery",
+      "breakpoints": true
     }
   ]
 }
