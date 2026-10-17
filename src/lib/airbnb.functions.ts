@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import type { Hotel } from "./hotels";
+import type { Hotel, AirbnbPropertyDetails } from "./hotels";
 import { nightsBetween } from "./hotels";
 import { geckoAirbnbPrice } from "./gecko-price";
 
@@ -87,52 +87,20 @@ export const getAirbnbDetails = createServerFn({ method: "POST" })
     endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     numAdults: z.number().int().min(1).max(30).optional(),
   }).parse(value))
-  .handler(async ({ data, context }): Promise<{
-    photos: string[]; description: string; amenities: string[];
-    highlights: string[]; propertyType: string; cancellationPolicy: string;
-    hostName: string; rating?: number; reviewCount?: number;
-    personCapacity?: number; roomType?: string; city?: string;
-    badges?: string[]; isSuperhost?: boolean; error?: string;
-  }> => {
+  .handler(async ({ data, context }): Promise<AirbnbPropertyDetails & { error?: string }> => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "search_hotels");
     try {
       const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
       const response = await geckoAirbnbDetails(data);
-      const detail = response.data?.data;
-      if (response.notFound || !detail) {
+      const { normalizeAirbnbPdp } = await import("./airbnb-pdp-details");
+      const details = normalizeAirbnbPdp(response);
+      if (!details) {
         return { photos: [], description: "", amenities: [], highlights: [],
           propertyType: "", cancellationPolicy: "", hostName: "",
           error: "Detalhes deste imóvel não disponíveis na GeckoAPI." };
       }
-      const safePhoto = (url?: string) => {
-        if (typeof url !== "string") return "";
-        try {
-          const parsed = new URL(url);
-          if (parsed.protocol !== "https:") return "";
-          return parsed.href;
-        } catch { return ""; }
-      };
-      const photos = Array.from(new Set([
-        safePhoto(detail.mainImage?.url),
-        ...(detail.image ?? []).map(image => safePhoto(image.url)),
-      ].filter(Boolean)));
-      return {
-        photos,
-        description: detail.description?.trim() ?? "",
-        amenities: detail.amenities?.filter(Boolean) ?? [],
-        highlights: detail.highlights?.filter(Boolean) ?? [],
-        propertyType: detail.propertyType ?? "",
-        cancellationPolicy: detail.cancellationPolicy ?? "",
-        hostName: detail.host?.name ?? "",
-        rating: detail.aggregateRating?.rating,
-        reviewCount: detail.aggregateRating?.reviewCount,
-        personCapacity: detail.personCapacity,
-        roomType: detail.roomType ?? "",
-        city: detail.city ?? "",
-        badges: detail.badges?.filter(Boolean) ?? [],
-        isSuperhost: detail.isSuperhost ?? detail.host?.isSuperhost ?? false,
-      };
+      return details;
     } catch (error) {
       return { photos: [], description: "", amenities: [], highlights: [],
         propertyType: "", cancellationPolicy: "", hostName: "",
