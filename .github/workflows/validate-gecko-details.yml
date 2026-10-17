@@ -1,0 +1,23 @@
+name: Validar correções dos detalhes Airbnb
+
+on:
+  push:
+    branches:
+      - fix/gecko-airbnb-prices-20261017
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalar dependências
+        run: bun install --frozen-lockfile
+      - name: Validar compilação web
+        run: bun run build
