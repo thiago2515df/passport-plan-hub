@@ -25,7 +25,7 @@ describe("Airbnb proposal shared with a customer", () => {
         rating: 4.97,
         reviewCount: 115,
         publicDetails: {
-          photos: ["https://a0.muscache.com/main.jpg"],
+          photos: ["https://a0.muscache.com/main.jpg", "https://a0.muscache.com/bedroom.jpg"],
           description: "Apartamento bem localizado",
           amenities: ["Wi-Fi"],
           highlights: ["2 hóspedes"],
@@ -47,7 +47,11 @@ describe("Airbnb proposal shared with a customer", () => {
     });
     expect(hotel?.nightly).toBe(0);
     expect(hotel?.total).toBe(650);
-    expect(hotel?.publicDetails?.photos).toHaveLength(1);
+    expect(hotel?.publicDetails?.photos).toEqual([
+      "https://a0.muscache.com/main.jpg", "https://a0.muscache.com/bedroom.jpg",
+    ]);
+    expect(hotel?.publicDetails?.description).toBe("Apartamento bem localizado");
+    expect(hotel?.publicDetails?.amenities).toEqual(["Wi-Fi"]);
   });
 
   it("retains normal hotel details unchanged", () => {
