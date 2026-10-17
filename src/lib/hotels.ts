@@ -3,6 +3,9 @@ export type ExtraService = { name: string; cost: number };
 export type Hotel = {
   id: string; // offerId da PassHub
   hotelId?: number;
+  /** Origem da hospedagem, preservada ao gerar e reabrir propostas. */
+  provider?: "hotel" | "airbnb";
+  providerListingId?: string;
   name: string;
   address: string;
   stars: number;
