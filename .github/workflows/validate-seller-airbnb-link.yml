@@ -1,0 +1,27 @@
+name: Validar link de anuncio Airbnb no painel
+
+on:
+  push:
+    branches:
+      - feature/seller-airbnb-listing-link-20261018
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Instalar dependencias
+        run: bun install --frozen-lockfile
+      - name: Testar links Airbnb
+        run: bun run test src/lib/seller-airbnb-url.test.ts
+      - name: Verificar TypeScript
+        run: bunx tsc --noEmit
+      - name: Compilar sistema
+        run: bun run build
