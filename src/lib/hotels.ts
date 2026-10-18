@@ -31,6 +31,8 @@ export type Hotel = {
   /** Trivago advertised stay totals still require supplier tax/availability confirmation. */
   priceConfirmed?: boolean;
   supplierName?: string;
+  /** Internal diagnostic when a Trivago listing has no dated supplier quote. */
+  quoteError?: string;
   sourceUrl?: string;
   rating?: number;
   reviewCount?: number;
