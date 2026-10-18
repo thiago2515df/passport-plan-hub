@@ -104,6 +104,11 @@ export const saveProposal = createServerFn({ method: "POST" })
     for (const hotel of proposal.hotels) {
       cost.parse(hotel.total);
       extraSchema.parse(hotel.extras ?? []);
+      // A PLP forecast is never a quote. A Trivago PDP price needs
+      // confirmation of mandatory taxes/availability at the supplier.
+      if (hotel.provider === "trivago" && (!hotel.priceConfirmed || hotel.total <= 0)) {
+        throw new Error(`Confirme o valor final e a disponibilidade de ${hotel.name} com o fornecedor antes de gerar a proposta.`);
+      }
     }
     if (proposal.s.transport?.price !== undefined) cost.parse(proposal.s.transport.price);
     extraSchema.parse(proposal.s.extras ?? []);
