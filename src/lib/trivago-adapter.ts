@@ -34,7 +34,7 @@ export function normalizeTrivagoItems(items: TrivagoItem[], nights: number): Hot
       image: item.image ?? "", images: item.image ? [item.image] : [],
       x: 50, y: 50,
     }];
-  }).sort((a,b) => a.total - b.total);
+  }).sort((a, b) => a.total - b.total);
 }
 
 /** Lowest returned BRL stay total for the exact requested occupancy and dates.
@@ -54,7 +54,12 @@ export function applyTrivagoStayPrice(hotel: Hotel, details: TrivagoDetails | nu
   const amount = cheapest?.pricePerStay?.amount;
   if (!cheapest || amount === undefined) return null;
   const total = Math.round(amount * 100) / 100;
-  return { ...hotel, total, nightly: Math.round(total / nights * 100) / 100,
-    room: cheapest.roomCategory || cheapest.description || "", supplierName: cheapest.advertiser?.name,
-    totalEstimated: false, priceConfirmed: false };
+  return {
+    ...hotel, total, nightly: Math.round(total / nights * 100) / 100,
+    room: cheapest.roomCategory || cheapest.description || hotel.room || "",
+    supplierName: cheapest.advertiser?.name?.trim() || "Fornecedor do Trivago",
+    // The PDP deal contains a dated advertised stay total, not a guaranteed
+    // amount including every possible mandatory fee at the checkout.
+    totalEstimated: true, priceConfirmed: false,
+  };
 }
