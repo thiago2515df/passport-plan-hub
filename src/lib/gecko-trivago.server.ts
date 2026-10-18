@@ -1,6 +1,34 @@
 /** Trivago extraction through the existing GeckoAPI server secret. Never expose the token client-side. */
 const ENDPOINT = "https://api.geckoapi.com.br/v1/extract";
 
+export type TrivagoStay = { checkinDate: string; checkoutDate: string; numAdults: number; numChildren: number; numRooms: number };
+export type TrivagoDeal = {
+  advertiser?: { name?: string };
+  description?: string;
+  roomCategory?: string;
+  pricePerStay?: { amount?: number; currency?: string };
+};
+export type TrivagoDetails = Partial<TrivagoStay> & {
+  id?: number; currency?: string; deals?: TrivagoDeal[];
+};
+
+/** Dated supplier deals, not the PLP forecast. See GeckoAPI /docs/trivago-com-br-pdp/. */
+export async function geckoTrivagoDetails(url: string, stay: TrivagoStay): Promise<TrivagoDetails | null> {
+  const parsed = new URL(url);
+  if (parsed.protocol !== "https:" || !["trivago.com.br", "www.trivago.com.br"].includes(parsed.hostname)) return null;
+  const key = process.env["GECKO_API_TOKEN"]?.trim();
+  if (!key) throw new Error("Credencial GeckoAPI não configurada.");
+  const response = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ target: "trivago.com.br", type: "pdp", url: parsed.href, ...stay, currency: "BRL", lang: "pt-br" }),
+    signal: AbortSignal.timeout(25000),
+  });
+  if (!response.ok) throw new Error(`Não foi possível consultar ofertas dos fornecedores (${response.status}).`);
+  const result = await response.json() as { notFound?: boolean; data?: { data?: TrivagoDetails } };
+  return result.notFound ? null : result.data?.data ?? null;
+}
+
 export type TrivagoItem = {
   id?: number;
   namespace?: number;

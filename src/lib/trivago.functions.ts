@@ -18,12 +18,25 @@ export const searchTrivago = createServerFn({ method: "POST" })
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "search_hotels");
     try {
-      const { geckoTrivagoSearch } = await import("./gecko-trivago.server");
-      const { normalizeTrivagoItems } = await import("./trivago-adapter");
+      const { geckoTrivagoSearch, geckoTrivagoDetails } = await import("./gecko-trivago.server");
+      const { normalizeTrivagoItems, applyTrivagoStayPrice } = await import("./trivago-adapter");
       const result = await geckoTrivagoSearch(data);
       if (result.notFound || !result.data) return { listings: [], page: data.page };
       const nights = Math.max(1, Math.round((Date.parse(data.checkoutDate) - Date.parse(data.checkinDate)) / 86400000));
-      const listings = normalizeTrivagoItems(result.data.items ?? [], nights);
+      const candidates = normalizeTrivagoItems(result.data.items ?? [], nights).filter(h => h.sourceUrl);
+      const listings: Hotel[] = [];
+      let failed = false;
+      // Bound paid supplier lookups; a forecast is never a fallback price.
+      for (let i = 0; i < candidates.length; i += 5) {
+        const batch = await Promise.all(candidates.slice(i, i + 5).map(async hotel => {
+          if (!hotel.sourceUrl) return null;
+          try { return applyTrivagoStayPrice(hotel, await geckoTrivagoDetails(hotel.sourceUrl, data), data); }
+          catch { failed = true; return null; }
+        }));
+        listings.push(...batch.filter((hotel): hotel is Hotel => hotel !== null));
+      }
+      listings.sort((a, b) => a.total - b.total);
+      if (!listings.length && failed) return { listings: [], page: data.page, error: "Não foi possível obter os totais dos fornecedores. Tente novamente; nenhuma previsão foi usada como preço." };
       return { listings, page: result.data.page ?? data.page, ...(result.data.nextPage ? { nextPage: result.data.nextPage } : {}) };
     } catch (error) {
       return { listings: [], page: data.page, error: error instanceof Error ? error.message : "Falha na busca Trivago." };

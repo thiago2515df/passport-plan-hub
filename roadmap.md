@@ -1,4 +1,5 @@
 # Transport proposal
+- [ ] Replace Trivago forecasts with lowest dated supplier stay totals and calculate package prices; verify real supplier lookup and UI. Guaranteed all-fee final checkout price awaits the provider's explicit contract.
 - [x] Fix public Airbnb gallery projection; verified the real Curitiba proposal with nine photos, full description, next-photo navigation and mobile layout, without anonymous paid API requests.
 - [x] Allow flight-result search by exact flight number, accepting carrier formats such as G3 1682 and G3-1682.
 - [x] Remove the flight search form from the seller page, keeping only the proposals board and commission settings; verified signed-in that Origem/Destino/BUSCAR no longer appear and the three Kanban columns still load.
