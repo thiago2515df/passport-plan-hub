@@ -118,13 +118,13 @@ function formatDescription(raw: string) {
 export function HotelPhoto({ hotel }: { hotel: Hotel }) {
   const [broken, setBroken] = useState(false);
   const apiImages = hotel.images ?? [];
-  const needPasshub = hotel.provider !== "airbnb" && (!hotel.image || broken);
+  const needPasshub = hotel.provider !== "airbnb" && hotel.provider !== "trivago" && (!hotel.image || broken);
   const d = useDetails(hotel.hotelId, needPasshub);
   const [idx, setIdx] = useState(0);
-  const candidates = hotel.provider === "airbnb" ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
+  const candidates = hotel.provider === "airbnb" || hotel.provider === "trivago" ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
   const src = candidates[idx];
   if (!src) return <div className="grid h-36 w-44 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>;
-  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
+  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && hotel.provider !== "trivago" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
 }
 
 export function HotelGallery({
@@ -137,7 +137,8 @@ export function HotelGallery({
   allowRemoteDetails?: boolean;
 }) {
   const isAirbnb = hotel.provider === "airbnb";
-  const d = useDetails(hotel.hotelId, !isAirbnb);
+  const isTrivago = hotel.provider === "trivago";
+  const d = useDetails(hotel.hotelId, !isAirbnb && !isTrivago);
   const airbnbId = airbnbListingId(hotel);
   const savedDetails = isAirbnb ? hotel.publicDetails : undefined;
   const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
@@ -146,6 +147,7 @@ export function HotelGallery({
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(propertyDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
+    : isTrivago ? [hotel.image, ...(hotel.images ?? [])].filter(Boolean)
     : (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []);
   const photos = Array.from(new Set(sourcePhotos)).filter((p) => !bad.has(p));
   const [i, setI] = useState(0);
@@ -186,7 +188,7 @@ export function HotelGallery({
         </div>
 
         <div className="relative grid h-[260px] place-items-center overflow-hidden rounded-xl bg-secondary sm:h-[350px]">
-          {!isAirbnb && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
