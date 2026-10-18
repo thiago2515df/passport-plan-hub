@@ -22,12 +22,14 @@ export type Hotel = {
   id: string; // offerId da PassHub ou id normalizado do fornecedor
   hotelId?: number;
   /** Origem da hospedagem, preservada ao gerar e reabrir propostas. */
-  provider?: "hotel" | "airbnb";
+  provider?: "hotel" | "airbnb" | "trivago";
   providerListingId?: string;
   /** Cached PDP details: avoids paid public API calls when clients view a proposal. */
   publicDetails?: AirbnbPropertyDetails;
   /** True when GeckoAPI did not return a stay total including fees. */
   totalEstimated?: boolean;
+  /** Trivago PLP shows a forecast, not a final supplier quote; staff must confirm first. */
+  priceConfirmed?: boolean;
   sourceUrl?: string;
   rating?: number;
   reviewCount?: number;
