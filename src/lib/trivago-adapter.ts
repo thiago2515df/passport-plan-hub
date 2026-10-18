@@ -41,10 +41,15 @@ export function normalizeTrivagoItems(items: TrivagoItem[], nights: number): Hot
  * The contract does not guarantee all mandatory fees: never auto-confirm it.
  */
 export function applyTrivagoStayPrice(hotel: Hotel, details: TrivagoDetails | null, stay: TrivagoStay): Hotel | null {
-  if (!details || String(details.id) !== hotel.providerListingId ||
-      details.checkinDate !== stay.checkinDate || details.checkoutDate !== stay.checkoutDate ||
-      details.numAdults !== stay.numAdults || details.numChildren !== stay.numChildren ||
-      details.numRooms !== stay.numRooms || details.currency?.toUpperCase() !== "BRL") return null;
+  if (!details || String(details.id) !== hotel.providerListingId) return null;
+  // Some echoed fields are optional in GeckoAPI responses. Reject any
+  // mismatch that is present, but don't reject merely for missing echoes.
+  if ((details.checkinDate && details.checkinDate !== stay.checkinDate) ||
+      (details.checkoutDate && details.checkoutDate !== stay.checkoutDate) ||
+      (details.numAdults != null && details.numAdults !== stay.numAdults) ||
+      (details.numChildren != null && details.numChildren !== stay.numChildren) ||
+      (details.numRooms != null && details.numRooms !== stay.numRooms) ||
+      (details.currency && details.currency.toUpperCase() !== "BRL")) return null;
   const nights = (Date.parse(stay.checkoutDate) - Date.parse(stay.checkinDate)) / 86400000;
   if (!Number.isInteger(nights) || nights < 1) return null;
   const deals = (details.deals ?? []).filter(deal =>
