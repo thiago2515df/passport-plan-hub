@@ -286,9 +286,6 @@ export function HotelGallery({
         {isAirbnb && propertyDetails?.hostName && (
           <p className="mt-3 text-xs text-muted-foreground">Anfitrião: {propertyDetails.hostName}</p>
         )}
-        {isAirbnb && hotel.sourceUrl?.startsWith("https://www.airbnb.com.br/rooms/") && (
-          <a className="mt-3 inline-block text-sm font-semibold text-primary underline" href={hotel.sourceUrl} target="_blank" rel="noopener noreferrer">Ver anúncio no Airbnb</a>
-        )}
       </div>
     </div>
   );
