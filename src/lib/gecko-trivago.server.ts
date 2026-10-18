@@ -43,8 +43,20 @@ export async function geckoTrivagoDetails(url: string, stay: TrivagoStay): Promi
     }
     const problem = await response.json().catch(() => ({})) as {
       errorCode?: string; message?: string; error?: { code?: string; message?: string };
+      details?: unknown; issues?: unknown; errors?: unknown;
     };
     const code = problem.errorCode ?? problem.error?.code ?? "GECKO_ERROR";
+    // The gateway can reply "Validation failed" while the details tell us
+    // which field actually failed. Show only safe field names/messages.
+    const rawIssues = Array.isArray(problem.details) ? problem.details :
+      Array.isArray(problem.issues) ? problem.issues :
+      Array.isArray(problem.errors) ? problem.errors : [];
+    const issues = rawIssues.slice(0, 3).map((issue: unknown) => {
+      if (!issue || typeof issue !== "object") return "";
+      const item = issue as { path?: string | string[]; field?: string; message?: string };
+      const field = Array.isArray(item.path) ? item.path.join(".") : item.path ?? item.field ?? "";
+      return [String(field).slice(0, 60), String(item.message ?? "").slice(0, 120)].filter(Boolean).join(": ");
+    }).filter(Boolean).join("; ");
     if (attempt === 0 && (response.status === 429 || response.status >= 500)) {
       await new Promise(resolve => setTimeout(resolve, 700));
       continue;
@@ -55,7 +67,10 @@ export async function geckoTrivagoDetails(url: string, stay: TrivagoStay): Promi
       response.status === 429 ? "Limite de requisições da GeckoAPI. Tente novamente em instantes." :
       response.status >= 500 ? "Fornecedor indisponível no momento." :
       problem.message ?? problem.error?.message ?? `Erro GeckoAPI ${code}.`;
-    throw new TrivagoApiError(response.status, code, reason);
+    const hint = response.status === 400
+      ? (issues ? ` Campos rejeitados: ${issues}.` : " A GeckoAPI rejeitou os parâmetros do anúncio.")
+      : "";
+    throw new TrivagoApiError(response.status, code, `${reason}${hint} [HTTP ${response.status} / ${code}]`);
   }
   return null;
 }
