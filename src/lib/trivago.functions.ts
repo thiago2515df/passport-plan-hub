@@ -20,24 +20,45 @@ export const searchTrivago = createServerFn({ method: "POST" })
     try {
       const { geckoTrivagoSearch, geckoTrivagoDetails } = await import("./gecko-trivago.server");
       const { normalizeTrivagoItems, applyTrivagoStayPrice } = await import("./trivago-adapter");
-      const result = await geckoTrivagoSearch(data);
+      // Paginate the 35-hotel PLP in small groups: at most seven paid PDP
+      // lookups per click. This avoids the old 35-request burst/429/timeouts.
+      const batchSize = 7;
+      const batchesPerPlpPage = 5;
+      const plpPage = Math.floor((data.page - 1) / batchesPerPlpPage) + 1;
+      const position = ((data.page - 1) % batchesPerPlpPage) * batchSize;
+      const result = await geckoTrivagoSearch({ ...data, page: plpPage });
       if (result.notFound || !result.data) return { listings: [], page: data.page };
       const nights = Math.max(1, Math.round((Date.parse(data.checkoutDate) - Date.parse(data.checkinDate)) / 86400000));
-      const candidates = normalizeTrivagoItems(result.data.items ?? [], nights).filter(h => h.sourceUrl);
+      const allCandidates = normalizeTrivagoItems(result.data.items ?? [], nights).filter(h => h.sourceUrl);
+      const candidates = allCandidates.slice(position, position + batchSize);
+      const nextPage = position + batchSize < allCandidates.length ? data.page + 1 :
+        result.data.nextPage ? plpPage * batchesPerPlpPage + 1 : undefined;
       const listings: Hotel[] = [];
-      let failed = false;
-      // Bound paid supplier lookups; a forecast is never a fallback price.
-      for (let i = 0; i < candidates.length; i += 5) {
-        const batch = await Promise.all(candidates.slice(i, i + 5).map(async hotel => {
+      const failures: string[] = [];
+      // At most two in-flight PDP calls. Keep valid quotes even if other
+      // hotels are unavailable; never substitute a forecasted PLP amount.
+      for (let i = 0; i < candidates.length; i += 2) {
+        const batch = await Promise.all(candidates.slice(i, i + 2).map(async hotel => {
           if (!hotel.sourceUrl) return null;
           try { return applyTrivagoStayPrice(hotel, await geckoTrivagoDetails(hotel.sourceUrl, data), data); }
-          catch { failed = true; return null; }
+          catch (error) {
+            failures.push(error instanceof Error ? error.message : "Falha de consulta.");
+            return null;
+          }
         }));
         listings.push(...batch.filter((hotel): hotel is Hotel => hotel !== null));
+        // Invalid token, no credits, or no access: stop further paid calls.
+        if (failures.some(message => /créditos.*insuficientes|token.*inválido|não autorizado|não configurad/i.test(message))) break;
       }
       listings.sort((a, b) => a.total - b.total);
-      if (!listings.length && failed) return { listings: [], page: data.page, error: "Não foi possível obter os totais dos fornecedores. Tente novamente; nenhuma previsão foi usada como preço." };
-      return { listings, page: result.data.page ?? data.page, ...(result.data.nextPage ? { nextPage: result.data.nextPage } : {}) };
+      if (!listings.length && failures.length) {
+        const priority = failures.find(message => /créditos.*insuficientes|token.*inválido|não autorizado|não configurad/i.test(message));
+        return { listings: [], page: data.page, ...(nextPage ? { nextPage } : {}),
+          error: priority ?? "Não foi possível consultar preços de estadia dos fornecedores nesta etapa. " + failures[0] };
+      }
+      // Empty items without API failures mean the supplier has no dated
+      // pricePerStay for those hotels; the next group may still have deals.
+      return { listings, page: data.page, ...(nextPage ? { nextPage } : {}) };
     } catch (error) {
       return { listings: [], page: data.page, error: error instanceof Error ? error.message : "Falha na busca Trivago." };
     }
