@@ -1,0 +1,27 @@
+name: Verify Trivago integration
+on:
+  push:
+    paths:
+      - '.github/workflows/trivago-integration-check.yml'
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Verify Trivago adapter
+        run: bunx vitest run src/lib/trivago-adapter.test.ts
+      - name: Compile application
+        run: bun run build
+      - name: Remove temporary check
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/trivago-integration-check.yml
+          git commit -m "Remove verificação temporária Trivago"
+          git push
