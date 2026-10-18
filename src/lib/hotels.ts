@@ -28,8 +28,9 @@ export type Hotel = {
   publicDetails?: AirbnbPropertyDetails;
   /** True when GeckoAPI did not return a stay total including fees. */
   totalEstimated?: boolean;
-  /** Trivago PLP shows a forecast, not a final supplier quote; staff must confirm first. */
+  /** Trivago advertised stay totals still require supplier tax/availability confirmation. */
   priceConfirmed?: boolean;
+  supplierName?: string;
   sourceUrl?: string;
   rating?: number;
   reviewCount?: number;
