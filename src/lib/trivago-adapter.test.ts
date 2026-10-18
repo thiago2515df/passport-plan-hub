@@ -41,6 +41,17 @@ describe("Trivago: menor preço publicado para a estadia, não PLP estimado", ()
     expect(applyTrivagoStayPrice(hotel, { ...base, currency: "USD" }, stay)).toBeNull();
     expect(applyTrivagoStayPrice(hotel, { ...base, deals: [] }, stay)).toBeNull();
   });
+  it("accepts a scoped supplier quote even if optional echoed dates/guest fields are absent", () => {
+    const r = applyTrivagoStayPrice(hotel, {
+      id: 125,
+      deals: [
+        { advertiser: { name: "Fornecedor" }, pricePerStay: { amount: 420, currency: "BRL" } },
+      ],
+    }, stay);
+    expect(r?.total).toBe(420);
+    expect(r?.supplierName).toBe("Fornecedor");
+    expect(r?.priceConfirmed).toBe(false);
+  });
   it("does not trust external listing URLs", () => {
     expect(normalizeTrivagoItems([{ id: 1, url: "https://example.com/" }], 2)[0]?.sourceUrl).toBeUndefined();
   });
