@@ -167,7 +167,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                   <article key={i} className={`flex min-w-0 flex-col rounded-2xl bg-card p-2 shadow-sm transition sm:rounded-3xl sm:p-3 ${sel ? "ring-[3px] ring-primary" : "ring-1 ring-border"}`}>
                     <button onClick={() => setActive(h)} className="relative block overflow-hidden rounded-xl sm:rounded-2xl [&_img]:!h-40 [&_img]:!w-full [&_img]:!object-cover sm:[&_img]:!h-56 [&>div]:!h-40 [&>div]:!w-full sm:[&>div]:!h-56">
                       <HotelPhoto hotel={h} />
-                      {meal && <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[11px] font-semibold shadow sm:left-3 sm:top-3 sm:gap-1.5 sm:px-3 sm:text-xs">{h.provider !== "airbnb" && hasBreakfast(meal) && <Coffee className="h-3.5 w-3.5" />}{meal}</span>}
+                      {h.provider !== "airbnb" && meal && <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-card px-2 py-1 text-[11px] font-semibold shadow sm:left-3 sm:top-3 sm:gap-1.5 sm:px-3 sm:text-xs">{hasBreakfast(meal) && <Coffee className="h-3.5 w-3.5" />}{meal}</span>}
                       {sel && <span className="absolute right-2 top-2 flex items-center gap-1 rounded-full bg-primary px-2 py-1 text-[11px] font-semibold text-primary-foreground sm:right-3 sm:top-3 sm:px-3 sm:text-xs"><Check className="h-3.5 w-3.5" />Pacote selecionado</span>}
                     </button>
                     <div className="flex min-w-0 flex-1 flex-col px-1 pt-2 sm:px-2 sm:pt-3">
