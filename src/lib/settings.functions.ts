@@ -89,6 +89,23 @@ export const updateSeller = createServerFn({ method: "POST" }).middleware([requi
     return { ok: true };
   });
 
+export const deleteSeller = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator(d => z.object({ id: z.string().uuid() }).parse(d))
+  .handler(async ({ context, data }) => {
+    const { assertAdmin } = await import("./access.server");
+    await assertAdmin(context.supabase, context.userId);
+    const { data: targetAdmin } = await context.supabase.rpc("has_role", { _user_id: data.id, _role: "admin" });
+    if (targetAdmin || data.id === context.userId) throw new Error("Administradores não podem ser excluídos aqui.");
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: target } = await supabaseAdmin.from("user_roles").select("user_id").eq("user_id", data.id).eq("role", "seller").maybeSingle();
+    if (!target) throw new Error("Vendedor não encontrado.");
+    await supabaseAdmin.from("seller_permissions").delete().eq("user_id", data.id);
+    const { error } = await supabaseAdmin.auth.admin.deleteUser(data.id);
+    if (error) throw new Error("Não foi possível excluir o vendedor.");
+    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, action: "Vendedor excluído" });
+    return { ok: true };
+  });
+
 export const saveSettings = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator(d => z.object({ agency_name: z.string().trim().min(2).max(100), whatsapp: z.string().regex(/^\d{10,15}$/) }).parse(d))
   .handler(async ({ context, data }) => {
