@@ -51,29 +51,33 @@ export const getSettings = createServerFn({ method: "GET" }).middleware([require
   return { people: people.data ?? [], rights: rights.data ?? [], settings: settings.data, activities: activities.data ?? [], proposals: proposals.data ?? [] };
 });
 
+const password = z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").max(72).optional().or(z.literal("").transform(() => undefined));
+
 export const createSeller = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => seller.extend({ redirectTo: setupRedirect }).parse(d))
+  .inputValidator(d => seller.extend({ redirectTo: setupRedirect, password }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: created, error } = await supabaseAdmin.auth.admin.createUser({ email: data.email, email_confirm: false });
+    const { data: created, error } = await supabaseAdmin.auth.admin.createUser(data.password ? { email: data.email, password: data.password, email_confirm: true } : { email: data.email, email_confirm: false });
     if (error || !created.user) throw new Error("Não foi possível criar a conta. Verifique se o e-mail já está cadastrado.");
     const id = created.user.id;
     const results = await Promise.all([
-      supabaseAdmin.from("profiles").update({ name: data.name, phone: data.phone }).eq("id", id),
+      supabaseAdmin.from("profiles").update({ name: data.name, phone: data.phone, active: true }).eq("id", id),
       supabaseAdmin.from("user_roles").insert({ user_id: id, role: "seller" }),
       supabaseAdmin.from("seller_permissions").insert({ user_id: id, ...data.permissions }),
     ]);
     if (results.some(r => r.error)) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível salvar o vendedor."); }
-    const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, { redirectTo: data.redirectTo });
-    if (inviteError) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível enviar o convite. Tente criar a conta novamente."); }
-    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, target_id: id, action: "Vendedor criado" });
-    return { id };
+    if (!data.password) {
+      const { error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, { redirectTo: data.redirectTo });
+      if (inviteError) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível enviar o convite. Tente criar a conta novamente."); }
+    }
+    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, target_id: id, action: data.password ? "Vendedor criado com senha definida pelo administrador" : "Vendedor criado" });
+    return { id, invited: !data.password };
   });
 
 export const updateSeller = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => z.object({ id: z.string().uuid(), name: z.string().trim().min(2).max(100), phone: z.string().max(30), active: z.boolean(), permissions }).parse(d))
+  .inputValidator(d => z.object({ id: z.string().uuid(), name: z.string().trim().min(2).max(100), phone: z.string().max(30), active: z.boolean(), permissions, password }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
@@ -82,10 +86,14 @@ export const updateSeller = createServerFn({ method: "POST" }).middleware([requi
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: target } = await supabaseAdmin.from("user_roles").select("user_id").eq("user_id", data.id).eq("role", "seller").maybeSingle();
     if (!target) throw new Error("Vendedor não encontrado.");
+    if (data.password) {
+      const { error: pw } = await supabaseAdmin.auth.admin.updateUserById(data.id, { password: data.password, email_confirm: true });
+      if (pw) throw new Error("Não foi possível definir a senha. Tente uma senha mais forte.");
+    }
     const { error: p } = await supabaseAdmin.from("profiles").update({ name: data.name, phone: data.phone, active: data.active }).eq("id", data.id);
     const { error: r } = await supabaseAdmin.from("seller_permissions").upsert({ user_id: data.id, ...data.permissions });
     if (p || r) throw new Error("Não foi possível atualizar o vendedor.");
-    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, target_id: data.id, action: data.active ? "Cadastro e permissões atualizados" : "Acesso suspenso" });
+    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, target_id: data.id, action: data.password ? "Senha definida e acesso liberado pelo administrador" : data.active ? "Cadastro e permissões atualizados" : "Acesso suspenso" });
     return { ok: true };
   });
 
