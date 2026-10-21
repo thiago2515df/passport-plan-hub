@@ -32,3 +32,11 @@ Manifesto e service worker estão na branch, mas só passam a funcionar no domí
 
 ## Atenção
 A branch de desenvolvimento não altera o site em produção. O build e a instalação não foram validados até que a execução do GitHub Actions e os testes em um dispositivo sejam concluídos.
+
+## Propostas por etapas no mobile
+
+Abaixo de 1024 px, a busca de pacotes usa quatro telas no histórico da aplicação: pesquisa, seleção de hospedagens, seleção de voos/transporte e resumo. A pesquisa abre imediatamente a tela de espera dos hotéis; os voos só são consultados ao avançar para sua etapa. Pacotes sem transporte seguem dos hotéis diretamente ao resumo.
+
+É possível selecionar várias hospedagens e voltar sem perder as escolhas. Alterar destino, origem, datas, ocupação ou modalidade invalida as tarifas anteriores. Respostas de buscas substituídas são ignoradas. Erros e listas vazias permitem tentar novamente ou editar a pesquisa. A geração da proposta continua usando os mesmos serviços e cálculos do sistema.
+
+As telas usam o parâmetro `etapa` da rota `/pacotes`, preservando o botão Voltar do Android. Acesso direto a uma etapa sem uma busca em memória retorna à pesquisa. No desktop, os resultados e o editor continuam na tela conjunta. Estas alterações de interface dependem da publicação do site e não exigem outro APK.
