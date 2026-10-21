@@ -1,0 +1,27 @@
+name: Verify room allocation
+on:
+  push:
+    paths:
+      - '.github/workflows/check-room-occupancy.yml'
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+      - name: Test room allocation
+        run: bunx vitest run src/lib/room-occupancy.test.ts
+      - name: Build
+        run: bun run build
+      - name: Remove temporary check
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/check-room-occupancy.yml
+          git commit -m "Remove validação temporária de quartos"
+          git push
