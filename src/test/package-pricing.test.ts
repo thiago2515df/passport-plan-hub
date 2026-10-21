@@ -2,13 +2,27 @@ import { describe, expect, it } from "vitest";
 import { caldasBusCost, packagePricing, transportCost, type SellerCommissions } from "@/lib/package-pricing";
 import { makeTransport, type Search } from "@/lib/hotels";
 import { customerProposal } from "@/lib/customer-proposal";
-const commissions: SellerCommissions = { air: { kind: "percent", value: 10 }, bus: { kind: "fixed", value: 150 } };
+const commissions: SellerCommissions = { hotel: { kind: "percent", value: 20 }, air: { kind: "percent", value: 10 }, bus: { kind: "fixed", value: 150 } };
 const s: Search = { destino: "Caldas Novas", checkin: "2027-01-10", checkout: "2027-01-12", hospedes: "2 hóspedes", adults: 2, rav: 12, telefone: "private", email: "private", childAges: [], transport: makeTransport("bus", "Caldas Novas"), extras: [{ name: "Transfer", cost: 80 }] };
 describe("package selling prices", () => {
   it("charges R$110 per paying passenger and R$220 for two", () => { expect(caldasBusCost(1, [])).toBe(110); expect(caldasBusCost(2, [])).toBe(220); });
   it("excludes children aged five inclusive and younger", () => { expect(caldasBusCost(0, [0, 4, 5])).toBe(0); });
   it("includes children older than five", () => { expect(caldasBusCost(1, [5, 6])).toBe(220); });
   it("recalculates Caldas bus cost instead of trusting an entered amount", () => { expect(transportCost({ ...s, transport: { ...makeTransport("bus", s.destino), price: 999 } })).toBe(220); });
+  it("adds the hotel-only rate with no transport", () => {
+    const hotelOnly = { ...s, transport: makeTransport("none", s.destino), extras: [] };
+    expect(packagePricing(1000, hotelOnly, commissions)).toEqual({ cost: 1000, commission: 200, total: 1200 });
+    expect(packagePricing(1000, { ...hotelOnly, transport: undefined }, commissions).total).toBe(1200);
+  });
+  it("applies only the package rule once, including extras", () => {
+    const hotelOnly = { ...s, transport: makeTransport("none", s.destino) };
+    expect(packagePricing(1000, hotelOnly, commissions)).toEqual({ cost: 1080, commission: 216, total: 1296 });
+    expect(packagePricing(1000, hotelOnly, { ...commissions, hotel: { kind: "fixed", value: 20 } }).total).toBe(1100);
+  });
+  it("rounds fractional percentage and final prices to cents", () => {
+    const hotelOnly = { ...s, transport: undefined, extras: [] };
+    expect(packagePricing(100.01, hotelOnly, { ...commissions, hotel: { kind: "percent", value: 12.5 } })).toEqual({ cost: 100.01, commission: 12.5, total: 112.51 });
+  });
   it("adds fixed terrestrial commission to bus, hotel and extras", () => { expect(packagePricing(500, s, commissions)).toEqual({ cost: 800, commission: 150, total: 950 }); });
   it("adds air percentage on flights, hotel and extras", () => { const air = { ...s, transport: { ...makeTransport("air", s.destino), price: 1000 } }; expect(packagePricing(500, air, commissions)).toEqual({ cost: 1580, commission: 158, total: 1738 }); });
   it("updates the total when costs or commission change", () => { expect(packagePricing(600, s, commissions).total).toBe(1050); expect(packagePricing(500, s, { ...commissions, bus: { kind: "percent", value: 20 } }).total).toBe(960); });

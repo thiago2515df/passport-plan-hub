@@ -15,8 +15,8 @@ export const searchTrivago = createServerFn({ method: "POST" })
     page: z.number().int().min(1).max(50).default(1),
   }).refine(d => d.checkoutDate > d.checkinDate, "A volta deve ser posterior à ida.").parse(value))
   .handler(async ({ data, context }): Promise<{ listings: Hotel[]; page: number; nextPage?: number; error?: string; warning?: string }> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     try {
       const { geckoTrivagoSearch, geckoTrivagoDetails } = await import("./gecko-trivago.server");
       const { normalizeTrivagoItems, applyTrivagoStayPrice } = await import("./trivago-adapter");
@@ -90,8 +90,8 @@ export const refreshTrivagoQuote = createServerFn({ method: "POST" })
     numRooms: z.number().int().min(1).max(15),
   }).refine(v => v.checkoutDate > v.checkinDate, "Check-out deve ser posterior ao check-in.").parse(value))
   .handler(async ({ data, context }) => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     const { geckoTrivagoDetails } = await import("./gecko-trivago.server");
     const { applyTrivagoStayPrice, normalizeTrivagoItems } = await import("./trivago-adapter");
     const id = Number(data.id.split(":")[2]);

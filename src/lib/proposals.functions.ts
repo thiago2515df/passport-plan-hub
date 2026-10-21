@@ -93,10 +93,21 @@ const newCode = () => {
 /** Salva a proposta no banco e devolve um código curto para o link. */
 export const saveProposal = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((data) => z.object({ payload: z.string().min(1).max(200_000), code: codeSchema.optional() }).parse(data))
+  .inputValidator((data) => z.object({ payload: z.string().min(1).max(200_000), code: codeSchema.optional(), commissionUpdatedAt: z.string().datetime({ offset: true }) }).parse(data))
   .handler(async ({ data, context }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
+    let ownerId = context.userId;
+    if (data.code) {
+      const { data: existing, error } = await context.supabase.from("proposals").select("owner_id").eq("code", data.code).maybeSingle();
+      if (error || !existing?.owner_id) throw new Error("Proposta não encontrada ou edição não permitida.");
+      ownerId = existing.owner_id;
+      const { data: accepted, error: acceptanceError } = await context.supabase.from("proposal_acceptances").select("code").eq("code", data.code).maybeSingle();
+      if (acceptanceError) throw new Error("Não foi possível verificar a confirmação da proposta.");
+      if (accepted) throw new Error("Este pacote já foi aceito. Crie uma nova proposta para alterar os serviços ou valores.");
+    }
+    const { assertSellerCommissions } = await import("./commissions.server");
+    await assertSellerCommissions(context.supabase, ownerId, data.commissionUpdatedAt);
     const proposal = decodeProposal(data.payload);
     if (!proposal) throw new Error("Proposta inválida.");
     const cost = z.number().finite().nonnegative();
@@ -134,9 +145,11 @@ export const saveProposal = createServerFn({ method: "POST" })
     // (up to eight); viewers of the public proposal need no API token or auth.
     const { addAirbnbDetailsToProposal } = await import("./airbnb-proposal-snapshot.server");
     const detailsHotels = await addAirbnbDetailsToProposal(proposal.hotels, proposal.s);
-    const enrichedPayload = encodeProposal({ ...proposal, hotels: detailsHotels });
+    // The database checks this version under a lock before storing the payload.
+    const versionedProposal = { ...proposal, s: { ...proposal.s, commissionUpdatedAt: data.commissionUpdatedAt } };
+    const enrichedPayload = encodeProposal({ ...versionedProposal, hotels: detailsHotels });
     const storedPayload = payloadForStorage(
-      enrichedPayload.length <= 200_000 ? enrichedPayload : data.payload,
+      enrichedPayload.length <= 200_000 ? enrichedPayload : encodeProposal(versionedProposal),
     );
     if (data.code) {
       const { data: saved, error } = await context.supabase.from("proposals").update({ payload: storedPayload }).eq("code", data.code).select("code").maybeSingle();

@@ -1,8 +1,13 @@
-import { isCaldasNovas, type Search } from "@/lib/hotels";
+import { brl, isCaldasNovas, type Search } from "@/lib/hotels";
 
 export type Commission = { kind: "fixed" | "percent"; value: number };
-export type SellerCommissions = { air: Commission; bus: Commission };
-export const emptyCommissions: SellerCommissions = { air: { kind: "fixed", value: 0 }, bus: { kind: "fixed", value: 0 } };
+export type SellerCommissions = { hotel: Commission; air: Commission; bus: Commission };
+export const emptyCommissions: SellerCommissions = { hotel: { kind: "fixed", value: 0 }, air: { kind: "fixed", value: 0 }, bus: { kind: "fixed", value: 0 } };
+export const commissionForSearch = (s: Search, commissions: SellerCommissions) =>
+  s.transport?.mode === "air" ? commissions.air : s.transport?.mode === "bus" ? commissions.bus : commissions.hotel;
+export const commissionLabel = (rule: Commission) => rule.kind === "percent"
+  ? `${rule.value.toLocaleString("pt-BR", { maximumFractionDigits: 2 })}%`
+  : `${brl(rule.value)} fixos`;
 export const money = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
 export const caldasBusCost = (adults: number, childAges: number[]) => 110 * (adults + childAges.filter(age => age > 5).length);
 export function transportCost(s: Search) {
@@ -16,7 +21,7 @@ export function transportCost(s: Search) {
 }
 export function packagePricing(hotelCost: number, s: Search, commissions: SellerCommissions = emptyCommissions) {
   const cost = money(hotelCost + transportCost(s) + (s.extras ?? []).reduce((sum, item) => sum + item.cost, 0));
-  const rule = s.transport?.mode === "air" ? commissions.air : s.transport?.mode === "bus" ? commissions.bus : emptyCommissions.air;
+  const rule = commissionForSearch(s, commissions);
   const commission = money(rule.kind === "percent" ? cost * rule.value / 100 : rule.value);
   return { cost, commission, total: money(cost + commission) };
 }

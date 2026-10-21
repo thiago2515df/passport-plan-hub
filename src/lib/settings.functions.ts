@@ -1,8 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { commissionsSchema } from "@/lib/commissions.functions";
-import { emptyCommissions } from "@/lib/package-pricing";
+import { commissionsSchema, commissionSettingsFromRow } from "@/lib/commission-rules";
 import { acceptanceSchema } from "@/lib/proposal-acceptance";
 
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
@@ -40,21 +39,22 @@ export const getSettings = createServerFn({ method: "GET" }).middleware([require
   await assertAdmin(context.supabase, context.userId);
   const { maintainProposalLifecycle } = await import("./proposal-lifecycle.server");
   await maintainProposalLifecycle();
-  const [people, rights, settings, activities, proposals] = await Promise.all([
+  const [people, rights, settings, activities, proposals, commissions] = await Promise.all([
     context.supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     context.supabase.from("seller_permissions").select("*"),
     context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle(),
     context.supabase.from("access_activity").select("*").order("created_at", { ascending: false }).limit(50),
     context.supabase.from("proposals").select("code,owner_id,created_at,payload").order("created_at", { ascending: false }).limit(200),
+    context.supabase.from("seller_commissions").select("user_id,configured_at"),
   ]);
-  for (const result of [people, rights, settings, activities, proposals]) if (result.error) throw new Error("Não foi possível carregar as configurações.");
-  return { people: people.data ?? [], rights: rights.data ?? [], settings: settings.data, activities: activities.data ?? [], proposals: proposals.data ?? [] };
+  for (const result of [people, rights, settings, activities, proposals, commissions]) if (result.error) throw new Error("Não foi possível carregar as configurações.");
+  return { people: people.data ?? [], rights: rights.data ?? [], settings: settings.data, activities: activities.data ?? [], proposals: proposals.data ?? [], commissions: commissions.data ?? [] };
 });
 
 const password = z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").max(72).optional().or(z.literal("").transform(() => undefined));
 
 export const createSeller = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => seller.extend({ redirectTo: setupRedirect, password }).parse(d))
+  .inputValidator(d => seller.extend({ redirectTo: setupRedirect, password, commissions: commissionsSchema }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
@@ -66,6 +66,7 @@ export const createSeller = createServerFn({ method: "POST" }).middleware([requi
       supabaseAdmin.from("profiles").update({ name: data.name, phone: data.phone, active: true }).eq("id", id),
       supabaseAdmin.from("user_roles").insert({ user_id: id, role: "seller" }),
       supabaseAdmin.from("seller_permissions").insert({ user_id: id, ...data.permissions }),
+      context.supabase.from("seller_commissions").insert({ user_id: id, hotel_kind: data.commissions.hotel.kind, hotel_value: data.commissions.hotel.value, air_kind: data.commissions.air.kind, air_value: data.commissions.air.value, bus_kind: data.commissions.bus.kind, bus_value: data.commissions.bus.value }),
     ]);
     if (results.some(r => r.error)) { await supabaseAdmin.auth.admin.deleteUser(id); throw new Error("Não foi possível salvar o vendedor."); }
     if (!data.password) {
@@ -144,7 +145,7 @@ export const listMyProposals = createServerFn({ method: "GET" }).middleware([req
   if (acceptanceError) throw new Error("Não foi possível carregar os pacotes aprovados.");
   const acceptances = z.array(acceptanceSchema).parse(acceptanceData ?? []);
   return (data ?? []).map(row => {
-    const rule = commissions?.find(item => item.user_id === row.owner_id);
-    return { ...row, acceptance: acceptances.find(item => item.code === row.code) ?? null, commissions: rule ? commissionsSchema.parse({ air: { kind: rule.air_kind, value: Number(rule.air_value) }, bus: { kind: rule.bus_kind, value: Number(rule.bus_value) } }) : emptyCommissions, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" };
+    const rule = commissionSettingsFromRow(commissions?.find(item => item.user_id === row.owner_id) ?? null);
+    return { ...row, acceptance: acceptances.find(item => item.code === row.code) ?? null, commissions: rule.configured ? rule : null, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" };
   });
 });

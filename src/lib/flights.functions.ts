@@ -23,8 +23,8 @@ export const searchFlights = createServerFn({ method: "POST" })
     }).parse(d),
   )
   .handler(async ({ data, context }): Promise<{ flights: Flight[]; error?: string }> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_flights");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_flights");
     const { passhub } = await import("./passhub.server");
 
     const origins = expandAirport(data.from);

@@ -1,9 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useQuery } from "@tanstack/react-query";
 import { useState, useRef, useEffect } from "react";
 import { Plane, Bus, Shield, Building2, Search as SearchIcon, Calendar, Check, Trash2, Link2, ArrowRightLeft, Users, ChevronDown, Filter } from "lucide-react";
-import { brl, iataOf, cityIata, type Flight, type Search } from "@/lib/hotels";
+import { brl, iataOf, cityIata, encodeProposal, makeTransport, type Flight, type Search } from "@/lib/hotels";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal } from "@/lib/proposals.functions";
 import { ManagementNav } from "@/components/ManagementNav";
@@ -15,8 +14,11 @@ import { Calendar as DayPicker } from "@/components/ui/calendar";
 import { ptBR } from "react-day-picker/locale";
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 import { useAccess } from "@/components/AccessProvider";
-import { getSellerCommissions } from "@/lib/commissions.functions";
-import { emptyCommissions } from "@/lib/package-pricing";
+import { useSellerCommissions } from "@/hooks/use-seller-commissions";
+import { CommissionNotice } from "@/components/CommissionNotice";
+import { COMMISSION_REQUIRED, requireConfiguredCommissions } from "@/lib/commission-rules";
+import { flightToTransportLeg } from "@/lib/customer-itinerary";
+import { emptyCommissions, packagePricing, commissionLabel } from "@/lib/package-pricing";
 
 export const Route = createFileRoute("/_authenticated/aereo")({
   head: () => ({ meta: [{ title: "Aéreo — Excursão Brasília" }, { name: "description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:title", content: "Aéreo — Excursão Brasília" }, { property: "og:description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -31,12 +33,10 @@ export default function AereoPage() {
   const access = useAccess();
   const findFlights = useServerFn(searchFlights);
   const saveProp = useServerFn(saveProposal);
-  const readCommissions = useServerFn(getSellerCommissions);
-  const commissions = useQuery({ queryKey: ["seller-commissions", access.userId], queryFn: () => readCommissions({ data: {} }), enabled: access.allowed });
+  const commissions = useSellerCommissions();
 
   const [tripType, setTripType] = useState<"roundtrip" | "oneway" | "multicity">("roundtrip");
   const [travelClass, setTravelClass] = useState("Econômica");
-  const [rav, setRav] = useState(0);
   const [passengersCount, setPassengersCount] = useState(2);
 
   const [origin, setOrigin] = useState("Brasília (BSB)");
@@ -45,8 +45,8 @@ export default function AereoPage() {
   const [returnDate, setReturnDate] = useState("2026-12-04");
 
   const [cityFocus, setCityFocus] = useState<"origin" | "destination" | null>(null);
-  const originCities = useCitySuggestions(cityFocus === "origin" ? origin : "");
-  const destinationCities = useCitySuggestions(cityFocus === "destination" ? destination : "");
+  const originCities = useCitySuggestions(commissions.ready && cityFocus === "origin" ? origin : "");
+  const destinationCities = useCitySuggestions(commissions.ready && cityFocus === "destination" ? destination : "");
 
   const [recentSearches, setRecentSearches] = useState<Array<{ from: string; to: string }>>([
     { from: "BSB", to: "RIO" },
@@ -64,7 +64,7 @@ export default function AereoPage() {
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientEmail, setClientEmail] = useState("");
-  const [link, setLink] = useState("fv");
+  const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -72,11 +72,13 @@ export default function AereoPage() {
   const returnRef = useRef<HTMLDivElement>(null);
 
   const handleSearch = async () => {
+    if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     if (!access.allowed) {
       setErr("Seu acesso precisa ser liberado pelo administrador.");
       return;
     }
     setErr("");
+    setLink("");
     setSelectedOutbound(undefined);
     setSelectedReturn(undefined);
 
@@ -113,17 +115,21 @@ export default function AereoPage() {
   };
 
   const generateProposal = async () => {
-    if (!selectedOutbound) return;
+    if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
+    if (!selectedOutbound || (tripType === "roundtrip" && !selectedReturn)) return;
     setSaving(true);
     setErr("");
     try {
+      const fresh = await commissions.refetch();
+      if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
+      const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const searchObj: Search = {
         origem: origin,
         destino: destination,
         checkin: departureDate,
         checkout: returnDate,
         hospedes: `${passengersCount} passageiro${passengersCount > 1 ? "s" : ""}`,
-        rav,
+        rav: 0,
         cliente: clientName || "Cliente Aéreo",
         telefone: clientPhone,
         email: clientEmail,
@@ -131,32 +137,16 @@ export default function AereoPage() {
           mode: "air",
           price: (selectedOutbound?.price ?? 0) + (selectedReturn?.price ?? 0),
           travelClass,
-          outbound: {
-            company: `${selectedOutbound.airline} · ${selectedOutbound.flightNumber}`,
-            departure: selectedOutbound.departure,
-            arrival: selectedOutbound.arrival,
-            duration: selectedOutbound.duration,
-            stops: selectedOutbound.stops,
-            from: selectedOutbound.from,
-            to: selectedOutbound.to,
-          },
-          inbound: selectedReturn ? {
-            company: `${selectedReturn.airline} · ${selectedReturn.flightNumber}`,
-            departure: selectedReturn.departure,
-            arrival: selectedReturn.arrival,
-            duration: selectedReturn.duration,
-            stops: selectedReturn.stops,
-            from: selectedReturn.from,
-            to: selectedReturn.to,
-          } : { company: "N/A", departure: "", arrival: "" },
+          outbound: flightToTransportLeg(selectedOutbound),
+          inbound: selectedReturn ? flightToTransportLeg(selectedReturn) : { company: "N/A", departure: "", arrival: "" },
         },
       };
 
-      const payload = JSON.stringify({ s: searchObj, hotels: [] });
-      const res = await saveProp({ data: { payload } });
+      const payload = encodeProposal({ s: searchObj, hotels: [{ name: "Passagens aéreas", address: `${origin} → ${destination}`, stars: 0, room: travelClass, image: "", total: 0, nightly: 0 }] });
+      const res = await saveProp({ data: { payload, commissionUpdatedAt: confirmed.updatedAt! } });
       const url = `${window.location.origin}/p/${res.code}`;
       setLink(url);
-      await navigator.clipboard.writeText(url);
+      navigator.clipboard?.writeText(url).catch(() => {});
     } catch (e) {
       setErr((e as Error).message);
     } finally {
@@ -165,11 +155,14 @@ export default function AereoPage() {
   };
 
   const totalFlightPrice = (selectedOutbound?.price ?? 0) + (selectedReturn?.price ?? 0);
+  const flightPricing = packagePricing(0, { destino: destination, checkin: departureDate, checkout: returnDate, hospedes: String(passengersCount), rav: 0, transport: { ...makeTransport("air", destination), price: totalFlightPrice } }, commissions.data ?? emptyCommissions);
+  useEffect(() => { setLink(""); }, [commissions.data?.updatedAt, selectedOutbound, selectedReturn]);
 
   return (
     <div className="workspace-layout flex min-h-screen bg-background text-foreground">
       <ManagementNav current="aereo" />
       <main className="mx-auto min-w-0 w-full max-w-7xl px-4 py-8 sm:px-8">
+        <CommissionNotice query={commissions} />
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <div className="mb-1 text-xs font-semibold uppercase tracking-wider text-muted-foreground">Cotações</div>
@@ -204,21 +197,6 @@ export default function AereoPage() {
                   {["Econômica", "Executiva", "Primeira Classe"].map(c => (
                     <button key={c} onClick={() => setTravelClass(c)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-secondary">
                       {c}
-                    </button>
-                  ))}
-                </PopoverContent>
-              </Popover>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" className="rounded-full text-xs font-semibold">
-                    RAV {rav}% <ChevronDown className="ml-1 h-3 w-3" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-36 p-2">
-                  {[0, 2, 5, 10, 12].map(r => (
-                    <button key={r} onClick={() => setRav(r)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-medium hover:bg-secondary">
-                      RAV {r}%
                     </button>
                   ))}
                 </PopoverContent>
@@ -296,7 +274,7 @@ export default function AereoPage() {
             </div>
 
             <div className="flex items-end">
-              <Button onClick={handleSearch} className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90">
+              <Button disabled={!commissions.ready || outboundLeg.loading || returnLeg.loading} onClick={handleSearch} className="w-full h-11 rounded-xl bg-primary text-primary-foreground font-bold hover:bg-primary/90">
                 <SearchIcon className="mr-2 h-4 w-4" /> BUSCAR
               </Button>
             </div>
@@ -428,10 +406,13 @@ export default function AereoPage() {
 
               <div className="border-t border-border pt-4 mb-6">
                 <div className="flex justify-between items-center text-sm font-semibold mb-1">
-                  <span>Total passagens</span>
-                  <span className="text-xl font-black text-primary">{brl(totalFlightPrice)}</span>
+                  <span>Custo das passagens</span>
+                  <span>{brl(totalFlightPrice)}</span>
                 </div>
-                <span className="text-[11px] text-muted-foreground">Até 4x sem juros no cartão</span>
+                {commissions.ready && selectedOutbound && <>
+                  <div className="flex justify-between gap-3 text-sm"><span>Comissão ({commissionLabel(commissions.data!.air)})</span><strong>{brl(flightPricing.commission)}</strong></div>
+                  <div className="mt-2 flex justify-between gap-3 text-sm font-bold"><span>Preço final da proposta</span><strong className="text-xl text-primary">{brl(flightPricing.total)}</strong></div>
+                </>}
               </div>
 
               <div className="space-y-3 mb-6 border-t border-border pt-4">
@@ -440,7 +421,7 @@ export default function AereoPage() {
                 <Input placeholder="E-mail do cliente" type="email" value={clientEmail} onChange={e => setClientEmail(e.target.value)} className="rounded-xl bg-background text-sm" />
               </div>
 
-              <Button disabled={!access.allowed || !selectedOutbound || saving} onClick={generateProposal} className="w-full h-11 rounded-xl font-bold">
+              <Button disabled={!access.allowed || !commissions.ready || !selectedOutbound || (tripType === "roundtrip" && !selectedReturn) || saving} onClick={generateProposal} className="w-full h-11 rounded-xl font-bold">
                 <Link2 className="mr-2 h-4 w-4" /> {saving ? "Gerando…" : "Gerar Link de Proposta"}
               </Button>
 

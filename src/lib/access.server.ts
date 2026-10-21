@@ -10,3 +10,10 @@ export async function assertPermission(client: SupabaseClient<Database>, permiss
   const { data, error } = await client.rpc("seller_can", { _permission: permission });
   if (error || !data) throw new Error("Seu acesso não permite esta operação.");
 }
+
+/** Check before importing/calling a paid supplier, including direct server requests. */
+export async function assertSearchPermission(client: SupabaseClient<Database>, userId: string, permission: "search_hotels" | "search_flights") {
+  await assertPermission(client, permission);
+  const { assertSellerCommissions } = await import("./commissions.server");
+  await assertSellerCommissions(client, userId);
+}

@@ -10,8 +10,8 @@ export const searchDestinations = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) => z.object({ q: z.string().min(3).max(80) }).parse(d))
   .handler(async ({ data, context }): Promise<{ items: { id: string; name: string; type: string }[] } & Partial<Fail>> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       const r = await passhub<{ destinations: { destinationId: string; name: string; type: string }[] }>(
@@ -59,8 +59,8 @@ export const searchHotels = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }): Promise<{ hotels: Hotel[] } & Partial<Fail>> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       type Offer = {
@@ -77,7 +77,7 @@ export const searchHotels = createServerFn({ method: "POST" })
           rooms: data.roomOccupancies?.length
             ? passhubRoomGroups(data.roomOccupancies)
             : [{ adults: data.adults, childAges: data.childAges, quantity: data.rooms }],
-          ravPercentage: data.rav,
+          ravPercentage: 0, // Seller markup is defined exclusively by the administrator.
         },
       });
       const offers = r.offers ?? [];
