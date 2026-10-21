@@ -5,6 +5,8 @@ import {
   requireConfiguredCommissions,
   COMMISSION_CHANGED,
   COMMISSION_REQUIRED,
+  COMMISSION_MIGRATION_REQUIRED,
+  COMMISSION_INVALID,
 } from "@/lib/commission-rules";
 
 const row = {
@@ -24,6 +26,29 @@ describe("administrator confirmation of commissions", () => {
     const old = commissionSettingsFromRow({ ...row, configured_at: null });
     expect(old.air).toEqual({ kind: "fixed", value: 20 });
     expect(() => requireConfiguredCommissions(old)).toThrow(COMMISSION_REQUIRED);
+  });
+  it("reads rows from the pre-hotel schema without throwing or treating them as confirmed", () => {
+    const legacy = { air_kind: "fixed", air_value: 20, bus_kind: "percent", bus_value: 15 };
+    const result = commissionSettingsFromRow(legacy);
+    expect(result.air).toEqual({ kind: "fixed", value: 20 });
+    expect(result.bus).toEqual({ kind: "percent", value: 15 });
+    expect(result.issue).toBe("migration_required");
+    expect(result.configured).toBe(false);
+    expect(() => requireConfiguredCommissions(result)).toThrow(COMMISSION_MIGRATION_REQUIRED);
+    expect(JSON.stringify(result)).not.toContain("NaN");
+  });
+  it("does not turn corrupt financial data or timestamps into a confirmed zero", () => {
+    for (const invalid of [
+      { ...row, hotel_value: null },
+      { ...row, air_value: "broken" },
+      { ...row, configured_at: "yesterday" },
+    ]) {
+      const result = commissionSettingsFromRow(invalid);
+      expect(result.configured).toBe(false);
+      expect(result.updatedAt).toBe(null);
+      expect(result.issue).toBe("invalid_data");
+      expect(() => requireConfiguredCommissions(result)).toThrow(COMMISSION_INVALID);
+    }
   });
   it("allows zero only when explicitly confirmed", () => {
     const confirmed = commissionSettingsFromRow({

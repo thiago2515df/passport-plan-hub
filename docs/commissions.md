@@ -24,6 +24,8 @@ As comissões antigas mantêm seus tipos e valores. Como a versão anterior perm
 
 O aplicativo Android utiliza a mesma aplicação hospedada; esta mudança não exige um novo APK.
 
+Se o código for sincronizado antes da migração, o painel continua consultando os vendedores e o quadro continua exibindo as propostas, inclusive os detalhes de pacotes já aceitos. Registros antigos sem `hotel_kind`, `hotel_value` ou `configured_at` são reconhecidos como atualização pendente, preservando os valores existentes de aéreo e terrestre. Nenhum desses registros autoriza pesquisas ou geração de propostas. A tela informa a pendência do banco e impede salvar comissões ou criar contas que dependam desses campos até a atualização estar concluída. Falhas ao consultar vendedores são exibidas como falhas de consulta, nunca como zero vendedores cadastrados.
+
 ## Verificação local
 
 Executar `npm test`, `npx tsc --noEmit` e `npm run build`.

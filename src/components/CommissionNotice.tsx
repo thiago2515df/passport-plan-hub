@@ -3,6 +3,11 @@ import { Loader2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/components/AccessProvider";
 import { commissionLabel } from "@/lib/package-pricing";
+import {
+  COMMISSION_MIGRATION_REQUIRED,
+  COMMISSION_INVALID,
+  COMMISSION_UNAVAILABLE,
+} from "@/lib/commission-rules";
 import type { useSellerCommissions } from "@/hooks/use-seller-commissions";
 
 export function CommissionNotice({ query }: { query: ReturnType<typeof useSellerCommissions> }) {
@@ -34,6 +39,30 @@ export function CommissionNotice({ query }: { query: ReturnType<typeof useSeller
           onClick={() => void query.refetch()}
         >
           Tentar novamente
+        </Button>
+      </div>
+    );
+  if (query.data?.issue)
+    return (
+      <div
+        role="alert"
+        className="my-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+      >
+        <p>
+          {query.data.issue === "migration_required"
+            ? COMMISSION_MIGRATION_REQUIRED
+            : query.data.issue === "invalid_data"
+              ? COMMISSION_INVALID
+              : COMMISSION_UNAVAILABLE}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          onClick={() => void query.refetch()}
+        >
+          Verificar novamente
         </Button>
       </div>
     );

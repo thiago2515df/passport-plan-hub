@@ -17,5 +17,5 @@ export function useSellerCommissions(ownerId?: string) {
     refetchOnWindowFocus: true,
     refetchOnReconnect: true,
   });
-  return { ...query, ready: !!query.data?.configured && !query.isError };
+  return { ...query, ready: !!query.data?.configured && !query.data.issue && !query.isError };
 }

@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { commissionsSchema, commissionSettingsFromRow } from "@/lib/commission-rules";
+import { commissionsSchema, COMMISSION_MIGRATION_REQUIRED, COMMISSION_UNAVAILABLE } from "@/lib/commission-rules";
 import { acceptanceSchema } from "@/lib/proposal-acceptance";
 
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
@@ -37,18 +37,25 @@ export const getAccess = createServerFn({ method: "GET" }).middleware([requireSu
 export const getSettings = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { assertAdmin } = await import("./access.server");
   await assertAdmin(context.supabase, context.userId);
-  const { maintainProposalLifecycle } = await import("./proposal-lifecycle.server");
-  await maintainProposalLifecycle();
+  const { readCommissionOverview } = await import("./commissions.server");
   const [people, rights, settings, activities, proposals, commissions] = await Promise.all([
     context.supabase.from("profiles").select("*").order("created_at", { ascending: false }),
     context.supabase.from("seller_permissions").select("*"),
     context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle(),
     context.supabase.from("access_activity").select("*").order("created_at", { ascending: false }).limit(50),
     context.supabase.from("proposals").select("code,owner_id,created_at,payload").order("created_at", { ascending: false }).limit(200),
-    context.supabase.from("seller_commissions").select("user_id,configured_at"),
+    readCommissionOverview(context.supabase),
   ]);
-  for (const result of [people, rights, settings, activities, proposals, commissions]) if (result.error) throw new Error("Não foi possível carregar as configurações.");
-  return { people: people.data ?? [], rights: rights.data ?? [], settings: settings.data, activities: activities.data ?? [], proposals: proposals.data ?? [], commissions: commissions.data ?? [] };
+  if (people.error || rights.error) throw new Error("Não foi possível consultar os vendedores. Tente novamente para carregar os cadastros.");
+  return {
+    people: people.data ?? [], rights: rights.data ?? [],
+    settings: settings.error ? null : settings.data,
+    activities: activities.error ? [] : activities.data ?? [],
+    proposals: proposals.error ? [] : proposals.data ?? [],
+    commissions: commissions.records.map(record => ({ user_id: record.userId, configured_at: record.settings.configured ? record.settings.updatedAt : null })),
+    commissionIssue: commissions.issue,
+    warnings: [settings.error && "Não foi possível carregar os dados da agência.", activities.error && "Não foi possível carregar as atividades.", proposals.error && "Não foi possível carregar o histórico de propostas."].filter((value): value is string => !!value),
+  };
 });
 
 const password = z.string().min(8, "A senha precisa ter pelo menos 8 caracteres.").max(72).optional().or(z.literal("").transform(() => undefined));
@@ -58,6 +65,10 @@ export const createSeller = createServerFn({ method: "POST" }).middleware([requi
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
+    const { readCommissionSettings } = await import("./commissions.server");
+    const commissionStorage = await readCommissionSettings(context.supabase, context.userId);
+    if (commissionStorage.issue === "migration_required") throw new Error(COMMISSION_MIGRATION_REQUIRED);
+    if (commissionStorage.issue === "unavailable") throw new Error(COMMISSION_UNAVAILABLE);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser(data.password ? { email: data.email, password: data.password, email_confirm: true } : { email: data.email, email_confirm: false });
     if (error || !created.user) throw new Error("Não foi possível criar a conta. Verifique se o e-mail já está cadastrado.");
@@ -139,13 +150,13 @@ export const listMyProposals = createServerFn({ method: "GET" }).middleware([req
   if (error) throw new Error("Não foi possível carregar suas propostas.");
   const { data: people, error: peopleError } = await context.supabase.from("profiles").select("id,name,email");
   if (peopleError) throw new Error("Não foi possível carregar a equipe.");
-  const { data: commissions, error: commissionError } = await context.supabase.from("seller_commissions").select("*");
-  if (commissionError) throw new Error("Não foi possível carregar as comissões.");
+  const { readCommissionOverview } = await import("./commissions.server");
+  const commissions = await readCommissionOverview(context.supabase);
   const { data: acceptanceData, error: acceptanceError } = await context.supabase.rpc("my_proposal_acceptances");
   if (acceptanceError) throw new Error("Não foi possível carregar os pacotes aprovados.");
   const acceptances = z.array(acceptanceSchema).parse(acceptanceData ?? []);
   return (data ?? []).map(row => {
-    const rule = commissionSettingsFromRow(commissions?.find(item => item.user_id === row.owner_id) ?? null);
-    return { ...row, acceptance: acceptances.find(item => item.code === row.code) ?? null, commissions: rule.configured ? rule : null, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" };
+    const rule = commissions.records.find(item => item.userId === row.owner_id)?.settings;
+    return { ...row, acceptance: acceptances.find(item => item.code === row.code) ?? null, commissions: !commissions.issue && rule?.configured ? rule : null, seller_name: people?.find(person => person.id === row.owner_id)?.name || people?.find(person => person.id === row.owner_id)?.email || "Cadastro anterior" };
   });
 });
