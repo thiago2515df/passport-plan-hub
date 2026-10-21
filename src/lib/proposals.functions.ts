@@ -114,6 +114,20 @@ export const saveProposal = createServerFn({ method: "POST" })
     extraSchema.parse(proposal.s.extras ?? []);
     if (proposal.s.adults !== undefined) z.number().int().nonnegative().parse(proposal.s.adults);
     z.array(z.number().int().min(0).max(17)).parse(proposal.s.childAges ?? []);
+    if (proposal.s.roomOccupancies?.length) {
+      const roomSchema = z.array(z.object({
+        adults: z.number().int().min(1).max(9),
+        childAges: z.array(z.number().int().min(0).max(17)).max(4),
+      })).min(1).max(9);
+      const perRoom = roomSchema.parse(proposal.s.roomOccupancies);
+      const adultCount = perRoom.reduce((sum, room) => sum + room.adults, 0);
+      const ages = perRoom.flatMap(room => room.childAges).sort((a, b) => a - b);
+      const savedAges = [...(proposal.s.childAges ?? [])].sort((a, b) => a - b);
+      if (adultCount !== proposal.s.adults || perRoom.length !== proposal.s.rooms ||
+          JSON.stringify(ages) !== JSON.stringify(savedAges)) {
+        throw new Error("A distribuição de hóspedes por quarto não confere com o total da proposta.");
+      }
+    }
     if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
     // Preload public Airbnb details while the authenticated seller generates the
     // proposal. This costs at most one GeckoAPI PDP request per selected listing
