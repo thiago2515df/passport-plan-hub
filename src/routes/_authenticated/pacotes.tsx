@@ -20,6 +20,7 @@ import { flightToTransportLeg } from "@/lib/customer-itinerary";
 import { toggleHotelSelection, nextFlightSelectionStep, type ProposalSelectionStep } from "@/lib/proposal-selection";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
+import { normalizeExtraServices } from "@/lib/extra-services";
 import { ManagementNav } from "@/components/ManagementNav";
 import { Button } from "@/components/ui/button";
 import { Calendar as DayPicker } from "@/components/ui/calendar";
@@ -430,15 +431,16 @@ function Index() {
       return;
     }
     setClientNameError("");
+    setErr("");
     const pendingTrivago = sel.map(id => selectedOffers[id]).find(h => h?.provider === "trivago" && !h.priceConfirmed);
     if (pendingTrivago) {
       setErr(`Confirme o custo total de ${pendingTrivago.name} com o fornecedor antes de gerar a proposta. O preço do Trivago é apenas uma previsão.`);
       summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    const chosen = sel.map(id => selectedOffers[id]).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120) }));
     setSaving(true);
     try {
+      const chosen = sel.map(id => selectedOffers[id]).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120), extras: normalizeExtraServices(h.extras, h.name) }));
       const fresh = await commissions.refetch();
       if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
@@ -446,7 +448,10 @@ function Index() {
       const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
-    } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Não foi possível gerar a proposta.");
+      summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
     const next = { ...pickF, [k]: f }; setPickF(next); setLink(""); if (!mobile || k === "out") setAdvanceTo(nextFlightSelectionStep(k));
