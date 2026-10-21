@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Loader2, LockKeyhole } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAccess } from "@/components/AccessProvider";
-import { commissionLabel } from "@/lib/package-pricing";
 import {
   COMMISSION_MIGRATION_REQUIRED,
   COMMISSION_INVALID,
