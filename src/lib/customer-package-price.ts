@@ -12,14 +12,17 @@ export function proposalTravelerCount(search: Pick<Search, "roomOccupancies" | "
     return roomOccupancies.reduce((total, room) => total + room.adults + room.childAges.length, 0);
   }
 
+  // The public summary already shows the saved guest count. Older proposals
+  // can receive default adult fields during projection, so matching the shown
+  // total prevents a contradictory per-person price.
+  const count = search.hospedes?.match(/(\d+)\s*(?:h[oó]spedes?|pessoas?|viajantes?)/i)?.[1];
+  const parsed = Number(count);
+  if (Number.isSafeInteger(parsed) && parsed > 0) return parsed;
+
   if (typeof search.adults === "number" && Number.isInteger(search.adults) && search.adults > 0) {
     return search.adults + (Array.isArray(search.childAges) ? search.childAges.length : 0);
   }
-
-  // Historical proposals may only store a human-readable aggregate.
-  const count = search.hospedes?.match(/(\d+)\s*(?:h[oó]spedes?|pessoas?|viajantes?)/i)?.[1];
-  const parsed = Number(count);
-  return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null;
+  return null;
 }
 
 /**
