@@ -5,7 +5,12 @@ import { Save, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getSellerCommissions, saveSellerCommissions } from "@/lib/commissions.functions";
-import { commissionsSchema } from "@/lib/commission-rules";
+import {
+  commissionsSchema,
+  COMMISSION_MIGRATION_REQUIRED,
+  COMMISSION_INVALID,
+  COMMISSION_UNAVAILABLE,
+} from "@/lib/commission-rules";
 import { emptyCommissions, commissionLabel, type SellerCommissions } from "@/lib/package-pricing";
 
 export function CommissionFields({
@@ -111,6 +116,29 @@ export function CommissionSettings({
         <p role="alert" className="text-sm text-destructive">
           Não foi possível carregar as comissões. Atualize o sistema e tente novamente.
         </p>
+      ) : query.data?.issue === "migration_required" || query.data?.issue === "unavailable" ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950">
+          <p role="alert">
+            {query.data.issue === "migration_required"
+              ? COMMISSION_MIGRATION_REQUIRED
+              : COMMISSION_UNAVAILABLE}
+          </p>
+          {query.data.issue === "migration_required" && (
+            <p className="mt-2 text-xs">
+              Os valores anteriores foram preservados. O campo de somente hotel e a confirmação pelo
+              administrador aguardam essa atualização.
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="mt-3"
+            onClick={() => void query.refetch()}
+          >
+            Verificar novamente
+          </Button>
+        </div>
       ) : (
         <>
           <p
@@ -120,6 +148,11 @@ export function CommissionSettings({
               ? "Confirmadas pelo administrador. Aplicativo e web usam estas mesmas regras."
               : "Pesquisas bloqueadas até você salvar e confirmar as três regras. Revise também os valores já existentes."}
           </p>
+          {query.data?.issue === "invalid_data" && (
+            <p role="alert" className="mb-3 text-sm text-destructive">
+              {COMMISSION_INVALID}
+            </p>
+          )}
           <CommissionFields
             value={values}
             onChange={(value) => {
@@ -131,7 +164,11 @@ export function CommissionSettings({
             type="button"
             size="sm"
             className="mt-4"
-            disabled={busy || !commissionsSchema.safeParse(values).success}
+            disabled={
+              busy ||
+              (query.data?.issue === "invalid_data" && !draft) ||
+              !commissionsSchema.safeParse(values).success
+            }
             onClick={async () => {
               setBusy(true);
               setMessage("");

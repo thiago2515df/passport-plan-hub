@@ -64,6 +64,8 @@ function client({
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
     maybeSingle: vi.fn(async () => ({ data: commission, error: null })),
+    then: (resolve: (result: unknown) => unknown, reject: (reason: unknown) => unknown) =>
+      Promise.resolve({ data: commission ? [commission] : [], error: null }).then(resolve, reject),
     insert: vi.fn(async () => ({ error: null })),
     update: vi.fn(() => query),
     upsert: vi.fn(async () => ({ error: null })),
