@@ -176,6 +176,8 @@ function Index() {
     setHotels([]); setAirbnbListings([]); setTrivagoListings([]); setSelectedOffers({}); setSel([]);
     setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({});
     setS(previous => previous.transport?.mode === "air" ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
+    setDestIata(""); setFlightQuery(""); setOutNum(""); setBackNum("");
+    setNumMsg({ out: "", back: "" }); setNumBusy({ out: false, back: false });
     setLink(""); setErr("");
   }, [searchKey, searchedKey, editLoading]);
   useEffect(() => {
