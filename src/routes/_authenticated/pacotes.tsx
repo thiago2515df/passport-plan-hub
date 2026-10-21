@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Plane, Bus, Shield, Building2, Users, MapPin, Calendar, Search as SearchIcon, Filter, Star, CreditCard, Trash2, Link2, Check, ChevronDown, Loader2, Settings, UserRound } from "lucide-react";
 import { COMMISSION, brl, nightsBetween, encodeProposal, decodeProposal, makeTransport, isCaldasNovas, iataOf, cityIata, type Flight, type TransportMode, type Search, type Hotel } from "@/lib/hotels";
 import { searchDestinations, searchHotels } from "@/lib/passhub.functions";
+import { RoomOccupancyPicker } from "@/components/RoomOccupancyPicker";
+import { allChildAges, countAdults, restoreRoomOccupancies, type RoomOccupancy } from "@/lib/room-occupancy";
 import { searchAirbnb } from "@/lib/airbnb.functions";
 import { searchTrivago, refreshTrivagoQuote } from "@/lib/trivago.functions";
 import { sellerAirbnbUrl } from "@/lib/seller-airbnb-url";
@@ -72,9 +74,10 @@ function Index() {
   const [chosenOrigin, setChosenOrigin] = useState("");
   const originCities = useCitySuggestions(access.allowed && cityFocus === "origin" && s.origem !== chosenOrigin ? s.origem ?? "" : "");
   const destinationCities = useCitySuggestions(access.allowed && cityFocus === "destination" && !destId ? s.destino : "");
-  const [rooms, setRooms] = useState(1);
-  const [adults, setAdults] = useState(2);
-  const [kids, setKids] = useState<number[]>([]);
+  const [roomGuests, setRoomGuests] = useState<RoomOccupancy[]>([{ adults: 2, childAges: [] }]);
+  const rooms = roomGuests.length;
+  const adults = countAdults(roomGuests);
+  const kids = allChildAges(roomGuests);
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [airbnbListings, setAirbnbListings] = useState<Hotel[]>([]);
   const [airbnbLoading, setAirbnbLoading] = useState(false);
@@ -143,24 +146,36 @@ function Index() {
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
       setS(proposal.s); setHotels(restored.filter(h => !h.provider || h.provider === "hotel")); setAirbnbListings(restored.filter(h => h.provider === "airbnb")); setTrivagoListings(restored.filter(h => h.provider === "trivago")); setSelectedOffers(Object.fromEntries(restored.map(h => [h.id, h]))); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
       setHasSearched(true);
-      setDestId(proposal.s.destinationId ?? ""); setRooms(proposal.s.rooms ?? 1); setAdults(proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2)); setKids(proposal.s.childAges ?? []); setCalMonth(toD(proposal.s.checkin));
+      setDestId(proposal.s.destinationId ?? ""); setRoomGuests(restoreRoomOccupancies(proposal.s.roomOccupancies, proposal.s.rooms ?? 1, proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2), proposal.s.childAges ?? [])); setCalMonth(toD(proposal.s.checkin));
     }).catch(error => { if (alive) setErr(error instanceof Error ? error.message : "Não foi possível abrir a proposta."); }).finally(() => { if (alive) setEditLoading(false); });
     return () => { alive = false; };
   }, [editingCode, loadEditable]);
   const transport = s.transport ?? makeTransport("none", s.destino);
-  const pricingSearch: Search = { ...s, rooms, adults, childAges: kids, hospedes: `${rooms} quarto · ${adults + kids.length} hóspedes` };
+  const pricingSearch: Search = { ...s, roomOccupancies: roomGuests, rooms, adults, childAges: kids, hospedes: `${rooms} quarto · ${adults + kids.length} hóspedes` };
   const effectiveTransport = transport.mode === "bus" && isCaldasNovas(s.destino) ? { ...transport, price: transportCost(pricingSearch) } : transport;
   const changeDestination = (destination: string) => setS(previous => {
     const current = previous.transport;
     const changedCity = previous.destino.split(",")[0] !== destination.split(",")[0];
     return { ...previous, destino: destination, transport: current && changedCity && (isCaldasNovas(destination) !== isCaldasNovas(previous.destino) || current.standard) ? makeTransport(current.mode, destination) : current ?? makeTransport("none", destination) };
   });
-  useEffect(() => { setLink(""); }, [s, rooms, adults, kids]);
+  useEffect(() => { setLink(""); }, [s, roomGuests]);
   const nights = nightsBetween(s.checkin, s.checkout);
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
 
+  const changeRoomGuests = (next: RoomOccupancy[]) => {
+    setRoomGuests(next);
+    // Existing supplier prices were for the old room allocation.
+    setHotels([]); setAirbnbListings([]); setTrivagoListings([]);
+    setSel([]); setSelectedOffers({}); setGallery(null);
+    setHasSearched(false); setLink(""); setHotelPage(1); setErr("");
+  };
+
   const fetchAirbnbListings = async (page = 1) => {
     if (!access.allowed) { setAirbnbError("Seu acesso precisa ser liberado pelo administrador."); return; }
+    if (rooms > 1 || kids.length > 0) {
+      setAirbnbError("Esta API do Airbnb não permite reservar quartos separados nem informar idades das crianças. Para essa ocupação, use Hotéis.");
+      return;
+    }
     if (!s.destino.trim()) { setAirbnbError("Escolha um destino antes de buscar Airbnb."); return; }
     if (s.checkout <= s.checkin) { setAirbnbError("A data de volta precisa ser posterior à de ida."); return; }
     setAirbnbLoading(true);
@@ -189,6 +204,10 @@ function Index() {
 
   const fetchTrivagoListings = async (page = 1) => {
     if (!access.allowed) { setTrivagoError("Seu acesso precisa ser liberado pelo administrador."); return; }
+    if (rooms > 1) {
+      setTrivagoError("A API do Trivago não permite informar a distribuição de adultos e crianças por quarto. Para vários quartos, use Hotéis.");
+      return;
+    }
     if (!s.destino.trim()) { setTrivagoError("Informe uma cidade ou região para buscar no Trivago."); return; }
     if (s.checkout <= s.checkin) { setTrivagoError("A data de volta precisa ser posterior à de ida."); return; }
     setTrivagoLoading(true); setTrivagoError(""); setTrivagoWarning("");
@@ -212,6 +231,7 @@ function Index() {
 
   const retryTrivagoHotel = async (hotel: Hotel) => {
     if (!hotel.sourceUrl || trivagoQuoteBusy) return;
+    if (rooms > 1) { setTrivagoError("Trivago não aceita ocupação individual de vários quartos. Use Hotéis."); return; }
     setTrivagoQuoteBusy(hotel.id);
     try {
       const quote = await refetchTrivagoQuote({ data: {
@@ -242,6 +262,7 @@ function Index() {
   const buscar = async () => {
     if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (accommodationSource === "hotel" && !destId) { setErr("Escolha um destino da lista de sugestões."); return; }
+    if (rooms < 1 || roomGuests.some(r => r.adults < 1)) { setErr("Cada quarto precisa ter pelo menos um adulto."); return; }
     setHasSearched(true);
     setErr(""); setLink(""); setHotelPage(1);
     if (accommodationSource === "airbnb") { await fetchAirbnbListings(1); return; }
@@ -257,7 +278,7 @@ function Index() {
       }
     }
     try {
-      const r = await findHotels({ data: { destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, rav: s.rav } });
+      const r = await findHotels({ data: { destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, roomOccupancies: roomGuests, rav: s.rav } });
       setHotels(r.hotels); if (r.error) setErr(r.error); else if (!r.hotels.length) setErr("Nenhum hotel encontrado para essa busca.");
     } catch (e) { setErr((e as Error).message); } finally { setLoading(false); }
   };
@@ -318,7 +339,7 @@ function Index() {
     setSaving(true);
     try {
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
@@ -328,7 +349,6 @@ function Index() {
     setS(prev => { const t = prev.transport ?? makeTransport("air", prev.destino); const leg = flightToTransportLeg; return { ...prev, transport: { ...t, ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}), ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}), price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: f.travelClass, bags: f.bags } }; });
   };
   const field = "flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm";
-  const num = "w-14 rounded-md border border-border bg-card px-2 py-1";
 
   return <div className="flex min-h-screen bg-background font-sans text-foreground"><ManagementNav current="packages" /><main className="min-w-0 flex-1 p-3 md:p-6">
     {editingCode && <div className="mb-4 flex items-center justify-between gap-3 border-b border-border pb-4"><h1 className="font-semibold">{editLoading ? "Abrindo proposta…" : "Editar proposta"} · {editingCode}</h1><Button variant="outline" asChild><Link to="/vendedor" search={{ q: "" }}>Voltar às propostas</Link></Button></div>}
@@ -336,7 +356,7 @@ function Index() {
       <div className="relative col-span-2 text-sm md:col-span-1"><label htmlFor="origin-city">Origem</label><div className={field + " mt-2"}><Plane className="h-4 w-4" /><input id="origin-city" autoComplete="off" placeholder="Ex.: Brasília (BSB)" className="min-w-0 w-full bg-transparent outline-none" value={s.origem ?? ""} onFocus={() => setCityFocus("origin")} onBlur={() => setCityFocus(null)} onChange={e => { setChosenOrigin(""); setS({ ...s, origem: e.target.value }); }} /></div>{cityFocus === "origin" && (originCities.loading || originCities.error || originCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{originCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}{originCities.error && <p className="px-4 py-2 text-destructive">{originCities.error}</p>}{originCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} onMouseDown={e => e.preventDefault()} onClick={() => { setChosenOrigin(d.name); setS(prev => ({ ...prev, origem: d.name })); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}</div>}</div>
       <div className="relative col-span-2 text-sm md:col-span-1"><label htmlFor="destination-city">Destino</label><div className={field + " mt-2"}><MapPin className="h-4 w-4" /><input id="destination-city" autoComplete="off" disabled={uploading} placeholder="Cidade ou região" className="min-w-0 w-full bg-transparent outline-none" value={s.destino} onFocus={() => setCityFocus("destination")} onBlur={() => setCityFocus(null)} onChange={e => { setDestId(""); changeDestination(e.target.value); }} /></div>{cityFocus === "destination" && (destinationCities.loading || destinationCities.error || destinationCities.items.length > 0) && <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-card shadow-lg">{destinationCities.loading && <p className="flex items-center gap-2 px-4 py-2 text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" />Buscando cidades…</p>}{destinationCities.error && <p className="px-4 py-2 text-destructive">{destinationCities.error}</p>}{destinationCities.items.map((d, i) => <Button variant="ghost" type="button" key={d.id + i} disabled={uploading} onMouseDown={e => e.preventDefault()} onClick={() => { setDestId(d.id); changeDestination(d.name); setCityFocus(null); }} className="h-auto w-full justify-start whitespace-normal rounded-none px-4 py-2 text-left"><span className="text-[10px] text-muted-foreground">{d.type}</span>{d.name}</Button>)}</div>}</div>
       <div className="col-span-2 text-sm md:col-span-1">Ida e volta<Popover><PopoverTrigger asChild><button type="button" className={field + " mt-2 w-full text-left"}><Calendar className="h-4 w-4" />{fmtD(s.checkin)} → {fmtD(s.checkout)}</button></PopoverTrigger><PopoverContent className="w-auto p-0" align="start"><DayPicker mode="range" locale={ptBR} numberOfMonths={2} month={calMonth} onMonthChange={setCalMonth} disabled={{ before: new Date() }} selected={{ from: toD(s.checkin), to: picking ? undefined : toD(s.checkout) }} onSelect={(_r, day) => { if (!day) return; if (!picking || day <= toD(s.checkin)) { setS(prev => ({ ...prev, checkin: isoD(day), checkout: isoD(new Date(day.getTime() + 86400000)) })); setPicking(true); return; } setS(prev => ({ ...prev, checkout: isoD(day) })); setPicking(false); }} className="pointer-events-auto p-3" /><p className="px-3 pb-3 text-xs text-muted-foreground">{picking ? "Agora clique no dia da volta." : "Clique na ida e depois na volta."} {nights} {nights === 1 ? "noite" : "noites"}.</p></PopoverContent></Popover></div>
-      <details className="relative min-w-0 text-sm"><summary className="list-none">Quartos e hóspedes<div className={field + " mt-2 cursor-pointer"}><Users className="h-4 w-4" />{hosp}</div></summary><div className="absolute left-0 right-0 z-30 mt-2 space-y-3 rounded-2xl border border-border bg-card p-4 shadow-xl md:hidden"><div className="flex items-center justify-between gap-3"><span className="font-medium">Quartos</span><div className="flex items-center gap-2"><button type="button" aria-label="Diminuir quartos" disabled={rooms <= 1} onClick={() => setRooms(v => Math.max(1, v - 1))} className="grid h-11 w-11 place-items-center rounded-full border border-border bg-background text-2xl font-semibold text-primary disabled:opacity-35">−</button><span className="w-8 text-center text-lg font-bold tabular-nums">{rooms}</span><button type="button" aria-label="Aumentar quartos" disabled={rooms >= 9} onClick={() => setRooms(v => Math.min(9, v + 1))} className="grid h-11 w-11 place-items-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground disabled:opacity-35">+</button></div></div><div className="flex items-center justify-between gap-3"><span className="font-medium">Adultos</span><div className="flex items-center gap-2"><button type="button" aria-label="Diminuir adultos" disabled={adults <= 1} onClick={() => setAdults(v => Math.max(1, v - 1))} className="grid h-11 w-11 place-items-center rounded-full border border-border bg-background text-2xl font-semibold text-primary disabled:opacity-35">−</button><span className="w-8 text-center text-lg font-bold tabular-nums">{adults}</span><button type="button" aria-label="Aumentar adultos" disabled={adults >= 9} onClick={() => setAdults(v => Math.min(9, v + 1))} className="grid h-11 w-11 place-items-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground disabled:opacity-35">+</button></div></div><div className="flex items-center justify-between gap-3"><span className="font-medium">Crianças</span><div className="flex items-center gap-2"><button type="button" aria-label="Diminuir crianças" disabled={kids.length <= 0} onClick={() => setKids(k => k.slice(0, -1))} className="grid h-11 w-11 place-items-center rounded-full border border-border bg-background text-2xl font-semibold text-primary disabled:opacity-35">−</button><span className="w-8 text-center text-lg font-bold tabular-nums">{kids.length}</span><button type="button" aria-label="Aumentar crianças" disabled={kids.length >= 4} onClick={() => setKids(k => [...k, 7])} className="grid h-11 w-11 place-items-center rounded-full bg-primary text-2xl font-semibold text-primary-foreground disabled:opacity-35">+</button></div></div>{kids.map((a, i) => <div key={i} className="flex items-center justify-between gap-3 border-t border-border pt-3 text-xs text-muted-foreground"><span>Idade criança {i + 1}</span><div className="flex items-center gap-2"><button type="button" aria-label={`Diminuir idade da criança ${i + 1}`} disabled={a <= 0} onClick={() => setKids(k => k.map((v, j) => j === i ? Math.max(0, v - 1) : v))} className="grid h-9 w-9 place-items-center rounded-full border border-border bg-background text-xl font-semibold text-primary disabled:opacity-35">−</button><span className="w-8 text-center text-sm font-bold tabular-nums text-foreground">{a}</span><button type="button" aria-label={`Aumentar idade da criança ${i + 1}`} disabled={a >= 17} onClick={() => setKids(k => k.map((v, j) => j === i ? Math.min(17, v + 1) : v))} className="grid h-9 w-9 place-items-center rounded-full bg-primary text-xl font-semibold text-primary-foreground disabled:opacity-35">+</button></div></div>)}<p className="text-[11px] text-muted-foreground">Limites da busca: até 9 adultos, 9 quartos e 4 crianças.</p><button type="button" onClick={e => e.currentTarget.closest('details')?.removeAttribute('open')} className="h-11 w-full rounded-xl bg-primary font-bold text-primary-foreground">Pronto</button></div><div className="absolute z-20 mt-1 hidden w-64 space-y-2 rounded-xl border border-border bg-card p-3 shadow-lg md:block"><div className="flex justify-between">Quartos<input type="number" min={1} max={9} className={num} value={rooms} onChange={e => setRooms(Math.max(1, Math.min(9, +e.target.value)))} /></div><div className="flex justify-between">Adultos<input type="number" min={1} max={9} className={num} value={adults} onChange={e => setAdults(Math.max(1, Math.min(9, +e.target.value)))} /></div><div className="flex justify-between">Crianças<input type="number" min={0} max={4} className={num} value={kids.length} onChange={e => { const n = Math.max(0, Math.min(4, +e.target.value)); setKids(k => Array.from({ length: n }, (_, i) => k[i] ?? 7)); }} /></div>{kids.map((a, i) => <div key={i} className="flex justify-between text-xs text-muted-foreground">Idade criança {i + 1}<input type="number" min={0} max={17} className={num} value={a} onChange={e => setKids(k => k.map((v, j) => j === i ? Math.max(0, Math.min(17, +e.target.value)) : v))} /></div>)}</div></details>
+      <details className="relative min-w-0 text-sm"><summary className="list-none cursor-pointer">Quartos e hóspedes<div className={field + " mt-2"}><Users className="h-4 w-4 shrink-0" />{hosp}</div></summary><RoomOccupancyPicker value={roomGuests} onChange={changeRoomGuests} /></details>
       <label className="col-span-2 text-sm md:col-span-1">Transporte<div className={field + " mt-2"}><select aria-label="Transporte" disabled={uploading} className="min-w-0 w-full bg-transparent outline-none" value={transport.mode} onChange={e => setS(previous => ({ ...previous, transport: makeTransport(e.target.value as TransportMode, previous.destino) }))}><option value="none">Sem transporte</option><option value="air">Aéreo</option><option value="bus">Ônibus</option></select></div></label>
       <button onClick={buscar} disabled={loading} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60 md:col-span-1">{loading && <Loader2 className="h-4 w-4 animate-spin" />}<SearchIcon className="h-4 w-4" /> BUSCAR PACOTES</button>
     </div></section>
