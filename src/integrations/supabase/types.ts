@@ -173,36 +173,36 @@ export type Database = {
       }
       seller_commissions: {
         Row: {
-          hotel_kind: string
-          hotel_value: number
-          configured_at: string | null
-          configured_by: string | null
           air_kind: string
           air_value: number
           bus_kind: string
           bus_value: number
+          configured_at: string | null
+          configured_by: string | null
+          hotel_kind: string
+          hotel_value: number
           user_id: string
         }
         Insert: {
-          hotel_kind?: string
-          hotel_value?: number
-          configured_at?: string | null
-          configured_by?: string | null
           air_kind?: string
           air_value?: number
           bus_kind?: string
           bus_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
+          hotel_kind?: string
+          hotel_value?: number
           user_id: string
         }
         Update: {
-          hotel_kind?: string
-          hotel_value?: number
-          configured_at?: string | null
-          configured_by?: string | null
           air_kind?: string
           air_value?: number
           bus_kind?: string
           bus_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
+          hotel_kind?: string
+          hotel_value?: number
           user_id?: string
         }
         Relationships: [
