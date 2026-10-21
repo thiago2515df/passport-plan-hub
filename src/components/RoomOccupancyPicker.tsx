@@ -7,7 +7,7 @@ import type { RoomOccupancy } from "@/lib/room-occupancy";
 import { allChildAges, countAdults } from "@/lib/room-occupancy";
 import "@/room-occupancy.css";
 
-/** One occupancy editor, shown in a modal on phones and a popover on desktop. */
+/** One occupancy editor, shown in a modal on small screens and a popover on desktop. */
 export function RoomOccupancyPicker({
   value,
   onChange,
@@ -18,7 +18,7 @@ export function RoomOccupancyPicker({
   summary: string;
 }) {
   const [open, setOpen] = useState(false);
-  const mobile = useIsMobile();
+  const mobile = useIsMobile(1024);
   const titleId = useId();
   const descriptionId = useId();
   const adults = countAdults(value);
