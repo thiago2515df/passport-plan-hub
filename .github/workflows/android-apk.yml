@@ -3,7 +3,12 @@ on:
   workflow_dispatch:
   push:
     branches:
+      - main
       - feature/android-pwa-excursao-brasilia
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android-apk.yml'
+  pull_request:
     paths:
       - 'android-app/**'
       - '.github/workflows/android-apk.yml'

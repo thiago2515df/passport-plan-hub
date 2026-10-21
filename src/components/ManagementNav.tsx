@@ -31,9 +31,6 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
     </aside>
 
     <section className={`mobile-dashboard-header mobile-current-${current} lg:hidden`} aria-label="Navegação rápida">
-      <Link to="/pacotes" search={{}} className="mobile-brand-link" aria-label="Ir para Pacotes">
-        <img src={logo.url} alt="Excursão Brasília" className="mobile-dashboard-logo" />
-      </Link>
       <div className="mobile-service-grid">
         <Link to="/pacotes" search={{}} className={`mobile-service-item ${current === "packages" ? "is-active" : ""}`}>
           <span className="mobile-service-icon"><Building2 /></span><span>Pacotes</span>

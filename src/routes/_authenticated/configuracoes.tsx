@@ -50,7 +50,7 @@ function SettingsPage() {
       setEditing(false); setForm(initial); setMessage(form.id ? (form.password ? "Senha definida e acesso liberado." : "Vendedor atualizado.") : form.password ? "Vendedor criado com acesso liberado. Ele já pode entrar com o e-mail e a senha." : "Vendedor criado. Um link para definir a senha foi enviado por e-mail."); await data.refetch();
     } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar."); } finally { setBusy(false); }
   };
-  return <div className="flex min-h-screen bg-background text-foreground"><ManagementNav current="settings" />
+  return <div className="workspace-layout flex min-h-screen bg-background text-foreground"><ManagementNav current="settings" />
     <main className="mx-auto min-w-0 w-full max-w-6xl px-4 py-8 sm:px-8">
       <div className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><div className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Administração</div><h1 className="text-3xl font-bold">Configurações</h1></div><span className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4" />Área do administrador</span></div>
       <div className="mb-8 flex gap-1 overflow-x-auto border-b border-border pb-3">{tabs.map(t => <Button key={t.id} variant={tab === t.id ? "secondary" : "ghost"} onClick={() => setTab(t.id)}><t.icon className="h-4 w-4" />{t.label}</Button>)}</div>

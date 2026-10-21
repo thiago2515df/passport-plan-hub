@@ -167,7 +167,7 @@ export default function AereoPage() {
   const totalFlightPrice = (selectedOutbound?.price ?? 0) + (selectedReturn?.price ?? 0);
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="workspace-layout flex min-h-screen bg-background text-foreground">
       <ManagementNav current="aereo" />
       <main className="mx-auto min-w-0 w-full max-w-7xl px-4 py-8 sm:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">

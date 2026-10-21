@@ -25,7 +25,7 @@ export const Route = createFileRoute("/_authenticated/vendedor")({
   head: () => ({ meta: [{ title: "Quadro de propostas — Excursão Brasília" }, { name: "description", content: "Acompanhamento das propostas de viagem e resultados da equipe." }, { property: "og:title", content: "Quadro de propostas — Excursão Brasília" }, { property: "og:description", content: "Propostas criadas, aguardando resposta e concluídas." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }, { name: "robots", content: "noindex, nofollow" }] }),
   component: SellerPage,
 });
-function BoardError({ message }: { message: string }) { const router = useRouter(); return <div className="flex min-h-screen"><ManagementNav current="seller" /><main className="p-8"><p role="alert">{message}</p><Button onClick={() => router.invalidate()}>Tentar novamente</Button></main></div>; }
+function BoardError({ message }: { message: string }) { const router = useRouter(); return <div className="workspace-layout flex min-h-screen"><ManagementNav current="seller" /><main className="p-8"><p role="alert">{message}</p><Button onClick={() => router.invalidate()}>Tentar novamente</Button></main></div>; }
 type Status = "created" | "awaiting" | "approved" | "cancelled";
 const columns = [{ id: "created", title: "Propostas criadas", icon: FileText, tone: "text-primary", line: "border-primary" }, { id: "awaiting", title: "Aguardando resposta", icon: Clock, tone: "text-chart-1", line: "border-chart-1" }, { id: "closed", title: "Concluídas", icon: CheckCircle2, tone: "text-success-foreground", line: "border-success-foreground" }] as const;
 const dateTime = (value: string) => new Date(value).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" });
@@ -54,7 +54,7 @@ function SellerPage() {
   const request = (code: string, status: Status) => { const row = rows.find(r => r.code === code); if (!row) return; const s = decodeProposal(row.payload)?.s; mutation.reset(); setCopyState("idle"); setPending({ code, status, client: s?.cliente || "Cliente", ...(s?.telefone ? { phone: s.telefone } : {}) }); };
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
+    <div className="workspace-layout flex min-h-screen bg-background text-foreground">
       <ManagementNav current="seller" />
       <main className="min-w-0 flex-1 px-3 py-4 sm:px-4 space-y-4">
         

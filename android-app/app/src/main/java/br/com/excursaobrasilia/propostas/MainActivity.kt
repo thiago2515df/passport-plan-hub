@@ -4,9 +4,15 @@ import android.app.Activity
 import android.app.DownloadManager
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.graphics.Color
+import android.graphics.Insets
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.view.View
+import android.view.WindowInsets
+import android.view.WindowInsetsController
 import android.webkit.CookieManager
 import android.webkit.DownloadListener
 import android.webkit.ValueCallback
@@ -15,6 +21,7 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.webkit.URLUtil
+import android.widget.FrameLayout
 import android.widget.Toast
 
 class MainActivity : Activity() {
@@ -27,7 +34,15 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         browser = WebView(this)
-        setContentView(browser)
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(Color.rgb(247, 248, 251))
+            addView(browser, FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            ))
+        }
+        setContentView(container)
+        configureWindowInsets(container)
         browser.settings.javaScriptEnabled = true
         browser.settings.domStorageEnabled = true
         browser.settings.allowFileAccess = false
@@ -87,6 +102,33 @@ class MainActivity : Activity() {
             }
         })
         if (savedInstanceState == null) browser.loadUrl(home) else browser.restoreState(savedInstanceState)
+    }
+
+    @Suppress("DEPRECATION")
+    private fun configureWindowInsets(container: FrameLayout) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
+            val lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
+                WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
+            window.insetsController?.setSystemBarsAppearance(lightBars, lightBars)
+            container.setOnApplyWindowInsetsListener { view, insets ->
+                val handledTypes = WindowInsets.Type.systemBars() or
+                    WindowInsets.Type.displayCutout() or WindowInsets.Type.ime()
+                val safe = insets.getInsets(handledTypes)
+                // Keep the WebView itself inside the visible area, including when typing.
+                view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+                // Zero only the handled insets so WebView does not add them a second time.
+                WindowInsets.Builder(insets).setInsets(handledTypes, Insets.NONE).build()
+            }
+            container.requestApplyInsets()
+        } else {
+            window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR or
+                View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR
+            window.statusBarColor = Color.rgb(247, 248, 251)
+            window.navigationBarColor = Color.WHITE
+        }
     }
 
     private fun openExternal(uri: Uri): Boolean {
