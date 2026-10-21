@@ -1,0 +1,1 @@
+COMMENT ON TABLE public.seller_commissions IS 'Administrator-confirmed seller commission rules.';

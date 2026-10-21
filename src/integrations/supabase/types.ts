@@ -177,6 +177,10 @@ export type Database = {
           air_value: number
           bus_kind: string
           bus_value: number
+          configured_at: string | null
+          configured_by: string | null
+          hotel_kind: string
+          hotel_value: number
           user_id: string
         }
         Insert: {
@@ -184,6 +188,10 @@ export type Database = {
           air_value?: number
           bus_kind?: string
           bus_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
+          hotel_kind?: string
+          hotel_value?: number
           user_id: string
         }
         Update: {
@@ -191,9 +199,20 @@ export type Database = {
           air_value?: number
           bus_kind?: string
           bus_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
+          hotel_kind?: string
+          hotel_value?: number
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seller_commissions_configured_by_fkey"
+            columns: ["configured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seller_commissions_user_id_fkey"
             columns: ["user_id"]

@@ -64,6 +64,13 @@
       "when": 1792601037354,
       "tag": "0008_admin_confirmed_seller_commissions",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1792608622743,
+      "tag": "0009_apply_pending_commission_update",
+      "breakpoints": true
     }
   ]
 }
