@@ -42,7 +42,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
           <span className="mobile-service-icon"><Bus /></span><span>Ônibus</span>
         </Link>
       </div>
-      <h1 className="mobile-section-title">{mobileTitle}</h1>
+      <h1 className={current === "packages" ? "sr-only" : "mobile-section-title"}>{mobileTitle}</h1>
     </section>
 
     <nav className="mobile-bottom-nav lg:hidden" aria-label="Menu inferior">

@@ -154,34 +154,55 @@
   .mobile-current-packages ~ main .package-search-compact {
     max-width: 560px;
   }
-  .mobile-current-packages ~ main .package-search-heading {
-    padding: 0 2px 12px;
-    background: transparent;
+  .mobile-current-packages {
+    padding-block: max(12px, env(safe-area-inset-top)) 12px;
   }
-  .mobile-current-packages ~ main .package-search-heading > span {
+  .mobile-current-packages ~ main .package-search-heading {
     display: none;
   }
-  .mobile-current-packages ~ main .package-search-heading > small {
-    color: #697386;
-    font-size: 12px;
+  .mobile-current-packages ~ main {
+    padding-top: 12px !important;
   }
   .mobile-current-packages ~ main .package-search-fields {
     gap: 12px;
     padding: 16px;
     border: 1px solid #e1e6ee;
-    border-radius: 20px;
-    box-shadow: 0 8px 24px rgba(17, 35, 65, 0.06);
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(17, 35, 65, 0.04);
+  }
+  .mobile-current-packages ~ main .package-search-fields > div > label,
+  .mobile-current-packages ~ main .package-search-fields > label,
+  .mobile-current-packages ~ main .room-occupancy-label {
+    display: block;
+    color: #475569;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: 600;
+    letter-spacing: 0;
+  }
+  .mobile-current-packages ~ main .package-search-control,
+  .mobile-current-packages ~ main .room-occupancy-value {
+    min-height: 46px;
+    height: auto;
+    gap: 10px;
+    margin-top: 6px;
+    padding: 10px 12px;
+    border-color: #dde3ed;
+    border-radius: 12px;
+    color: #17233d;
+    font-size: 15px;
+    line-height: 1.4;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+  .mobile-current-packages ~ main .package-search-control:focus-within {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 12%, transparent);
   }
   .mobile-current-packages ~ main .package-search-fields input,
   .mobile-current-packages ~ main .package-search-fields select {
     font-size: 16px;
-  }
-  .mobile-current-packages ~ main .package-search-fields > div > .mt-2,
-  .mobile-current-packages ~ main .package-search-fields > div > button.mt-2,
-  .mobile-current-packages ~ main .package-search-fields > label > .mt-2 {
-    min-height: 44px;
-    height: auto;
-    padding-block: 8px;
+    font-weight: 500;
   }
   .mobile-current-packages ~ main .package-search-fields > button:last-child {
     width: 100%;
