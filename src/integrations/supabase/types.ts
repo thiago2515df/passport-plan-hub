@@ -173,6 +173,10 @@ export type Database = {
       }
       seller_commissions: {
         Row: {
+          hotel_kind: string
+          hotel_value: number
+          configured_at: string | null
+          configured_by: string | null
           air_kind: string
           air_value: number
           bus_kind: string
@@ -180,6 +184,10 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          hotel_kind?: string
+          hotel_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
           air_kind?: string
           air_value?: number
           bus_kind?: string
@@ -187,6 +195,10 @@ export type Database = {
           user_id: string
         }
         Update: {
+          hotel_kind?: string
+          hotel_value?: number
+          configured_at?: string | null
+          configured_by?: string | null
           air_kind?: string
           air_value?: number
           bus_kind?: string
@@ -194,6 +206,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "seller_commissions_configured_by_fkey"
+            columns: ["configured_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "seller_commissions_user_id_fkey"
             columns: ["user_id"]

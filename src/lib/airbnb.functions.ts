@@ -15,8 +15,8 @@ export const searchAirbnb = createServerFn({ method: "POST" })
     page: z.number().int().min(1).max(50).default(1),
   }).parse(value))
   .handler(async ({ data, context }): Promise<{ listings: Hotel[]; totalResults: number; page: number; nextPage?: number; error?: string }> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     const { geckoAirbnbSearch } = await import("./gecko-airbnb.server");
     try {
       const response = await geckoAirbnbSearch({
@@ -88,8 +88,8 @@ export const getAirbnbDetails = createServerFn({ method: "POST" })
     numAdults: z.number().int().min(1).max(30).optional(),
   }).parse(value))
   .handler(async ({ data, context }): Promise<AirbnbPropertyDetails & { error?: string }> => {
-    const { assertPermission } = await import("./access.server");
-    await assertPermission(context.supabase, "search_hotels");
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
     try {
       const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
       const response = await geckoAirbnbDetails(data);
