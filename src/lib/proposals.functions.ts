@@ -2,6 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { decodeProposal, encodeProposal } from "./hotels";
+import { normalizeExtraServices } from "./extra-services";
 
 const codeSchema = z.string().regex(/^[a-z0-9]{6,12}$/);
 const EXTRA_MARKER = " __EBX__";
@@ -108,8 +109,18 @@ export const saveProposal = createServerFn({ method: "POST" })
     }
     const { assertSellerCommissions } = await import("./commissions.server");
     await assertSellerCommissions(context.supabase, ownerId, data.commissionUpdatedAt);
-    const proposal = decodeProposal(data.payload);
-    if (!proposal) throw new Error("Proposta inválida.");
+    const parsed = decodeProposal(data.payload);
+    if (!parsed) throw new Error("Proposta inválida.");
+    // Empty "Adicionar serviço" placeholders have no business meaning. Remove
+    // them before validation/storage so existing and older clients can save.
+    // Do not remove charged rows with no name: those need user attention.
+    const proposal = {
+      ...parsed,
+      s: { ...parsed.s, extras: normalizeExtraServices(parsed.s.extras, "a proposta") },
+      hotels: parsed.hotels.map(hotel => ({
+        ...hotel, extras: normalizeExtraServices(hotel.extras, hotel.name || "o hotel"),
+      })),
+    };
     const cost = z.number().finite().nonnegative();
     const extraSchema = z.array(z.object({ name: z.string().trim().min(1).max(120), cost }));
     for (const hotel of proposal.hotels) {
