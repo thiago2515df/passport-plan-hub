@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Hotel } from "./hotels";
+import { passhubRoomGroups } from "./room-occupancy";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Fail = { error: string };
@@ -40,7 +41,20 @@ export const searchHotels = createServerFn({ method: "POST" })
         adults: z.number().int().min(1).max(9),
         childAges: z.array(z.number().int().min(0).max(17)).max(4),
         rooms: z.number().int().min(1).max(9),
+        roomOccupancies: z.array(z.object({
+          adults: z.number().int().min(1).max(9),
+          childAges: z.array(z.number().int().min(0).max(17)).max(4),
+        })).min(1).max(9).optional(),
         rav: z.number().int().min(0).max(100),
+      })
+      .superRefine((value, context) => {
+        const rooms = value.roomOccupancies;
+        if (!rooms) return;
+        if (rooms.length !== value.rooms ||
+            rooms.reduce((sum, room) => sum + room.adults, 0) !== value.adults ||
+            JSON.stringify(rooms.flatMap(r => r.childAges).sort((a, b) => a - b)) !== JSON.stringify([...value.childAges].sort((a, b) => a - b))) {
+          context.addIssue({ code: "custom", message: "Ocupação individual dos quartos difere do total de hóspedes." });
+        }
       })
       .parse(d),
   )
@@ -60,7 +74,9 @@ export const searchHotels = createServerFn({ method: "POST" })
           destinationId: data.destinationId,
           checkinDate: data.checkinDate,
           nights: data.nights,
-          rooms: [{ adults: data.adults, childAges: data.childAges, quantity: data.rooms }],
+          rooms: data.roomOccupancies?.length
+            ? passhubRoomGroups(data.roomOccupancies)
+            : [{ adults: data.adults, childAges: data.childAges, quantity: data.rooms }],
           ravPercentage: data.rav,
         },
       });
