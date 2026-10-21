@@ -11,6 +11,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { getAgencyContact } from "@/lib/settings.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { customerProposal } from "@/lib/customer-proposal";
+import { proposalTravelerCount } from "@/lib/customer-package-price";
+import { CustomerPackagePrice } from "@/components/CustomerPackagePrice";
 import { acceptProposalPackage } from "@/lib/proposals.functions";
 
 export const Route = createFileRoute("/proposta")({
@@ -70,6 +72,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   }
 
   const nights = nightsBetween(p.s.checkin, p.s.checkout);
+  const travelers = proposalTravelerCount(p.s);
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
   const pricedHotels = hotels
@@ -190,10 +193,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                         <li className="text-[11px] font-semibold text-muted-foreground sm:text-xs">O que está incluso</li>
                         {included.map((x) => <li key={x} className="flex items-start gap-1.5"><Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" />{x}</li>)}
                       </ul>
-                      <div className="mt-2 border-t border-border pt-2 sm:mt-3 sm:pt-3">
-                        <div className="text-[11px] text-muted-foreground sm:text-xs">Pacote completo · {p.s.hospedes}</div>
-                        <div className="text-xl font-black sm:text-2xl">{brl(h.total)}</div>
-                      </div>
+                      <CustomerPackagePrice total={h.total} travelers={travelers} subtitle={`Pacote completo · ${p.s.hospedes}`} />
                       <div className="mt-auto grid grid-cols-2 gap-2 pt-2 sm:block sm:space-y-2 sm:pt-3">
                         <button onClick={() => setActive(h)} className="flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border-2 border-primary px-2 py-2 text-center text-xs font-semibold text-primary sm:gap-2 sm:py-2.5 sm:text-sm">Ver detalhes <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
                         <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto min-h-10 w-full rounded-xl px-2 py-2 text-xs sm:py-2.5 sm:text-sm">{sel ? <><Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{isConfirmed ? "Confirmado" : "Selecionado"}</> : <>Selecionar <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></>}</Button>
@@ -220,7 +220,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/98 shadow-2xl backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
-            <div className="min-w-0"><div className="truncate text-[11px] text-muted-foreground sm:text-xs">{pick.name}</div><div className="text-lg font-black sm:text-xl">{brl(acceptance?.total ?? pick.total)}</div>{confirmError && <p role="alert" className="text-[11px] text-destructive sm:text-xs">{confirmError}</p>}</div>
+            <div className="min-w-0"><CustomerPackagePrice total={acceptance?.total ?? pick.total} travelers={travelers} compact subtitle={pick.name} />{confirmError && <p role="alert" className="text-[11px] text-destructive sm:text-xs">{confirmError}</p>}</div>
             <div className="grid grid-cols-[minmax(0,1fr)_42px] gap-2 sm:flex sm:items-center">
               <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground sm:shrink-0 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm">
                 <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
