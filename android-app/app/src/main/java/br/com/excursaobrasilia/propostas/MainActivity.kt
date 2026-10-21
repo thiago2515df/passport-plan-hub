@@ -108,6 +108,8 @@ class MainActivity : Activity() {
     private fun configureWindowInsets(container: FrameLayout) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             window.setDecorFitsSystemWindows(false)
+            window.statusBarColor = Color.TRANSPARENT
+            window.navigationBarColor = Color.TRANSPARENT
             val lightBars = WindowInsetsController.APPEARANCE_LIGHT_STATUS_BARS or
                 WindowInsetsController.APPEARANCE_LIGHT_NAVIGATION_BARS
             window.insetsController?.setSystemBarsAppearance(lightBars, lightBars)
