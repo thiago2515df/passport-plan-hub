@@ -23,6 +23,10 @@ describe("Preço exibido na proposta pública", () => {
   it("uses aggregate adults and children if room breakdown is missing", () => {
     expect(proposalTravelerCount({ adults: 3, childAges: [5], hospedes: "1 quarto · 4 hóspedes" })).toBe(4);
   });
+  it("does not let an old public projection default override the visible traveler count", () => {
+    expect(proposalTravelerCount({ adults: 2, childAges: [], hospedes: "2 quartos · 4 hóspedes" })).toBe(4);
+    expect(packagePricePerTraveler(10536, 4)).toBe(2634);
+  });
   it("supports older proposals containing only a guest label", () => {
     expect(proposalTravelerCount({ hospedes: "1 quarto · 2 hóspedes" })).toBe(2);
     expect(proposalTravelerCount({ hospedes: "1 quarto · 1 hóspede" })).toBe(1);
