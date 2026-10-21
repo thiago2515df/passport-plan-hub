@@ -166,6 +166,10 @@ function Index() {
     setRoomGuests(next);
     // Existing supplier prices were for the old room allocation.
     setHotels([]); setAirbnbListings([]); setTrivagoListings([]);
+    setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({});
+    // A selected flight fare may belong to a different number of passengers.
+    setS(previous => previous.transport?.mode === "air"
+      ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
     setSel([]); setSelectedOffers({}); setGallery(null);
     setHasSearched(false); setLink(""); setHotelPage(1); setErr("");
   };
