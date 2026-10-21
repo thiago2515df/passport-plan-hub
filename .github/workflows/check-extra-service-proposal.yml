@@ -1,0 +1,27 @@
+name: Verify extra-service proposal fix
+on:
+  push:
+    paths:
+      - '.github/workflows/check-extra-service-proposal.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Test extras normalization
+        run: bunx vitest run src/lib/extra-services.test.ts
+      - name: Build
+        run: bun run build
+      - name: Remove temporary check
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/check-extra-service-proposal.yml
+          git commit -m "Remove teste temporário do erro em serviços"
+          git push
