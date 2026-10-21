@@ -13,6 +13,14 @@ O APK de debug é assinado com chave de desenvolvimento gerada pelo ambiente de 
 ## PWA
 Manifesto e service worker estão na branch, mas só passam a funcionar no domínio depois de deploy. É necessário verificar HTTPS, ícones 192/512px, instalação no Android e comportamento em atualização. O `favicon.png` existente foi referenciado provisoriamente no manifesto; sua resolução ainda deve ser validada.
 
+## Layout mobile e versão 1.0.1
+
+- O cabeçalho mobile não exibe a logo e ocupa seu espaço no fluxo da página, sem sobrepor os campos.
+- No celular, quartos e hóspedes abrem em uma janela com rolagem própria, botões de toque e confirmação sempre visível. No desktop, o seletor continua em um popover.
+- O Android reserva espaço para barras do sistema, recortes da tela e teclado, mantendo a WebView dentro da área visível.
+- Os ajustes de interface chegam pelo site hospedado após sua publicação. A correção das barras do Android exige instalar o APK 1.0.1.
+- O workflow compila o APK nos PRs que alteram o Android e nas alterações correspondentes da `main`.
+
 ## Testes obrigatórios
 - Login e logout, incluindo possíveis redirecionamentos externos de autenticação
 - Acesso às propostas e navegação por rotas
