@@ -91,18 +91,5 @@ export function CommissionNotice({ query }: { query: ReturnType<typeof useSeller
         )}
       </div>
     );
-  const data = query.data!;
-  return (
-    <aside
-      aria-label="Suas comissões"
-      className="my-3 rounded-xl border border-border bg-secondary/40 p-3 text-xs text-muted-foreground"
-    >
-      <p className="font-semibold text-foreground">Comissões definidas pelo administrador</p>
-      <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1">
-        <span>Somente hotel: {commissionLabel(data.hotel)}</span>
-        <span>Pacote com aéreo: {commissionLabel(data.air)}</span>
-        <span>Pacote terrestre: {commissionLabel(data.bus)}</span>
-      </div>
-    </aside>
-  );
+  return null;
 }
