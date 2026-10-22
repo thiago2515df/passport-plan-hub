@@ -31,6 +31,7 @@ function Calendar({
 }) {
   const defaultClassNames = getDefaultClassNames();
   const [mobile, setMobile] = React.useState(false);
+  const mobileScrollRef = React.useRef<HTMLDivElement>(null);
 
   React.useEffect(() => {
     const media = window.matchMedia("(max-width: 1023px)");
@@ -187,14 +188,24 @@ function Calendar({
           <div className="shrink-0 border-b border-border bg-background px-4 pb-3 pt-2">
             <div className="mx-auto mb-2 h-1.5 w-16 rounded-full bg-muted-foreground/35" />
             <div className="flex items-center gap-2">
-              <CalendarDays className="h-5 w-5 text-primary" />
-              <div>
+              <CalendarDays className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
                 <h2 className="text-base font-bold text-foreground">Escolha as datas</h2>
                 <p className="text-xs text-muted-foreground">Toque primeiro na ida e depois na volta.</p>
               </div>
+              {props.onMonthChange && (
+                <Button type="button" variant="outline" size="sm" className="shrink-0 px-2 text-[11px]"
+                  onClick={() => {
+                    const now = new Date();
+                    props.onMonthChange?.(new Date(now.getFullYear(), now.getMonth(), 1));
+                    mobileScrollRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+                  }}>
+                  Mês atual
+                </Button>
+              )}
             </div>
           </div>
-          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-28 pt-3">
+          <div ref={mobileScrollRef} className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-28 pt-3">
             {picker}
           </div>
           <div className="absolute inset-x-0 bottom-0 border-t border-border bg-background/98 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur">
