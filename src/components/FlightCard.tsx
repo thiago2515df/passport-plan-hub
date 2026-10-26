@@ -35,9 +35,9 @@ export function FlightCard({ flight: f, selected, onSelect }: { flight: Flight; 
       </div>
       <div className="min-w-0 border-t border-border pt-4 @min-[600px]:border-l @min-[600px]:border-t-0 @min-[600px]:pl-6 @min-[600px]:pt-0 flex flex-col justify-between">
         <div>
-          <div className="text-2xl font-black tabular-nums @min-[600px]:text-right text-primary">{brl(f.price)}</div>
-          <div className="mt-0.5 text-xs text-muted-foreground @min-[600px]:text-right">{f.installments ? `Até ${f.installments.count}x${f.installments.interestFree === true ? " s/ juros" : ""}` : "até 4x s/ juros"}</div>
-          {f.commission != null ? (
+          <div className={`font-black @min-[600px]:text-right text-primary ${f.savedPriceUnavailable ? "text-sm leading-snug" : "text-2xl tabular-nums"}`}>{f.savedPriceUnavailable ? "Valor incluído no total das passagens" : brl(f.price)}</div>
+          {!f.savedPriceUnavailable && <div className="mt-0.5 text-xs text-muted-foreground @min-[600px]:text-right">{f.installments ? `Até ${f.installments.count}x${f.installments.interestFree === true ? " s/ juros" : ""}` : "até 4x s/ juros"}</div>}
+          {f.savedPriceUnavailable ? null : f.commission != null ? (
             <div className="mt-3 rounded-xl bg-success/15 px-3 py-2 text-center text-xs font-bold text-success">
               Comissão: {brl(f.commission)}
             </div>
@@ -54,6 +54,6 @@ export function FlightCard({ flight: f, selected, onSelect }: { flight: Flight; 
         </Button>
       </div>
     </div>
-    <Dialog open={dialog !== null} onOpenChange={open => { if (!open) setDialog(null); }}><DialogContent className="max-h-[85vh] overflow-auto"><DialogTitle>{dialog === "rules" ? "Regras da tarifa" : "Detalhes do voo"}</DialogTitle><DialogDescription>{f.airline} · {f.flightNumber}</DialogDescription>{dialog === "rules" ? <p className="whitespace-pre-line text-sm">{f.fareRules || "As regras de alteração, cancelamento e reembolso não foram disponibilizadas pela companhia nesta busca."}</p> : <div className="space-y-3 text-sm"><p>{dateLabel(f.departureDate)} · {f.departure} {f.from} → {dateLabel(f.arrivalDate)} · {f.arrival} {f.to}</p><p>{f.duration} · {f.stops}{f.connections?.length ? ` · ${f.connections.join(" / ")}` : ""}</p><p>{f.fareCategory || f.travelClass}</p>{baggage.map(b => <p key={b.name}>{b.name}: {b.included === true ? "Incluída" : b.included === false ? "Não incluída" : "Não informada pela companhia"}</p>)}<p>{f.bags}</p><p className="font-bold">{brl(f.price)}</p></div>}</DialogContent></Dialog>
+    <Dialog open={dialog !== null} onOpenChange={open => { if (!open) setDialog(null); }}><DialogContent className="max-h-[85vh] overflow-auto"><DialogTitle>{dialog === "rules" ? "Regras da tarifa" : "Detalhes do voo"}</DialogTitle><DialogDescription>{f.airline} · {f.flightNumber}</DialogDescription>{dialog === "rules" ? <p className="whitespace-pre-line text-sm">{f.fareRules || "As regras de alteração, cancelamento e reembolso não foram disponibilizadas pela companhia nesta busca."}</p> : <div className="space-y-3 text-sm"><p>{dateLabel(f.departureDate)} · {f.departure} {f.from} → {dateLabel(f.arrivalDate)} · {f.arrival} {f.to}</p><p>{f.duration} · {f.stops}{f.connections?.length ? ` · ${f.connections.join(" / ")}` : ""}</p><p>{f.fareCategory || f.travelClass}</p>{baggage.map(b => <p key={b.name}>{b.name}: {b.included === true ? "Incluída" : b.included === false ? "Não incluída" : "Não informada pela companhia"}</p>)}<p>{f.bags}</p><p className="font-bold">{f.savedPriceUnavailable ? "Valor do trecho não armazenado na proposta antiga. Confira o total das passagens no resumo." : brl(f.price)}</p></div>}</DialogContent></Dialog>
   </article>;
 }
