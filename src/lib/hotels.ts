@@ -55,6 +55,8 @@ export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency",
 export type TransportMode = "none" | "air" | "bus";
 export type FlightConnection = { airport: string; arrivalTime?: string | undefined; departureTime?: string | undefined; duration?: string | undefined; nextDepartureAirport?: string | undefined; isAirportChange?: boolean | undefined };
 export type Flight = {
+  /** An old stored itinerary has no independent per-leg fare; do not show R$ 0. */
+  savedPriceUnavailable?: boolean;
   id: string; airline: string; flightNumber: string; from: string; to: string; departure: string; arrival: string; duration: string; stops: string; price: number; travelClass: string; bags: string;
   departureDate?: string; arrivalDate?: string; fareCategory?: string; connections?: string[]; connectionDetails?: FlightConnection[] | undefined;
   baggage?: { personal?: boolean; carryOn?: boolean; checked?: boolean };
@@ -78,7 +80,7 @@ export type Transport = { mode: TransportMode; outbound: TransportLeg; inbound: 
 export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + (t && t.mode !== "none" ? t.price ?? 0 : 0);
 export const hasBreakfast = (meal?: string) => !!meal && /caf[eé]|breakfast|meia|completa|all/i.test(meal) && !/sem|room only|no meal/i.test(meal);
 import type { RoomOccupancy } from "./room-occupancy";
-export type Search = { roomOccupancies?: RoomOccupancy[]; destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: ExtraService[] };
+export type Search = { selectedFlights?: { out?: Flight; back?: Flight }; roomOccupancies?: RoomOccupancy[]; destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: ExtraService[] };
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
 
