@@ -17,6 +17,7 @@ import { FlightPicker } from "@/components/FlightPicker";
 import { SelectedFlightsSummary } from "@/components/SelectedFlightsSummary";
 import { paginateHotels } from "@/lib/result-pagination";
 import { flightToTransportLeg } from "@/lib/customer-itinerary";
+import { restoreProposalFlights, savedFlightSnapshot, replaceProposalFlight, fullFlightPrice } from "@/lib/proposal-edit-flights";
 import { toggleHotelSelection, nextFlightSelectionStep, type ProposalSelectionStep } from "@/lib/proposal-selection";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
@@ -150,6 +151,13 @@ function Index() {
       setOwnerId(row.ownerId ?? undefined);
       if (!proposal) throw new Error("Proposta inválida.");
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
+      const savedFlights = restoreProposalFlights(proposal.s);
+      setPickF(savedFlights);
+      setOutF({ list: savedFlights.out ? [savedFlights.out] : [], loading: false });
+      setBackF({ list: savedFlights.back ? [savedFlights.back] : [], loading: false });
+      setOutNum(""); setBackNum(""); setFlightQuery(""); setDirectOnly(false);
+      setAccommodationSource(restored[0]?.provider === "airbnb" ? "airbnb" : restored[0]?.provider === "trivago" ? "trivago" : "hotel");
+      setHotelPage(1); setQ("");
       setS(proposal.s); setHotels(restored.filter(h => !h.provider || h.provider === "hotel")); setAirbnbListings(restored.filter(h => h.provider === "airbnb")); setTrivagoListings(restored.filter(h => h.provider === "trivago")); setSelectedOffers(Object.fromEntries(restored.map(h => [h.id, h]))); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
       setHasSearched(true);
       setSearchedKey(packageSearchKey(proposal.s, proposal.s.destinationId ?? "", restoreRoomOccupancies(proposal.s.roomOccupancies, proposal.s.rooms ?? 1, proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2), proposal.s.childAges ?? [])));
@@ -340,10 +348,10 @@ function Index() {
       setBackF({ list: [], loading: false }); return;
     }
     const run = (a: string, b: string, date: string, set: (leg: Leg) => void) => {
-      set({ list: [], loading: true });
+      set(previous => ({ ...previous, loading: true, error: undefined }));
       findFlights({ data: { from: a, to: b, date, adults, children: kids.length } })
-        .then(result => { if (epoch === searchEpoch.current) set({ list: result.flights, loading: false, error: result.error ?? (result.flights.length ? undefined : "Nenhum voo encontrado.") }); })
-        .catch(error => { if (epoch === searchEpoch.current) set({ list: [], loading: false, error: error instanceof Error ? error.message : "Não foi possível buscar os voos." }); });
+        .then(result => { if (epoch === searchEpoch.current) set(previous => ({ list: mergeFlights(previous.list, result.flights), loading: false, error: result.error ?? (!result.flights.length ? "Nenhuma nova opção disponível na API. Os voos salvos continuam visíveis." : undefined) })); })
+        .catch(error => { if (epoch === searchEpoch.current) set(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : "Não foi possível buscar os voos." })); });
     };
     run(from, to, s.checkin, setOutF); run(to, from, s.checkout, setBackF);
   };
@@ -425,7 +433,12 @@ function Index() {
   const [clientNameError, setClientNameError] = useState("");
   const gerar = async () => {
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
-    if (mobile && transport.mode === "air" && !flightsReady) { setErr("Selecione os voos de ida e volta antes de gerar a proposta."); goStep("voos"); return; }
+    if (transport.mode === "air" && !flightsReady) {
+      setErr("Selecione os voos de ida e volta antes de salvar a proposta.");
+      if (mobile) goStep("voos");
+      else outboundRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     const clientName = s.cliente?.trim();
     if (!clientName) {
       setClientNameError("Preencha o nome do cliente para gerar a proposta.");
@@ -446,7 +459,7 @@ function Index() {
       if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF) }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) {
@@ -455,8 +468,23 @@ function Index() {
     } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
-    const next = { ...pickF, [k]: f }; setPickF(next); setLink(""); if (!mobile || k === "out") setAdvanceTo(nextFlightSelectionStep(k));
-    setS(prev => { const t = prev.transport ?? makeTransport("air", prev.destino); const leg = flightToTransportLeg; return { ...prev, transport: { ...t, ...(next.out ? { outbound: { ...t.outbound, ...leg(next.out) } } : {}), ...(next.back ? { inbound: { ...t.inbound, ...leg(next.back) } } : {}), price: (next.out?.price ?? 0) + (next.back?.price ?? 0), travelClass: f.travelClass, bags: f.bags } }; });
+    if (pickF[k]?.id === f.id) return;
+    const next = replaceProposalFlight(pickF, k, f);
+    setPickF(next); setLink("");
+    if (!mobile || k === "out") setAdvanceTo(nextFlightSelectionStep(k));
+    setS(prev => {
+      const t = prev.transport ?? makeTransport("air", prev.destino);
+      const cleared = { company: "", departure: "", arrival: "" };
+      return { ...prev, selectedFlights: savedFlightSnapshot(next), transport: {
+        ...t,
+        outbound: next.out ? flightToTransportLeg(next.out) : cleared,
+        inbound: next.back ? flightToTransportLeg(next.back) : cleared,
+        price: fullFlightPrice(next), travelClass: f.travelClass, bags: f.bags,
+      } };
+    });
+    if ((!next.out || !next.back) && editingCode) {
+      setErr("Para recalcular o transporte da proposta antiga, escolha também o outro voo. O valor original não foi dividido artificialmente.");
+    } else setErr("");
   };
   const field = "package-search-control flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm";
 
@@ -496,13 +524,19 @@ function Index() {
             target?.focus({ preventScroll: true });
           }}
           onRemove={direction => {
-            const next = { ...pickF, [direction]: undefined };
-            setPickF(next);
-            setLink("");
+            const remaining = direction === "out" ? pickF.back : pickF.out;
+            const next = remaining?.savedPriceUnavailable ? {} : { ...pickF, [direction]: undefined };
+            setPickF(next); setLink("");
             setS(prev => {
               const t = prev.transport;
               if (!t) return prev;
-              return { ...prev, transport: { ...t, [direction === "out" ? "outbound" : "inbound"]: { company: "", departure: "", arrival: "" }, price: (next.out?.price ?? 0) + (next.back?.price ?? 0) } };
+              const cleared = { company: "", departure: "", arrival: "" };
+              return { ...prev, selectedFlights: savedFlightSnapshot(next), transport: {
+                ...t,
+                outbound: next.out ? flightToTransportLeg(next.out) : cleared,
+                inbound: next.back ? flightToTransportLeg(next.back) : cleared,
+                price: fullFlightPrice(next),
+              } };
             });
           }}
         />
