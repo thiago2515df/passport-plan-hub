@@ -134,9 +134,9 @@ function SelectedFlightCard({
         </div>
 
         <div className="selected-flight-price">
-          <strong>{brl(flight.price)}</strong>
-          <span>{installments ? `até ${installments}x${flight.installments?.interestFree === false ? "" : " s/ juros"}` : "valor da passagem"}</span>
-          {commission > 0 && <div className="selected-flight-commission">Comissão: {brl(commission)}</div>}
+          <strong>{flight.savedPriceUnavailable ? "Valor do pacote" : brl(flight.price)}</strong>
+          <span>{flight.savedPriceUnavailable ? "Total das passagens preservado no resumo" : installments ? `até ${installments}x${flight.installments?.interestFree === false ? "" : " s/ juros"}` : "valor da passagem"}</span>
+          {!flight.savedPriceUnavailable && commission > 0 && <div className="selected-flight-commission">Comissão: {brl(commission)}</div>}
           <BaggageIcons flight={flight} />
           <button className="selected-flight-remove" type="button" aria-label={`Remover ${title.toLowerCase()}`} onClick={() => onRemove(direction)}>
             <Trash2 className="h-4 w-4" />
