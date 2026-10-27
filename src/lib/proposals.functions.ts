@@ -193,7 +193,10 @@ export const setProposalStatus = createServerFn({ method: "POST" })
   .handler(async ({ context, data }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
-    const { data: row, error } = await context.supabase.from("proposals").update({ status: data.status }).eq("code", data.code).select("code,status,sent_at").maybeSingle();
+    const { data: current } = await context.supabase.from("proposals").select("status").eq("code", data.code).maybeSingle();
+    // Reativar uma proposta arquivada reinicia o prazo de 24h a partir de agora.
+    const patch = current?.status === "cancelled" && data.status === "created" ? { status: data.status, created_at: new Date().toISOString(), sent_at: null } : { status: data.status };
+    const { data: row, error } = await context.supabase.from("proposals").update(patch).eq("code", data.code).select("code,status,sent_at").maybeSingle();
     if (error || !row) throw new Error("Não foi possível atualizar esta proposta.");
     return row;
   });
