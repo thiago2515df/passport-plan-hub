@@ -347,7 +347,7 @@ function Index() {
       setOutF({ list: [], loading: false, error: "Não reconheci os aeroportos. Confira a origem da pesquisa e o aeroporto de destino." });
       setBackF({ list: [], loading: false }); return;
     }
-    const run = (a: string, b: string, date: string, set: (leg: Leg) => void) => {
+    const run = (a: string, b: string, date: string, set: React.Dispatch<React.SetStateAction<Leg>>) => {
       set(previous => ({ ...previous, loading: true, error: undefined }));
       findFlights({ data: { from: a, to: b, date, adults, children: kids.length } })
         .then(result => { if (epoch === searchEpoch.current) set(previous => ({ list: mergeFlights(previous.list, result.flights), loading: false, error: result.error ?? (!result.flights.length ? "Nenhuma nova opção disponível na API. Os voos salvos continuam visíveis." : undefined) })); })
