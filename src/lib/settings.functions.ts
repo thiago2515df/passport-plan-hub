@@ -145,7 +145,9 @@ export const savePaymentRules = createServerFn({ method: "POST" }).middleware([r
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { error } = await supabaseAdmin.from("system_settings").upsert({ id: 1, payment_rules: data });
+    const { normalizePaymentRules } = await import("./payment-rules");
+    const normalized = normalizePaymentRules(data);
+    const { error } = await supabaseAdmin.from("system_settings").upsert({ id: 1, payment_rules: normalized });
     if (error) throw new Error("Não foi possível salvar as formas de pagamento. Verifique se a migração 0010 foi aplicada.");
     await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, action: "Regras de pagamento atualizadas" });
     return { ok: true };
@@ -157,8 +159,8 @@ export const getPaymentRules = createServerFn({ method: "GET" }).middleware([req
     await assertAdmin(context.supabase, context.userId);
     const { data, error } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
     if (error) return DEFAULT_PAYMENT_RULES;
-    const parsed = paymentRulesSchema.safeParse(data?.payment_rules);
-    return parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
+    const { normalizePaymentRules } = await import("./payment-rules");
+    return normalizePaymentRules(data?.payment_rules ?? DEFAULT_PAYMENT_RULES);
   });
 
 export const listMyProposals = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
