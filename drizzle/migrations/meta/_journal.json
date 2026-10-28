@@ -85,6 +85,13 @@
       "when": 1793218800000,
       "tag": "0011_pix_discount_8_90",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1793220600000,
+      "tag": "0012_embed_six_installment_fee",
+      "breakpoints": true
     }
   ]
 }
