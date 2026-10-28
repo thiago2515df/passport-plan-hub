@@ -1,57 +1,74 @@
-# PassHub — nova API de dados (somente leitura)
+# Nova API de dados PassHub — integrada em modo leitura
 
-Esta integração é **separada** da API de pesquisa de hotéis/voos já utilizada em
-`src/lib/passhub.server.ts`. Não altere `PASSHUB_API_KEY`,
-`PASSHUB_API_EMAIL` ou `PASSHUB_API_PASSWORD` para conectar o novo serviço.
+Integração oficial da API de dados, diferente da API de pesquisa de passagens
+e hospedagem que já existe em `src/lib/passhub.server.ts`.
 
-## 1. Segredo no Lovable
+## Segredo no Lovable
 
-Em **Secrets**, cadastre o segredo:
+Cadastre **somente**:
 
-- `PASSHUB_DATA_API_KEY` — chave gerada em **PassHub > API de dados**
+```text
+PASSHUB_DATA_API_KEY
+```
 
-Não coloque o valor no GitHub, código-fonte, arquivos .env versionados,
-navegador, prints ou conversa. Caso a chave vaze, revogue-a na PassHub.
+Use como valor a chave gerada no painel da agência em **API de dados**.
+**Nunca** cole a chave no GitHub, no chat, em código, APK ou navegador.
 
-## 2. Guia técnico necessário
+Não configure `PASSHUB_API_EMAIL`, `PASSHUB_API_PASSWORD` ou
+`Authorization: Bearer` para esta integração. O servidor envia somente:
 
-A tela que exibe **Abrir o guia** demonstra as categorias (reservas, emissões,
-links de pagamento e usuários), mas **não informa a URL base, caminhos de
-consulta, formato de autenticação, paginação ou modelos de resposta**. Não
-existe mapeamento confiável dessas rotas no material atualmente recebido.
+```http
+X-Api-Key: <chave cadastrada como segredo>
+```
 
-Ao receber o guia oficial, complete no ambiente do servidor:
+Endereço fixo no código (não precisa configurar URL):
+`https://partner-api.passhub.com.br`
 
-| Variável | Descrição |
-| --- | --- |
-| `PASSHUB_DATA_API_BASE_URL` | URL HTTPS oficial da API de dados em domínio passhub.com.br |
-| `PASSHUB_DATA_API_AUTH_HEADER` | `Authorization` ou `X-Api-Key` **conforme guia** |
-| `PASSHUB_DATA_API_AUTH_PREFIX` | Prefixo previsto no guia: `Bearer ` ou vazio |
-| `PASSHUB_DATA_RESERVATIONS_PATH` | Caminho da consulta de reservas |
-| `PASSHUB_DATA_ISSUANCES_PATH` | Caminho da consulta de emissões |
-| `PASSHUB_DATA_PAYMENT_LINKS_PATH` | Caminho da consulta de links de pagamento |
-| `PASSHUB_DATA_USERS_PATH` | Caminho da consulta de usuários |
+## Endpoints de leitura ativos
 
-Os caminhos acima são **configurações pendentes**, não endpoints que
-afirmamos existir. A API recusa consultas enquanto estes dados não forem
-configurados. O cliente usa GET e bloqueia redirects para evitar vazamentos
-de credenciais.
+| Módulo na interface | Listagem | Detalhe |
+| --- | --- | --- |
+| Aéreo | GET /v1/orders | GET /v1/orders/{orderId} |
+| Ônibus | GET /v1/bus/orders | GET /v1/bus/orders/{orderId} |
+| Locação | GET /v1/car/orders | GET /v1/car/orders/{orderId} |
+| Hospedagem | GET /v1/hotel/orders | GET /v1/hotel/orders/{orderId} |
+| Seguro | GET /v1/insurance/orders | GET /v1/insurance/orders/{orderId} |
+| Links de pagamento | GET /v1/payment-links | GET /v1/payment-links/{linkId} |
+| Usuários | GET /v1/users | Somente lista |
 
-## 3. Painel de configuração
+Tentativas de pagamento: `GET /v1/payment-links/{linkId}/payments`.
 
-Em **Configurações > API PassHub**, somente administradores podem conferir
-se a chave e os endpoints estão presentes e testar a autenticação.
+## Como usar
 
-O teste retorna somente status genérico, não documentos ou dados de clientes.
+1. Publique o commit atualizado no Lovable.
+2. Cadastre o segredo `PASSHUB_DATA_API_KEY`.
+3. Abra **Configurações > API PassHub** como administrador.
+4. Clique em **Atualizar status** e depois **Testar conexão**.
+5. Escolha o módulo e navegue pelas listagens (20 registros por página).
+6. Abra os detalhes e, para links, as tentativas de pagamento.
 
-## 4. Antes de habilitar sincronização real
+As consultas são **sob demanda**, não automáticas ou em segundo plano.
 
-Depois do guia:
-1. Confirmar nome e versão das rotas, cabeçalhos, paginação e limites.
-2. Implementar validadores tipados para reservas, emissões, links e usuários.
-3. Restringir acesso aos dados a funções administrativas com paginação.
-4. Definir mapeamento de IDs, reconciliação e política de retenção LGPD.
-5. Testar conta e endpoints reais **apenas depois que a chave for cadastrada**.
+## Limites e segurança
 
-Nenhuma emissão, reserva ou cobrança será criada ou modificada por esta API
-de **leitura**. A integração de busca atual permanece intacta.
+- 60 requisições por minuto por chave (limite PassHub).
+- Defesa preventiva por instância de servidor: 55 por minuto. Se outras
+  instâncias/clientes utilizarem a mesma chave, ainda é possível receber 429
+  da PassHub; o sistema informa o `Retry-After`.
+- A API aceita `pageSize` entre 1 e 100 e `page` começando em 1.
+- A listagem de produtos tem janela de criação de 24 meses; detalhes por ID
+  ainda podem estar disponíveis; links de pagamento não têm essa janela.
+- A API de dados mascara CPF; IDs de bilhetes, documentos, checkout/PDF e
+  certos links são omitidos pela PassHub. O painel não tenta reconstruí-los.
+- Acesso restrito ao **administrador autenticado** via Supabase. Vendedores
+  e clientes não recebem os registros.
+- Consultas apenas GET; nenhuma reserva, emissão ou cobrança é criada,
+  alterada ou cancelada por esse módulo.
+- A interface não mostra a chave; o servidor não registra corpos com PII.
+- A nova conexão não altera `PASSHUB_API_KEY` nem a busca de hotéis/voos.
+
+**Formato de dados:** o guia informa que as respostas seguem os formatos
+dos recursos pagos da PassHub. A lista exibe campos comuns de identificação,
+status e nome; a página de detalhes mostra o objeto JSON completo somente
+ao administrador, porque não foram fornecidos exemplos completos dos schemas
+de cada produto. Não há criação de vínculo automático com propostas existentes.
