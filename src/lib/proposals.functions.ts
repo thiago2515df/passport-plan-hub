@@ -122,6 +122,8 @@ export const saveProposal = createServerFn({ method: "POST" })
     const paymentRules = {
       ...basePaymentRules,
       card: { ...basePaymentRules.card, embeddedFeePercent },
+      // O Pix usa a mesma taxa escolhida na barra de parcelas sem juros.
+      pix: { ...basePaymentRules.pix, discountPercent: embeddedFeePercent, note: "Pix à vista com desconto." },
     };
     const proposal = {
       ...parsed,
