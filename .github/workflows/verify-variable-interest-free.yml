@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/verify-variable-interest-free.yml'
+      - 'src/lib/payment-rules.test.ts'
 permissions:
   contents: write
 jobs:
