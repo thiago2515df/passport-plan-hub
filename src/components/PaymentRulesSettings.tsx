@@ -64,7 +64,10 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
     <div className="grid gap-5 lg:grid-cols-2">
       <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
         <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><QrCode className="h-5 w-5 text-primary"/><h3 className="font-semibold">Pix</h3></div><Switch checked={rules.pix.enabled} onCheckedChange={enabled => setRules({ ...rules, pix: { ...rules.pix, enabled } })}/></div>
-        <label className="mt-4 block text-sm">Desconto à vista (%)<Input className="mt-1" value={pct(rules.pix.discountPercent)} inputMode="decimal" onChange={e => setRules({ ...rules, pix: { ...rules.pix, discountPercent: Math.max(0, Math.min(50, number(e.target.value) || 0)) } })}/></label>
+        <div className="mt-4 rounded-xl bg-secondary p-3 text-sm">
+          <p className="font-semibold">Desconto automático</p>
+          <p className="mt-1 text-xs text-muted-foreground">O Pix usa automaticamente a mesma taxa da máquina correspondente à quantidade de parcelas sem juros escolhida em cada proposta.</p>
+        </div>
         <label className="mt-3 block text-sm">Observação<Input className="mt-1" maxLength={160} value={rules.pix.note} onChange={e => setRules({ ...rules, pix: { ...rules.pix, note: e.target.value } })}/></label>
       </div>
 
