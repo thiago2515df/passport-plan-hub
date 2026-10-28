@@ -4,6 +4,7 @@ export const percentSeries = z.array(z.number().finite().min(0).max(50)).length(
 export const paymentRulesSchema = z.object({
   card: z.object({
     enabled: z.boolean(),
+    embeddedFeePercent: z.number().finite().min(0).max(50).default(8.69),
     visaMaster: percentSeries,
     otherBrands: percentSeries,
   }),
@@ -24,6 +25,8 @@ export type PaymentRules = z.infer<typeof paymentRulesSchema>;
 export const DEFAULT_PAYMENT_RULES: PaymentRules = {
   card: {
     enabled: true,
+    // Custo da adquirente em 6x. É embutido no preço do pacote antes da publicação.
+    embeddedFeePercent: 8.69,
     // 1x a 6x são sempre sem juros para o cliente.
     visaMaster: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
     // Mantido somente para compatibilidade com propostas antigas. A interface não separa mais bandeiras.
@@ -45,6 +48,34 @@ export const installmentQuote = (net: number, installments: number, percent: num
 };
 export const pixTotal = (net: number, discountPercent: number) =>
   Math.round((net * (1 - discountPercent / 100) + Number.EPSILON) * 100) / 100;
+
+/** Final customer package price after embedding the 6x machine fee.
+ * The agency keeps the original net amount after the provider deducts the fee. */
+export const customerPackageTotal = (netPackageTotal: number, embeddedFeePercent: number) =>
+  totalWithFee(netPackageTotal, embeddedFeePercent);
+
+/** Public card quote when the proposal total already contains the 6x fee.
+ * 1x–6x do not increase the public total. 7x–12x replace the embedded 6x
+ * machine rate with the configured total rate for that installment count,
+ * preventing double-charging the fee. */
+export const installmentQuoteFromCustomerTotal = (
+  customerTotal: number,
+  installments: number,
+  targetPercent: number,
+  embeddedFeePercent: number,
+) => {
+  if (!Number.isFinite(customerTotal) || customerTotal < 0 ||
+      !Number.isInteger(installments) || installments < 1 || installments > 12 ||
+      !Number.isFinite(embeddedFeePercent) || embeddedFeePercent < 0 || embeddedFeePercent >= 100) return null;
+  if (installments <= 6) {
+    return {
+      total: Math.round((customerTotal + Number.EPSILON) * 100) / 100,
+      installment: Math.round((customerTotal / installments + Number.EPSILON) * 100) / 100,
+    };
+  }
+  const netBeforeMachineFee = Math.round((customerTotal * (1 - embeddedFeePercent / 100) + Number.EPSILON) * 100) / 100;
+  return installmentQuote(netBeforeMachineFee, installments, targetPercent);
+};
 
 export function normalizePaymentRules(value: unknown): PaymentRules {
   const parsed = paymentRulesSchema.safeParse(value);
