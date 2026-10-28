@@ -31,7 +31,7 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
   const setCardRate = (index: number, value: string) => {
     const next = [...rules.card.visaMaster];
     next[index] = Math.max(0, Math.min(50, number(value) || 0));
-    setRules({ ...rules, card: { ...rules.card, visaMaster: next, otherBrands: [...next] } });
+    setRules({ ...rules, card: { ...rules.card, visaMaster: next } });
   };
   const setBoletoRate = (index: number, value: string) => {
     const next = [...rules.boleto.fees];
@@ -52,7 +52,7 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
       </div>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[420px] text-sm">
-          <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Condição</th></tr></thead>
+          <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Taxa Visa/Master</th></tr></thead>
           <tbody>{Array.from({ length: 12 }).map((_, i) => <tr key={i} className="border-b border-border/60">
             <td className="py-2 font-semibold">{i + 1}x</td>
             <td><div className="flex items-center gap-1"><Input aria-label={`Taxa da máquina em ${i+1} parcelas`} value={pct(rules.card.visaMaster[i]!)} onChange={e => setCardRate(i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>%</span></div></td>
