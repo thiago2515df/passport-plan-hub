@@ -28,7 +28,7 @@ describe("parcelamento mostrado ao cliente", () => {
   it("aplica 8,90% de desconto no Pix", () => {
     expect(DEFAULT_PAYMENT_RULES.pix.discountPercent).toBe(8.9);
     expect(pixTotal(6000, 8.9)).toBe(5466);
-    expect(pixTotal(541.63, 8.9)).toBe(493.43);
+    expect(pixTotal(541.63, 8.9)).toBe(493.42);
   });
 
   it("migra o antigo padrão de Pix sem desconto para 8,90%", () => {
