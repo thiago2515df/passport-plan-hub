@@ -59,7 +59,7 @@ describe("PassHub Data API (read only, no login)", () => {
   });
 
   it("retrieves original order details by ID and payment attempts", async () => {
-    const fetcher = vi.fn().mockResolvedValue(ok());
+    const fetcher = vi.fn().mockImplementation(async () => ok());
     await detailPasshubData("insurance", "12345", env, fetcher);
     await detailPasshubData("car", "order-123", env, fetcher);
     await linkPaymentsPasshubData("link-56", env, fetcher);
