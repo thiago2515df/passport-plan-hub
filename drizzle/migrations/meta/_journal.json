@@ -71,6 +71,13 @@
       "when": 1792608622743,
       "tag": "0009_apply_pending_commission_update",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793215600000,
+      "tag": "0010_payment_rules_for_proposals",
+      "breakpoints": true
     }
   ]
 }
