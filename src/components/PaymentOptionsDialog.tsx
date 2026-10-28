@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { CreditCard, Landmark, QrCode, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { brl } from "@/lib/hotels";
-import { DEFAULT_PAYMENT_RULES, installmentQuote, normalizePaymentRules, pixTotal, type PaymentRules } from "@/lib/payment-rules";
+import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal, type PaymentRules } from "@/lib/payment-rules";
 import { PAYMENT_CARD_BRANDS_IMAGE, PAYMENT_PIX_IMAGE } from "@/assets/payment-brand-assets";
 
 export function PaymentOptionsDialog({
@@ -17,8 +17,10 @@ export function PaymentOptionsDialog({
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
   const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
-    installments: index + 1, rate, quote: installmentQuote(total, index + 1, rate),
-  })), [payment.card.visaMaster, total]);
+    installments: index + 1,
+    rate,
+    quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, payment.card.embeddedFeePercent),
+  })), [payment.card.embeddedFeePercent, payment.card.visaMaster, total]);
   const pixValue = pixTotal(total, payment.pix.discountPercent);
   const safeTravelers = Math.max(1, Math.floor(travelers || 1));
   const perPerson = Math.round((total / safeTravelers + Number.EPSILON) * 100) / 100;
