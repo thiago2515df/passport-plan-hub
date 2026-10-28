@@ -114,9 +114,12 @@ export const saveProposal = createServerFn({ method: "POST" })
     // Empty "Adicionar serviço" placeholders have no business meaning. Remove
     // them before validation/storage so existing and older clients can save.
     // Do not remove charged rows with no name: those need user attention.
+    const { normalizePaymentRules, DEFAULT_PAYMENT_RULES } = await import("./payment-rules");
+    const { data: paymentSettings } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
+    const paymentRules = normalizePaymentRules(paymentSettings?.payment_rules ?? DEFAULT_PAYMENT_RULES);
     const proposal = {
       ...parsed,
-      s: { ...parsed.s, extras: normalizeExtraServices(parsed.s.extras, "a proposta") },
+      s: { ...parsed.s, paymentRules, extras: normalizeExtraServices(parsed.s.extras, "a proposta") },
       hotels: parsed.hotels.map(hotel => ({
         ...hotel, extras: normalizeExtraServices(hotel.extras, hotel.name || "o hotel"),
       })),
