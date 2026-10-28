@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/verify-passhub-data-live-wiring.yml'
+      - 'src/lib/passhub-data.server.test.ts'
 permissions:
   contents: write
 jobs:
