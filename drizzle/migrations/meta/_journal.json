@@ -106,6 +106,13 @@
       "when": 1793222400001,
       "tag": "0014_verify_package_payment_projection",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1793224200000,
+      "tag": "0014_official_card_fee_table",
+      "breakpoints": true
     }
   ]
 }
