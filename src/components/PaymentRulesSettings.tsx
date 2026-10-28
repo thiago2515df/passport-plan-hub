@@ -51,6 +51,20 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
         <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary"/><div><h3 className="font-semibold">Cartão de crédito</h3><p className="text-xs text-muted-foreground">1x a 6x sem juros. Configure juros somente de 7x a 12x.</p></div></div>
         <Switch checked={rules.card.enabled} onCheckedChange={enabled => setRules({ ...rules, card: { ...rules.card, enabled } })}/>
       </div>
+      <label className="mt-4 block max-w-sm text-sm">
+        Taxa da máquina embutida no preço do pacote (6x)
+        <div className="mt-1 flex items-center gap-1">
+          <Input
+            aria-label="Taxa da máquina embutida no preço do pacote em seis vezes"
+            value={pct(rules.card.embeddedFeePercent)}
+            inputMode="decimal"
+            onChange={e => setRules({ ...rules, card: { ...rules.card, embeddedFeePercent: Math.max(0, Math.min(50, number(e.target.value) || 0)) } })}
+            className="max-w-32"
+          />
+          <span>%</span>
+        </div>
+        <span className="mt-1 block text-xs text-muted-foreground">Esta taxa entra no preço final antes da proposta ser publicada. O cliente vê 1x a 6x como sem juros.</span>
+      </label>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[420px] text-sm">
           <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Condição</th></tr></thead>
