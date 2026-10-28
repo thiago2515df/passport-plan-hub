@@ -92,6 +92,13 @@
       "when": 1793220600000,
       "tag": "0012_embed_six_installment_fee",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793222400000,
+      "tag": "0013_variable_interest_free_installments",
+      "breakpoints": true
     }
   ]
 }
