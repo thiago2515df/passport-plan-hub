@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { commissionsSchema, COMMISSION_MIGRATION_REQUIRED, COMMISSION_UNAVAILABLE } from "@/lib/commission-rules";
 import { acceptanceSchema } from "@/lib/proposal-acceptance";
+import { paymentRulesSchema, DEFAULT_PAYMENT_RULES } from "@/lib/payment-rules";
 
 const permissions = z.object({ search_hotels: z.boolean(), search_flights: z.boolean(), create_proposals: z.boolean(), manage_transport: z.boolean() });
 const seller = z.object({ name: z.string().trim().min(2).max(100), phone: z.string().trim().max(30), email: z.string().email().max(200), permissions });
@@ -136,6 +137,28 @@ export const saveSettings = createServerFn({ method: "POST" }).middleware([requi
     if (error) throw new Error("Não foi possível salvar as configurações.");
     await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, action: "Dados da agência atualizados" });
     return { ok: true };
+  });
+
+export const savePaymentRules = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator(data => paymentRulesSchema.parse(data))
+  .handler(async ({ context, data }) => {
+    const { assertAdmin } = await import("./access.server");
+    await assertAdmin(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin.from("system_settings").upsert({ id: 1, payment_rules: data });
+    if (error) throw new Error("Não foi possível salvar as formas de pagamento. Verifique se a migração 0010 foi aplicada.");
+    await supabaseAdmin.from("access_activity").insert({ actor_id: context.userId, action: "Regras de pagamento atualizadas" });
+    return { ok: true };
+  });
+
+export const getPaymentRules = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertAdmin } = await import("./access.server");
+    await assertAdmin(context.supabase, context.userId);
+    const { data, error } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
+    if (error) return DEFAULT_PAYMENT_RULES;
+    const parsed = paymentRulesSchema.safeParse(data?.payment_rules);
+    return parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
   });
 
 export const listMyProposals = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
