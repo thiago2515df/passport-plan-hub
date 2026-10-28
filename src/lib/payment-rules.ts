@@ -27,10 +27,11 @@ export const DEFAULT_PAYMENT_RULES: PaymentRules = {
     enabled: true,
     // Custo da adquirente em 6x. É embutido no preço do pacote antes da publicação.
     embeddedFeePercent: 8.69,
-    // 1x a 6x são sempre sem juros para o cliente.
-    visaMaster: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
-    // Mantido somente para compatibilidade com propostas antigas. A interface não separa mais bandeiras.
-    otherBrands: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
+    // Taxa real da máquina por quantidade de parcelas. A proposta escolhe quantas
+    // serão oferecidas "sem juros" e embute a taxa correspondente no preço final.
+    visaMaster: [3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
+    // Mantido somente por compatibilidade. A proposta pública usa uma única tabela.
+    otherBrands: [3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
   },
   pix: { enabled: true, discountPercent: 8.9, note: "Pix à vista com desconto." },
   boleto: { enabled: true, maxInstallments: 1, fees: [0,0,0,0,0,0,0,0,0,0,0,0], note: "Condições e vencimentos sujeitos à confirmação da agência." },
@@ -63,11 +64,13 @@ export const installmentQuoteFromCustomerTotal = (
   installments: number,
   targetPercent: number,
   embeddedFeePercent: number,
+  interestFreeInstallments = 6,
 ) => {
   if (!Number.isFinite(customerTotal) || customerTotal < 0 ||
       !Number.isInteger(installments) || installments < 1 || installments > 12 ||
       !Number.isFinite(embeddedFeePercent) || embeddedFeePercent < 0 || embeddedFeePercent >= 100) return null;
-  if (installments <= 6) {
+  const freeThrough = Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
+  if (installments <= freeThrough) {
     return {
       total: Math.round((customerTotal + Number.EPSILON) * 100) / 100,
       installment: Math.round((customerTotal / installments + Number.EPSILON) * 100) / 100,
@@ -85,14 +88,5 @@ export function normalizePaymentRules(value: unknown): PaymentRules {
   if (rules.pix.enabled && rules.pix.discountPercent === 0 && rules.pix.note === "Pagamento à vista via Pix.") {
     rules = { ...rules, pix: { ...rules.pix, discountPercent: 8.9, note: "Pix à vista com desconto." } };
   }
-  // Regra comercial atual: até 6x não pode receber acréscimo,
-  // inclusive ao abrir propostas antigas que guardaram taxas nessa faixa.
-  return {
-    ...rules,
-    card: {
-      ...rules.card,
-      visaMaster: rules.card.visaMaster.map((rate, index) => index < 6 ? 0 : rate),
-      otherBrands: rules.card.otherBrands.map((rate, index) => index < 6 ? 0 : rate),
-    },
-  };
+  return rules;
 }
