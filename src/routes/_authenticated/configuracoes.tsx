@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Settings, ShieldCheck, History, Plus, Save, Pencil, Loader2, Search, Plane, FileText, Bus, LockKeyhole, X, Trash2 } from "lucide-react";
+import { Users, Settings, ShieldCheck, History, Plus, Save, Pencil, Loader2, Search, Plane, FileText, Bus, LockKeyhole, X, Trash2, CreditCard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -14,6 +14,7 @@ import { COMMISSION_MIGRATION_REQUIRED, COMMISSION_UNAVAILABLE } from "@/lib/com
 import { emptyCommissions } from "@/lib/package-pricing";
 import { CommissionFields, CommissionSettings } from "@/components/CommissionSettings";
 import { PasshubDataSettings } from "@/components/PasshubDataSettings";
+import { PaymentRulesSettings } from "@/components/PaymentRulesSettings";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({ head: () => ({ meta: [
   { title: "Configurações e vendedores — Excursão Brasília" }, { name: "description", content: "Administração de vendedores, permissões e configurações da Excursão Brasília." },
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({ head: ()
   { property: "og:title", content: "Configurações — Excursão Brasília" }, { property: "og:description", content: "Gerenciamento de acessos e configurações da agência." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" },
 ] }), component: SettingsPage });
 
-const tabs = [{ id: "people", label: "Vendedores", icon: Users }, { id: "agency", label: "Agência", icon: Settings }, { id: "proposals", label: "Propostas", icon: FileText }, { id: "activity", label: "Atividades", icon: History }, { id: "security", label: "Segurança", icon: ShieldCheck }, { id: "passhub-data", label: "API PassHub", icon: LockKeyhole }] as const;
+const tabs = [{ id: "people", label: "Vendedores", icon: Users }, { id: "agency", label: "Agência", icon: Settings }, { id: "proposals", label: "Propostas", icon: FileText }, { id: "activity", label: "Atividades", icon: History }, { id: "security", label: "Segurança", icon: ShieldCheck }, { id: "payments", label: "Pagamentos", icon: CreditCard }, { id: "passhub-data", label: "API PassHub", icon: LockKeyhole }] as const;
 const rights = [{ key: "search_hotels", label: "Buscar hotéis", icon: Search }, { key: "search_flights", label: "Buscar voos", icon: Plane }, { key: "create_proposals", label: "Criar propostas", icon: FileText }, { key: "manage_transport", label: "Adicionar transporte", icon: Bus }] as const;
 const initial = { id: "", name: "", email: "", phone: "", password: "", active: true, commissions: emptyCommissions, permissions: { search_hotels: true, search_flights: true, create_proposals: true, manage_transport: true } };
 
@@ -75,6 +76,7 @@ function SettingsPage() {
       {tab === "agency" && <section className="max-w-xl"><h2 className="mb-6 text-xl font-semibold">Dados da agência</h2><form onSubmit={async e => { e.preventDefault(); setBusy(true); try { await save({ data: agencyValues }); setMessage("Configurações salvas."); await data.refetch(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar."); } finally { setBusy(false); } }} className="space-y-5"><label className="block text-sm">Nome da agência<Input className="mt-2" required value={agencyValues.agency_name} onChange={e => setAgency({ ...agencyValues, agency_name: e.target.value })} /></label><label className="block text-sm">WhatsApp (com código do país)<Input className="mt-2" required inputMode="tel" pattern="[0-9]{10,15}" value={agencyValues.whatsapp} onChange={e => setAgency({ ...agencyValues, whatsapp: e.target.value.replace(/\D/g, "") })} /></label><Button disabled={!access.admin || busy}><Save className="h-4 w-4" />Salvar alterações</Button></form></section>}
       {tab === "proposals" && <section><h2 className="mb-5 text-xl font-semibold">Propostas da equipe</h2><div className="divide-y divide-border">{data.data?.proposals.map(row => { const p = decodeProposal(row.payload); return <div key={row.code} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="font-semibold">{p?.s.cliente || "Cliente"} · {p?.s.destino || "Proposta"}</p><p className="text-sm text-muted-foreground">{people.find(x => x.id === row.owner_id)?.name || "Proposta anterior ao cadastro de vendedores"} · {new Date(row.created_at).toLocaleDateString("pt-BR")}</p></div><Button variant="outline" asChild><a href={`/p/${row.code}`} target="_blank" rel="noreferrer">Ver proposta</a></Button></div>; })}</div>{!data.data?.proposals.length && <p className="py-10 text-muted-foreground">Nenhuma proposta disponível.</p>}</section>}
       {tab === "activity" && <section><h2 className="mb-5 text-xl font-semibold">Histórico de alterações</h2>{data.data?.activities.map(a => <div key={a.id} className="border-b border-border py-4"><p className="font-medium">{a.action}</p><p className="text-sm text-muted-foreground">{people.find(p => p.id === a.actor_id)?.name || "Administrador"}{a.target_id ? ` · ${people.find(p => p.id === a.target_id)?.name || "Vendedor"}` : ""} · {new Date(a.created_at).toLocaleString("pt-BR")}</p></div>)}{!data.data?.activities.length && <p className="py-10 text-muted-foreground">Nenhuma atividade registrada.</p>}</section>}
+      {tab === "payments" && <PaymentRulesSettings admin={access.admin} />}
       {tab === "passhub-data" && <PasshubDataSettings admin={access.admin} />}
       {tab === "security" && <section className="max-w-2xl"><h2 className="mb-5 text-xl font-semibold">Controle de acesso</h2>{[["Cadastro de vendedores", "Somente administrador"], ["Visibilidade do vendedor", "Somente as próprias propostas"], ["Comissões", "Definidas somente pelo administrador"], ["Pesquisas", "Exigem comissões confirmadas"], ["Página de login", "Ativa"], ["Confirmação de e-mail", "Obrigatória"], ["Integrações", "PassHub · hospedagem e aéreo"], ["Passagens", "Arquivos privados"]].map(([label, value]) => <div key={label} className="flex flex-wrap justify-between gap-2 border-b border-border py-4"><span>{label}</span><span className="text-sm text-muted-foreground">{value}</span></div>)}</section>}
     </main>
