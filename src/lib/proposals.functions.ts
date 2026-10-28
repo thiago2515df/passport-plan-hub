@@ -116,10 +116,16 @@ export const saveProposal = createServerFn({ method: "POST" })
     // Do not remove charged rows with no name: those need user attention.
     const { normalizePaymentRules, DEFAULT_PAYMENT_RULES } = await import("./payment-rules");
     const { data: paymentSettings } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
-    const paymentRules = normalizePaymentRules(paymentSettings?.payment_rules ?? DEFAULT_PAYMENT_RULES);
+    const basePaymentRules = normalizePaymentRules(paymentSettings?.payment_rules ?? DEFAULT_PAYMENT_RULES);
+    const interestFreeInstallments = z.number().int().min(1).max(12).parse(parsed.s.interestFreeInstallments ?? 6);
+    const embeddedFeePercent = basePaymentRules.card.visaMaster[interestFreeInstallments - 1] ?? basePaymentRules.card.embeddedFeePercent;
+    const paymentRules = {
+      ...basePaymentRules,
+      card: { ...basePaymentRules.card, embeddedFeePercent },
+    };
     const proposal = {
       ...parsed,
-      s: { ...parsed.s, paymentRules, extras: normalizeExtraServices(parsed.s.extras, "a proposta") },
+      s: { ...parsed.s, interestFreeInstallments, paymentRules, extras: normalizeExtraServices(parsed.s.extras, "a proposta") },
       hotels: parsed.hotels.map(hotel => ({
         ...hotel, extras: normalizeExtraServices(hotel.extras, hotel.name || "o hotel"),
       })),
