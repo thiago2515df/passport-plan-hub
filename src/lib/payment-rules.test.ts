@@ -1,7 +1,23 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_PAYMENT_RULES, installmentQuote, normalizePaymentRules, pixTotal } from "./payment-rules";
+import { customerPackageTotal, DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal } from "./payment-rules";
 
 describe("parcelamento mostrado ao cliente", () => {
+  it("embute a taxa da máquina de 6x antes de publicar o pacote", () => {
+    expect(DEFAULT_PAYMENT_RULES.card.embeddedFeePercent).toBe(8.69);
+    const customerTotal = customerPackageTotal(6000, 8.69)!;
+    expect(customerTotal).toBe(6571.02);
+    const six = installmentQuoteFromCustomerTotal(customerTotal, 6, 0, 8.69)!;
+    expect(six.total).toBe(6571.02);
+    expect(six.installment).toBe(1095.17);
+  });
+
+  it("não cobra a taxa embutida novamente em 7x a 12x", () => {
+    const customerTotal = customerPackageTotal(1000, 8.69)!;
+    const seven = installmentQuoteFromCustomerTotal(customerTotal, 7, 9.48, 8.69)!;
+    expect(customerTotal).toBe(1095.17);
+    expect(seven.total).toBeCloseTo(1104.73, 2);
+    expect(seven.installment).toBeCloseTo(157.82, 2);
+  });
   it("mantém o valor total do pacote de 1x a 6x sem juros", () => {
     for (let installments = 1; installments <= 6; installments++) {
       const q = installmentQuote(600, installments, DEFAULT_PAYMENT_RULES.card.visaMaster[installments - 1]!)!;
