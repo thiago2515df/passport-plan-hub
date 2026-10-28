@@ -6,7 +6,7 @@ import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTo
 import { PAYMENT_CARD_BRANDS_IMAGE, PAYMENT_PIX_IMAGE } from "@/assets/payment-brand-assets";
 
 export function PaymentOptionsDialog({
-  open, onOpenChange, total, rules, hotelName, travelers = 1,
+  open, onOpenChange, total, rules, hotelName, travelers = 1, interestFreeInstallments = 6,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -14,13 +14,14 @@ export function PaymentOptionsDialog({
   rules?: PaymentRules;
   hotelName: string;
   travelers?: number;
+  interestFreeInstallments?: number;
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
   const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
     installments: index + 1,
     rate,
-    quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, payment.card.embeddedFeePercent),
-  })), [payment.card.embeddedFeePercent, payment.card.visaMaster, total]);
+    quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, payment.card.embeddedFeePercent, interestFreeInstallments),
+  })), [interestFreeInstallments, payment.card.embeddedFeePercent, payment.card.visaMaster, total]);
   const pixValue = pixTotal(total, payment.pix.discountPercent);
   const safeTravelers = Math.max(1, Math.floor(travelers || 1));
   const perPerson = Math.round((total / safeTravelers + Number.EPSILON) * 100) / 100;
@@ -37,7 +38,7 @@ export function PaymentOptionsDialog({
       <div className="space-y-4 px-4 pb-6 sm:px-6">
         {payment.card.enabled && <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-primary/5 p-4">
-            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até 6x sem juros · de 7x a 12x com juros</p></div></div>
+            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até {interestFreeInstallments}x sem juros{interestFreeInstallments < 12 ? ` · de ${interestFreeInstallments + 1}x a 12x com juros` : ""}</p></div></div>
             <img src={PAYMENT_CARD_BRANDS_IMAGE} alt="Visa, Mastercard, American Express, Elo e Hipercard" className="h-7 max-w-[230px] object-contain sm:h-8"/>
           </div>
           <div className="p-4">
@@ -45,7 +46,7 @@ export function PaymentOptionsDialog({
               {cardQuotes.map(({ installments, rate, quote }) => quote && <div key={installments} className="grid grid-cols-[48px_1fr_auto] items-center gap-2 px-3 py-2.5 text-sm">
                 <strong className="text-primary">{installments}x</strong>
                 <div><span className="font-semibold">{installments}× de {brl(quote.installment)}</span><p className="text-[11px] text-muted-foreground">Total do pacote {brl(quote.total)} · {brl(Math.round((quote.total / safeTravelers + Number.EPSILON) * 100) / 100)} por pessoa</p></div>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${installments <= 6 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{installments <= 6 ? "Sem juros" : `${rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% juros`}</span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${installments <= interestFreeInstallments ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{installments <= interestFreeInstallments ? "Sem juros" : `${rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% juros`}</span>
               </div>)}
             </div>
           </div>
