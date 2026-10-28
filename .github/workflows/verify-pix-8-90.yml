@@ -1,0 +1,27 @@
+name: Verify Pix 8.90 discount
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-pix-8-90.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Test Pix and payment rules
+        run: bunx vitest run src/lib/payment-rules.test.ts
+      - name: Build
+        run: bun run build
+      - name: Remove temporary workflow
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/verify-pix-8-90.yml
+          git commit -m "Remove teste temporário Pix 8,90"
+          git push
