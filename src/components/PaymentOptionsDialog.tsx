@@ -1,53 +1,49 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { CreditCard, Landmark, QrCode, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
 import { brl } from "@/lib/hotels";
 import { DEFAULT_PAYMENT_RULES, installmentQuote, normalizePaymentRules, pixTotal, type PaymentRules } from "@/lib/payment-rules";
 import { PAYMENT_CARD_BRANDS_IMAGE, PAYMENT_PIX_IMAGE } from "@/assets/payment-brand-assets";
 
 export function PaymentOptionsDialog({
-  open, onOpenChange, total, rules, hotelName,
+  open, onOpenChange, total, rules, hotelName, travelers = 1,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   total: number;
   rules?: PaymentRules;
   hotelName: string;
+  travelers?: number;
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
-  const [brand, setBrand] = useState<"visaMaster" | "otherBrands">("visaMaster");
-  const cardRates = payment.card[brand];
-  const cardQuotes = useMemo(() => cardRates.map((rate, index) => ({
+  const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
     installments: index + 1, rate, quote: installmentQuote(total, index + 1, rate),
-  })), [cardRates, total]);
+  })), [payment.card.visaMaster, total]);
   const pixValue = pixTotal(total, payment.pix.discountPercent);
+  const safeTravelers = Math.max(1, Math.floor(travelers || 1));
+  const perPerson = Math.round((total / safeTravelers + Number.EPSILON) * 100) / 100;
 
   return <Dialog open={open} onOpenChange={onOpenChange}>
     <DialogContent className="max-h-[92vh] w-[calc(100%-1rem)] max-w-3xl overflow-y-auto rounded-2xl p-0 sm:rounded-3xl">
       <DialogHeader className="border-b border-border px-4 pb-4 pt-5 text-left sm:px-6">
         <DialogTitle className="text-xl font-extrabold text-navy sm:text-2xl">Formas de pagamento</DialogTitle>
         <DialogDescription className="text-xs sm:text-sm">
-          {hotelName} · valor do pacote <strong className="text-foreground">{brl(total)}</strong>
+          {hotelName} · total do pacote <strong className="text-foreground">{brl(total)}</strong> · <strong className="text-foreground">{brl(perPerson)} por pessoa</strong>
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-4 px-4 pb-6 sm:px-6">
         {payment.card.enabled && <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-primary/5 p-4">
-            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Parcelamento em até 12x</p></div></div>
+            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até 6x sem juros · de 7x a 12x com juros</p></div></div>
             <img src={PAYMENT_CARD_BRANDS_IMAGE} alt="Visa, Mastercard, American Express, Elo e Hipercard" className="h-7 max-w-[230px] object-contain sm:h-8"/>
           </div>
           <div className="p-4">
-            <div className="mb-3 grid grid-cols-2 rounded-xl bg-secondary p-1">
-              <Button type="button" variant={brand === "visaMaster" ? "default" : "ghost"} size="sm" onClick={() => setBrand("visaMaster")}>Visa / Master</Button>
-              <Button type="button" variant={brand === "otherBrands" ? "default" : "ghost"} size="sm" onClick={() => setBrand("otherBrands")}>Demais bandeiras</Button>
-            </div>
             <div className="divide-y divide-border rounded-xl border border-border">
               {cardQuotes.map(({ installments, rate, quote }) => quote && <div key={installments} className="grid grid-cols-[48px_1fr_auto] items-center gap-2 px-3 py-2.5 text-sm">
                 <strong className="text-primary">{installments}x</strong>
-                <div><span className="font-semibold">{installments}× de {brl(quote.installment)}</span><p className="text-[11px] text-muted-foreground">Total {brl(quote.total)}</p></div>
-                <span className="text-[11px] text-muted-foreground">{rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}%</span>
+                <div><span className="font-semibold">{installments}× de {brl(quote.installment)}</span><p className="text-[11px] text-muted-foreground">Total do pacote {brl(quote.total)} · {brl(Math.round((quote.total / safeTravelers + Number.EPSILON) * 100) / 100)} por pessoa</p></div>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${installments <= 6 ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{installments <= 6 ? "Sem juros" : `${rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% juros`}</span>
               </div>)}
             </div>
           </div>
