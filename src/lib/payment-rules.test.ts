@@ -26,9 +26,12 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(installmentQuoteFromCustomerTotal(11810.70, 10, 11.98, 11.98, 10)?.installment).toBe(1181.07);
   });
 
-  it("mantém a tabela real da máquina de 1x a 12x", () => {
+  it("mantém a tabela oficial da máquina de 1x a 12x", () => {
     expect(DEFAULT_PAYMENT_RULES.card.visaMaster).toEqual([
       3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44,
+    ]);
+    expect(DEFAULT_PAYMENT_RULES.card.otherBrands).toEqual([
+      4.50, 5.87, 6.57, 7.28, 7.98, 8.68, 9.58, 10.28, 11.02, 11.98, 12.90, 13.50,
     ]);
   });
 
