@@ -81,7 +81,7 @@ export const packageTotal = (hotelTotal: number, t?: Transport) => hotelTotal + 
 export const hasBreakfast = (meal?: string) => !!meal && /caf[eé]|breakfast|meia|completa|all/i.test(meal) && !/sem|room only|no meal/i.test(meal);
 import type { RoomOccupancy } from "./room-occupancy";
 import type { PaymentRules } from "./payment-rules";
-export type Search = { paymentRules?: PaymentRules; selectedFlights?: { out?: Flight; back?: Flight }; roomOccupancies?: RoomOccupancy[]; destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: ExtraService[] };
+export type Search = { paymentRules?: PaymentRules; interestFreeInstallments?: number; selectedFlights?: { out?: Flight; back?: Flight }; roomOccupancies?: RoomOccupancy[]; destino: string; checkin: string; checkout: string; hospedes: string; rav: number; cliente?: string; telefone?: string; email?: string; origem?: string; transport?: Transport; destinationId?: string; rooms?: number; adults?: number; childAges?: number[]; extras?: ExtraService[] };
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
 
