@@ -94,10 +94,18 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(normalized.card.visaMaster.slice(0, 6)).toEqual([3.89,5.67,6.51,7.02,7.90,8.69]);
   });
 
-  it("aplica 8,90% de desconto no Pix sobre o preço final mostrado ao cliente", () => {
-    expect(DEFAULT_PAYMENT_RULES.pix.discountPercent).toBe(8.9);
-    expect(pixTotal(3263.77, 8.9)).toBe(2973.29);
-    expect(pixTotal(6000, 8.9)).toBe(5466);
+  it("faz o Pix usar a mesma taxa da quantidade escolhida na barra", () => {
+    const selections = [
+      { installments: 3, rate: 6.51 },
+      { installments: 6, rate: 8.69 },
+      { installments: 7, rate: 9.48 },
+      { installments: 8, rate: 9.97 },
+    ];
+    for (const { installments, rate } of selections) {
+      expect(DEFAULT_PAYMENT_RULES.card.visaMaster[installments - 1]).toBe(rate);
+      const customerTotal = customerPackageTotal(3000, rate)!;
+      expect(pixTotal(customerTotal, rate)).toBeCloseTo(3000, 2);
+    }
   });
 
   it("migra o antigo padrão de Pix sem desconto para 8,90%", () => {
