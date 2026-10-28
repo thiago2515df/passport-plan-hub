@@ -53,11 +53,10 @@ export function PaymentOptionsDialog({
           {payment.pix.enabled && <section className="rounded-2xl border border-border bg-card p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#32b8ad]/10"><QrCode className="h-5 w-5 text-[#249f96]"/></span>
-              <div><h3 className="font-bold text-navy">Pix</h3><p className="text-xs text-muted-foreground">Pagamento à vista</p></div>
+              <div><h3 className="font-bold text-navy">Pix</h3><p className="text-xs text-muted-foreground">Pix à vista com desconto</p></div>
             </div>
             <img src={PAYMENT_PIX_IMAGE} alt="Pix" className="my-3 h-9 max-w-[150px] object-contain object-left"/>
             <p className="text-2xl font-black text-navy">{brl(pixValue)}</p>
-            {payment.pix.discountPercent > 0 && <p className="text-xs font-semibold text-emerald-700">{payment.pix.discountPercent.toLocaleString("pt-BR")}% de desconto</p>}
             {payment.pix.note && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{payment.pix.note}</p>}
           </section>}
 
