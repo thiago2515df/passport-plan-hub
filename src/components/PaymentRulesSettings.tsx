@@ -29,7 +29,6 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
   }, [admin, load]);
 
   const setCardRate = (index: number, value: string) => {
-    if (index < 6) return;
     const next = [...rules.card.visaMaster];
     next[index] = Math.max(0, Math.min(50, number(value) || 0));
     setRules({ ...rules, card: { ...rules.card, visaMaster: next, otherBrands: [...next] } });
@@ -48,32 +47,15 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
 
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary"/><div><h3 className="font-semibold">Cartão de crédito</h3><p className="text-xs text-muted-foreground">1x a 6x sem juros. Configure juros somente de 7x a 12x.</p></div></div>
+        <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary"/><div><h3 className="font-semibold">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Cadastre a taxa real da máquina para cada quantidade de parcelas. Na proposta você escolhe até quantas vezes o cliente verá sem juros.</p></div></div>
         <Switch checked={rules.card.enabled} onCheckedChange={enabled => setRules({ ...rules, card: { ...rules.card, enabled } })}/>
       </div>
-      <label className="mt-4 block max-w-sm text-sm">
-        Taxa da máquina embutida no preço do pacote (6x)
-        <div className="mt-1 flex items-center gap-1">
-          <Input
-            aria-label="Taxa da máquina embutida no preço do pacote em seis vezes"
-            value={pct(rules.card.embeddedFeePercent)}
-            inputMode="decimal"
-            onChange={e => setRules({ ...rules, card: { ...rules.card, embeddedFeePercent: Math.max(0, Math.min(50, number(e.target.value) || 0)) } })}
-            className="max-w-32"
-          />
-          <span>%</span>
-        </div>
-        <span className="mt-1 block text-xs text-muted-foreground">Esta taxa entra no preço final antes da proposta ser publicada. O cliente vê 1x a 6x como sem juros.</span>
-      </label>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[420px] text-sm">
           <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Condição</th></tr></thead>
           <tbody>{Array.from({ length: 12 }).map((_, i) => <tr key={i} className="border-b border-border/60">
             <td className="py-2 font-semibold">{i + 1}x</td>
-            <td>{i < 6
-              ? <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Sem juros</span>
-              : <div className="flex items-center gap-1"><Input aria-label={`Juros do cartão em ${i+1} parcelas`} value={pct(rules.card.visaMaster[i]!)} onChange={e => setCardRate(i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>% juros</span></div>}
-            </td>
+            <td><div className="flex items-center gap-1"><Input aria-label={`Taxa da máquina em ${i+1} parcelas`} value={pct(rules.card.visaMaster[i]!)} onChange={e => setCardRate(i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>%</span></div></td>
           </tr>)}</tbody>
         </table>
       </div>
