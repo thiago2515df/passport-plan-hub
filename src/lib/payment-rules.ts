@@ -24,8 +24,10 @@ export type PaymentRules = z.infer<typeof paymentRulesSchema>;
 export const DEFAULT_PAYMENT_RULES: PaymentRules = {
   card: {
     enabled: true,
-    visaMaster: [3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
-    otherBrands: [4.50, 5.87, 6.57, 7.28, 7.98, 8.68, 9.58, 10.28, 11.02, 11.98, 12.90, 13.50],
+    // 1x a 6x são sempre sem juros para o cliente.
+    visaMaster: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
+    // Mantido somente para compatibilidade com propostas antigas. A interface não separa mais bandeiras.
+    otherBrands: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
   },
   pix: { enabled: true, discountPercent: 0, note: "Pagamento à vista via Pix." },
   boleto: { enabled: true, maxInstallments: 1, fees: [0,0,0,0,0,0,0,0,0,0,0,0], note: "Condições e vencimentos sujeitos à confirmação da agência." },
@@ -46,5 +48,15 @@ export const pixTotal = (net: number, discountPercent: number) =>
 
 export function normalizePaymentRules(value: unknown): PaymentRules {
   const parsed = paymentRulesSchema.safeParse(value);
-  return parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
+  const rules = parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
+  // Regra comercial atual: até 6x não pode receber acréscimo,
+  // inclusive ao abrir propostas antigas que guardaram taxas nessa faixa.
+  return {
+    ...rules,
+    card: {
+      ...rules.card,
+      visaMaster: rules.card.visaMaster.map((rate, index) => index < 6 ? 0 : rate),
+      otherBrands: rules.card.otherBrands.map((rate, index) => index < 6 ? 0 : rate),
+    },
+  };
 }
