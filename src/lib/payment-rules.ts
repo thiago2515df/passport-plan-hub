@@ -88,5 +88,11 @@ export function normalizePaymentRules(value: unknown): PaymentRules {
   if (rules.pix.enabled && rules.pix.discountPercent === 0 && rules.pix.note === "Pagamento à vista via Pix.") {
     rules = { ...rules, pix: { ...rules.pix, discountPercent: 8.9, note: "Pix à vista com desconto." } };
   }
+  // Migra o padrão temporário que zerava 1x–6x. Essas são taxas reais da
+  // máquina e agora precisam existir para que a proposta possa embuti-las.
+  if (rules.card.visaMaster.slice(0, 6).every(rate => rate === 0)) {
+    const restored = [3.89, 5.67, 6.51, 7.02, 7.90, 8.69, ...rules.card.visaMaster.slice(6)];
+    rules = { ...rules, card: { ...rules.card, visaMaster: restored, otherBrands: [...restored] } };
+  }
   return rules;
 }
