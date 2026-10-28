@@ -57,7 +57,6 @@ export function PaymentOptionsDialog({
             </div>
             <img src={PAYMENT_PIX_IMAGE} alt="Pix" className="my-3 h-9 max-w-[150px] object-contain object-left"/>
             <p className="text-2xl font-black text-navy">{brl(pixValue)}</p>
-            {payment.pix.note && <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{payment.pix.note}</p>}
           </section>}
 
           {payment.boleto.enabled && <section className="rounded-2xl border border-border bg-card p-4">
