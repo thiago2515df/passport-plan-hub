@@ -236,7 +236,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
       )}
 
       {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} allowRemoteDetails={false} onClose={() => setActive(null)} />}
-      {paymentHotel && <PaymentOptionsDialog open={true} onOpenChange={open => { if (!open) setPaymentHotel(null); }} total={paymentHotel.total} rules={p.s.paymentRules} hotelName={paymentHotel.name} />}
+      {paymentHotel && <PaymentOptionsDialog open={true} onOpenChange={open => { if (!open) setPaymentHotel(null); }} total={paymentHotel.total} rules={p.s.paymentRules} hotelName={paymentHotel.name} travelers={travelers} />}
     </div>
   );
 }
