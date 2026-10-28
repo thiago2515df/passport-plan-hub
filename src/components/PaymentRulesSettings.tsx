@@ -28,10 +28,11 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
     return () => { active = false; };
   }, [admin, load]);
 
-  const setCardRate = (kind: "visaMaster" | "otherBrands", index: number, value: string) => {
-    const next = [...rules.card[kind]];
+  const setCardRate = (index: number, value: string) => {
+    if (index < 6) return;
+    const next = [...rules.card.visaMaster];
     next[index] = Math.max(0, Math.min(50, number(value) || 0));
-    setRules({ ...rules, card: { ...rules.card, [kind]: next } });
+    setRules({ ...rules, card: { ...rules.card, visaMaster: next, otherBrands: [...next] } });
   };
   const setBoletoRate = (index: number, value: string) => {
     const next = [...rules.boleto.fees];
@@ -47,16 +48,18 @@ export function PaymentRulesSettings({ admin }: { admin: boolean }) {
 
     <div className="rounded-2xl border border-border bg-card p-4 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary"/><div><h3 className="font-semibold">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Taxa percentual total aplicada por quantidade de parcelas.</p></div></div>
+        <div className="flex items-center gap-2"><CreditCard className="h-5 w-5 text-primary"/><div><h3 className="font-semibold">Cartão de crédito</h3><p className="text-xs text-muted-foreground">1x a 6x sem juros. Configure juros somente de 7x a 12x.</p></div></div>
         <Switch checked={rules.card.enabled} onCheckedChange={enabled => setRules({ ...rules, card: { ...rules.card, enabled } })}/>
       </div>
       <div className="mt-4 overflow-x-auto">
-        <table className="w-full min-w-[620px] text-sm">
-          <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Visa/Master</th><th>Demais bandeiras</th></tr></thead>
+        <table className="w-full min-w-[420px] text-sm">
+          <thead><tr className="border-b border-border text-left text-xs text-muted-foreground"><th className="py-2">Parcelas</th><th>Condição</th></tr></thead>
           <tbody>{Array.from({ length: 12 }).map((_, i) => <tr key={i} className="border-b border-border/60">
             <td className="py-2 font-semibold">{i + 1}x</td>
-            <td className="pr-3"><div className="flex items-center gap-1"><Input aria-label={`Taxa Visa Master ${i+1} parcelas`} value={pct(rules.card.visaMaster[i]!)} onChange={e => setCardRate("visaMaster", i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>%</span></div></td>
-            <td><div className="flex items-center gap-1"><Input aria-label={`Taxa demais bandeiras ${i+1} parcelas`} value={pct(rules.card.otherBrands[i]!)} onChange={e => setCardRate("otherBrands", i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>%</span></div></td>
+            <td>{i < 6
+              ? <span className="inline-flex rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Sem juros</span>
+              : <div className="flex items-center gap-1"><Input aria-label={`Juros do cartão em ${i+1} parcelas`} value={pct(rules.card.visaMaster[i]!)} onChange={e => setCardRate(i, e.target.value)} inputMode="decimal" className="h-9 max-w-28"/><span>% juros</span></div>}
+            </td>
           </tr>)}</tbody>
         </table>
       </div>
