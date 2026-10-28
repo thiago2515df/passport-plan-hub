@@ -25,9 +25,18 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(normalized.card.otherBrands.slice(0, 6)).toEqual([0,0,0,0,0,0]);
   });
 
-  it("não altera o Pix enquanto o desconto estiver em zero", () => {
-    expect(pixTotal(541.63, 0)).toBe(541.63);
-    expect(pixTotal(1000, 5)).toBe(950);
+  it("aplica 8,90% de desconto no Pix", () => {
+    expect(DEFAULT_PAYMENT_RULES.pix.discountPercent).toBe(8.9);
+    expect(pixTotal(6000, 8.9)).toBe(5466);
+    expect(pixTotal(541.63, 8.9)).toBe(493.43);
+  });
+
+  it("migra o antigo padrão de Pix sem desconto para 8,90%", () => {
+    const old = structuredClone(DEFAULT_PAYMENT_RULES);
+    old.pix = { enabled: true, discountPercent: 0, note: "Pagamento à vista via Pix." };
+    const normalized = normalizePaymentRules(old);
+    expect(normalized.pix.discountPercent).toBe(8.9);
+    expect(normalized.pix.note).toBe("Pix à vista com desconto.");
   });
 
   it("usa regras padrão seguras para propostas antigas sem configuração", () => {
