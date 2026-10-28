@@ -22,7 +22,7 @@ export function PaymentOptionsDialog({
     rate,
     quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, payment.card.embeddedFeePercent, interestFreeInstallments),
   })), [interestFreeInstallments, payment.card.embeddedFeePercent, payment.card.visaMaster, total]);
-  const pixValue = pixTotal(total, payment.pix.discountPercent);
+  const pixValue = pixTotal(total, payment.card.embeddedFeePercent);
   const safeTravelers = Math.max(1, Math.floor(travelers || 1));
   const perPerson = Math.round((total / safeTravelers + Number.EPSILON) * 100) / 100;
 
