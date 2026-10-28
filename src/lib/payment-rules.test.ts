@@ -8,6 +8,24 @@ import {
 } from "./payment-rules";
 
 describe("parcelamento mostrado ao cliente", () => {
+  it("divide o pacote de R$ 11.810,70 em até 6x sem aumentar o total", () => {
+    for (let count = 1; count <= 6; count++) {
+      const quote = installmentQuoteFromCustomerTotal(11810.70, count, 8.69, 8.69, 6);
+      expect(quote?.total).toBe(11810.70);
+      expect(quote?.installment).toBe(Math.round(11810.70 / count * 100) / 100);
+    }
+    expect(installmentQuoteFromCustomerTotal(11810.70, 6, 8.69, 8.69, 6)?.installment).toBe(1968.45);
+  });
+
+  it("divide o mesmo total sem juros até o limite de 10x escolhido na barra", () => {
+    for (let count = 1; count <= 10; count++) {
+      const quote = installmentQuoteFromCustomerTotal(11810.70, count, 11.98, 11.98, 10);
+      expect(quote?.total).toBe(11810.70);
+      expect(quote?.installment).toBe(Math.round(11810.70 / count * 100) / 100);
+    }
+    expect(installmentQuoteFromCustomerTotal(11810.70, 10, 11.98, 11.98, 10)?.installment).toBe(1181.07);
+  });
+
   it("mantém a tabela real da máquina de 1x a 12x", () => {
     expect(DEFAULT_PAYMENT_RULES.card.visaMaster).toEqual([
       3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44,
