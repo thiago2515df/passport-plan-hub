@@ -29,7 +29,7 @@ export const DEFAULT_PAYMENT_RULES: PaymentRules = {
     // Mantido somente para compatibilidade com propostas antigas. A interface não separa mais bandeiras.
     otherBrands: [0, 0, 0, 0, 0, 0, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44],
   },
-  pix: { enabled: true, discountPercent: 0, note: "Pagamento à vista via Pix." },
+  pix: { enabled: true, discountPercent: 8.9, note: "Pix à vista com desconto." },
   boleto: { enabled: true, maxInstallments: 1, fees: [0,0,0,0,0,0,0,0,0,0,0,0], note: "Condições e vencimentos sujeitos à confirmação da agência." },
 };
 
@@ -48,7 +48,12 @@ export const pixTotal = (net: number, discountPercent: number) =>
 
 export function normalizePaymentRules(value: unknown): PaymentRules {
   const parsed = paymentRulesSchema.safeParse(value);
-  const rules = parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
+  let rules = parsed.success ? parsed.data : DEFAULT_PAYMENT_RULES;
+  // Migra automaticamente propostas antigas que ainda carregam exatamente
+  // o antigo padrão de Pix sem desconto. Regras já personalizadas continuam preservadas.
+  if (rules.pix.enabled && rules.pix.discountPercent === 0 && rules.pix.note === "Pagamento à vista via Pix.") {
+    rules = { ...rules, pix: { ...rules.pix, discountPercent: 8.9, note: "Pix à vista com desconto." } };
+  }
   // Regra comercial atual: até 6x não pode receber acréscimo,
   // inclusive ao abrir propostas antigas que guardaram taxas nessa faixa.
   return {
