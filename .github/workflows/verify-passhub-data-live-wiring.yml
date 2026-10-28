@@ -1,0 +1,27 @@
+name: Verify documented PassHub Data API wiring
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-passhub-data-live-wiring.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Test Data API client
+        run: bunx vitest run src/lib/passhub-data.server.test.ts
+      - name: Build
+        run: bun run build
+      - name: Remove temporary workflow
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/verify-passhub-data-live-wiring.yml
+          git commit -m "Remove teste temporário PassHub Data API"
+          git push
