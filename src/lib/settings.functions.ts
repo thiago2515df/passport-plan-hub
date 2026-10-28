@@ -163,6 +163,17 @@ export const getPaymentRules = createServerFn({ method: "GET" }).middleware([req
     return normalizePaymentRules(data?.payment_rules ?? DEFAULT_PAYMENT_RULES);
   });
 
+/** Pricing preview for users allowed to create proposals. The secret supplier
+ * costs stay elsewhere; these are only the commercial payment conditions. */
+export const getProposalPaymentRules = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { assertPermission } = await import("./access.server");
+    await assertPermission(context.supabase, "create_proposals");
+    const { data, error } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
+    const { normalizePaymentRules } = await import("./payment-rules");
+    return normalizePaymentRules(error ? DEFAULT_PAYMENT_RULES : data?.payment_rules ?? DEFAULT_PAYMENT_RULES);
+  });
+
 export const listMyProposals = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const { maintainProposalLifecycle } = await import("./proposal-lifecycle.server");
   await maintainProposalLifecycle();
