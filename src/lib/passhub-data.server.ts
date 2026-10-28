@@ -1,3 +1,4 @@
+import type { Json } from "@/integrations/supabase/types";
 /**
  * PassHub Data API — separate from the paid supplier/search API.
  * GET-only, X-Api-Key only, never authenticates with /auth/token.
@@ -29,7 +30,7 @@ export type PasshubDataReadiness = {
 };
 
 export function passhubDataReadiness(env: NodeJS.ProcessEnv = process.env): PasshubDataReadiness {
-  const keyConfigured = Boolean(env.PASSHUB_DATA_API_KEY?.trim());
+  const keyConfigured = Boolean(env["PASSHUB_DATA_API_KEY"]?.trim());
   return {
     keyConfigured,
     ready: keyConfigured,
@@ -65,9 +66,9 @@ function validateRecordId(id: string): string {
 }
 
 function checkLocalRateLimit(now = Date.now()): void {
-  while (requests.length && requests[0]! <= now - 60_000) requests.shift();
+  while (requests[0] !== undefined && requests[0] <= now - 60_000) requests.shift();
   if (requests.length >= MAX_REQUESTS_PER_MINUTE) {
-    const retry = Math.max(1, Math.ceil((60_000 - (now - requests[0]!)) / 1000));
+    const retry = Math.max(1, Math.ceil((60_000 - (now - (requests[0] ?? now))) / 1000));
     throw new PasshubDataError("Muitas consultas. Aguarde antes de tentar novamente.", 429, retry);
   }
   requests.push(now);
@@ -83,8 +84,8 @@ export async function passhubDataGet(
   params: Record<string, string | number | undefined> = {},
   env: NodeJS.ProcessEnv = process.env,
   requester: typeof fetch = fetch,
-): Promise<unknown> {
-  const key = env.PASSHUB_DATA_API_KEY?.trim();
+): Promise<Json> {
+  const key = env["PASSHUB_DATA_API_KEY"]?.trim();
   if (!key) throw new PasshubDataError("Cadastre PASSHUB_DATA_API_KEY nos Secrets do Lovable.");
   const url = validatedPasshubDataUrl(path);
   for (const [k, v] of Object.entries(params)) {
@@ -123,7 +124,7 @@ export async function passhubDataGet(
       throw new PasshubDataError("Resposta inesperada: a API não retornou JSON.");
     const length = Number(res.headers.get("content-length") ?? 0);
     if (length > 2_000_000) throw new PasshubDataError("Resposta muito grande.");
-    try { return await res.json() as unknown; }
+    try { return await res.json() as Json; }
     catch { throw new PasshubDataError("A PassHub retornou JSON inválido."); }
   }
   throw new PasshubDataError("PassHub indisponível.");
@@ -135,7 +136,7 @@ export function listPasshubData(
   pageSize = 20,
   env: NodeJS.ProcessEnv = process.env,
   requester: typeof fetch = fetch,
-): Promise<unknown> {
+): Promise<Json> {
   if (!Number.isInteger(page) || page < 1 || page > 100_000 ||
       !Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100)
     throw new PasshubDataError("Paginação inválida.");
@@ -147,7 +148,7 @@ export function detailPasshubData(
   id: string,
   env: NodeJS.ProcessEnv = process.env,
   requester: typeof fetch = fetch,
-): Promise<unknown> {
+): Promise<Json> {
   return passhubDataGet(`${resourcePath(resource)}/${validateRecordId(id)}`, {}, env, requester);
 }
 
@@ -155,7 +156,7 @@ export function linkPaymentsPasshubData(
   id: string,
   env: NodeJS.ProcessEnv = process.env,
   requester: typeof fetch = fetch,
-): Promise<unknown> {
+): Promise<Json> {
   return passhubDataGet(`${resourcePath("payment_links")}/${validateRecordId(id)}/payments`, {}, env, requester);
 }
 
@@ -164,4 +165,4 @@ export const readPasshubData = (
   resource: PasshubDataResource,
   env: NodeJS.ProcessEnv = process.env,
   requester: typeof fetch = fetch,
-): Promise<unknown> => listPasshubData(resource, 1, 20, env, requester);
+): Promise<Json> => listPasshubData(resource, 1, 20, env, requester);
