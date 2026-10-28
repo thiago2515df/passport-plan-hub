@@ -157,7 +157,7 @@ export const getPaymentRules = createServerFn({ method: "GET" }).middleware([req
   .handler(async ({ context }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
-    const { data, error } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
+    const { data, error } = await context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle();
     if (error) return DEFAULT_PAYMENT_RULES;
     const { normalizePaymentRules } = await import("./payment-rules");
     return normalizePaymentRules(data?.payment_rules ?? DEFAULT_PAYMENT_RULES);
@@ -169,7 +169,7 @@ export const getProposalPaymentRules = createServerFn({ method: "GET" }).middlew
   .handler(async ({ context }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
-    const { data, error } = await context.supabase.from("system_settings").select("payment_rules").eq("id", 1).maybeSingle();
+    const { data, error } = await context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle();
     const { normalizePaymentRules } = await import("./payment-rules");
     return normalizePaymentRules(error ? DEFAULT_PAYMENT_RULES : data?.payment_rules ?? DEFAULT_PAYMENT_RULES);
   });

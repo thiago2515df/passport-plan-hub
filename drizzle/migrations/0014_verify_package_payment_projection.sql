@@ -1,0 +1,1 @@
+COMMENT ON FUNCTION public.public_proposal(text) IS 'Exact-code customer package projection preserves final price and the selected interest-free installment limit.';

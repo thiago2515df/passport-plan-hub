@@ -34,14 +34,14 @@ function pick(value: JsonRecord, fields: string[]): string {
  * envelopes without fabricating field names or values. */
 function unpack(payload: unknown): { rows: JsonRecord[]; meta: JsonRecord } {
   const root = object(payload);
-  const candidates: unknown[] = [payload, root?.data, root?.items, root?.orders, root?.reservations, root?.users,
-    root?.links, root?.paymentLinks, root?.results];
-  const inner = object(root?.data);
-  if (inner) candidates.push(inner.items, inner.orders, inner.results, inner.users, inner.links);
+  const candidates: unknown[] = [payload, root?.["data"], root?.["items"], root?.["orders"], root?.["reservations"], root?.["users"],
+    root?.["links"], root?.["paymentLinks"], root?.["results"]];
+  const inner = object(root?.["data"]);
+  if (inner) candidates.push(inner["items"], inner["orders"], inner["results"], inner["users"], inner["links"]);
   const found = candidates.find(Array.isArray) as unknown[] | undefined;
   return {
     rows: (found ?? []).map(object).filter((row): row is JsonRecord => row !== null),
-    meta: object(root?.meta) ?? object(inner?.meta) ?? {},
+    meta: object(root?.["meta"]) ?? object(inner?.["meta"]) ?? {},
   };
 }
 
@@ -52,7 +52,7 @@ function recordTitle(row: JsonRecord, index: number): string {
   return pick(row, ["title", "name", "orderNumber", "orderId", "linkId", "code", "id"]) || `Registro ${index + 1}`;
 }
 function recordSubtitle(row: JsonRecord): string {
-  const nested = object(row.customer) ?? object(row.client);
+  const nested = object(row["customer"]) ?? object(row["client"]);
   const values = [
     pick(row, ["status", "state"]),
     pick(row, ["customerName", "clientName", "description", "email", "createdAt", "created_at"]),
@@ -108,9 +108,9 @@ export function PasshubDataSettings({ admin }: { admin: boolean }) {
   };
 
   if (!admin) return <p className="rounded-xl border border-border bg-card p-4 text-sm">A consulta de dados da agência é exclusiva para administradores.</p>;
-  const totalPages = Number(meta.totalPages ?? meta.total_pages);
-  const hasNext = typeof meta.hasNext === "boolean"
-    ? meta.hasNext
+  const totalPages = Number(meta["totalPages"] ?? meta["total_pages"]);
+  const hasNext = typeof meta["hasNext"] === "boolean"
+    ? meta["hasNext"]
     : Number.isFinite(totalPages) && totalPages > 0 ? page < totalPages : rows.length === pageSize;
 
   return <section className="max-w-5xl space-y-5">
@@ -156,7 +156,7 @@ export function PasshubDataSettings({ admin }: { admin: boolean }) {
       {busy && <p role="status" className="mt-4 text-sm text-muted-foreground">Consultando registros...</p>}
       {error && <p role="alert" className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{error}</p>}
       {!response && !busy && <p className="mt-5 rounded-lg bg-muted/50 p-4 text-sm text-muted-foreground">{ready ? "Selecione um tipo acima para consultar os registros." : "Cadastre o segredo no Lovable e atualize o status para ativar as consultas."}</p>}
-      {response && !busy && <>
+      {response !== null && !busy && <>
         <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
           <span>{rows.length} registros nesta página · Página {page}</span>
           <Button size="sm" variant="outline" onClick={() => void loadPage(resource, page)} disabled={busy}><RefreshCw className="h-3.5 w-3.5"/>Atualizar</Button>

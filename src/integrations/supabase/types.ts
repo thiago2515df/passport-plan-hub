@@ -94,6 +94,7 @@ export type Database = {
           hotel_cost: number
           hotel_index: number
           payload: string
+          payment_fee: number
           total: number
           transport_cost: number
         }
@@ -107,6 +108,7 @@ export type Database = {
           hotel_cost: number
           hotel_index: number
           payload: string
+          payment_fee?: number
           total: number
           transport_cost: number
         }
@@ -120,6 +122,7 @@ export type Database = {
           hotel_cost?: number
           hotel_index?: number
           payload?: string
+          payment_fee?: number
           total?: number
           transport_cost?: number
         }
@@ -258,16 +261,19 @@ export type Database = {
         Row: {
           agency_name: string
           id: number
+          payment_rules: Json
           whatsapp: string
         }
         Insert: {
           agency_name?: string
           id?: number
+          payment_rules?: Json
           whatsapp?: string
         }
         Update: {
           agency_name?: string
           id?: number
+          payment_rules?: Json
           whatsapp?: string
         }
         Relationships: []

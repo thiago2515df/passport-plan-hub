@@ -33,3 +33,4 @@
 - Customer acceptance uses an exact-code transactional database function to validate the selected alternative and displayed price; store the accepted payload and pricing snapshot in an owner/admin-readable table, exposing only confirmation and final total publicly.
 - Preserve public Airbnb identity and saved detail snapshots in both database and browser customer projections so shared galleries work without paid anonymous API calls or exposing internal prices.
 - Discover Trivago identities through PLP and price only exact-date/occupancy PDP deals by lowest BRL pricePerStay; bound supplier lookups and never substitute forecasts or auto-confirm fees not guaranteed by the provider contract.
+- Reuse the browser-safe payment quote helper for internal installment previews and customer payment options, preserving the published package total throughout its saved interest-free range.
