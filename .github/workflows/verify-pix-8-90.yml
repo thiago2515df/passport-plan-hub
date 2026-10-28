@@ -3,6 +3,7 @@ on:
   push:
     paths:
       - '.github/workflows/verify-pix-8-90.yml'
+      - 'src/lib/payment-rules.test.ts'
 permissions:
   contents: write
 jobs:
