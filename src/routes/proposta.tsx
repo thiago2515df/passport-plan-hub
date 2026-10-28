@@ -13,6 +13,7 @@ import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { customerProposal } from "@/lib/customer-proposal";
 import { proposalTravelerCount } from "@/lib/customer-package-price";
 import { CustomerPackagePrice } from "@/components/CustomerPackagePrice";
+import { PaymentOptionsDialog } from "@/components/PaymentOptionsDialog";
 import { acceptProposalPackage } from "@/lib/proposals.functions";
 
 export const Route = createFileRoute("/proposta")({
@@ -51,6 +52,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   }, staleTime: 60000 });
   const acceptPackage = useServerFn(acceptProposalPackage);
   const [active, setActive] = useState<Hotel | null>(null);
+  const [paymentHotel, setPaymentHotel] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(acceptance?.hotelIndex ?? null);
   const [aiFailed, setAiFailed] = useState(false);
@@ -195,7 +197,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                       </ul>
                       <CustomerPackagePrice total={h.total} travelers={travelers} subtitle={`Pacote completo · ${p.s.hospedes}`} />
                       <div className="mt-auto grid grid-cols-2 gap-2 pt-2 sm:block sm:space-y-2 sm:pt-3">
-                        <button onClick={() => setActive(h)} className="flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border-2 border-primary px-2 py-2 text-center text-xs font-semibold text-primary sm:gap-2 sm:py-2.5 sm:text-sm">Ver detalhes <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
+                        <button onClick={() => setPaymentHotel(h)} className="flex min-h-10 w-full items-center justify-center gap-1 rounded-xl border-2 border-primary px-2 py-2 text-center text-xs font-semibold text-primary sm:gap-2 sm:py-2.5 sm:text-sm">Ver parcelamento <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></button>
                         <Button disabled={isConfirmed || confirming} onClick={() => { setChosen(sel ? null : i); setConfirmError(""); }} className="h-auto min-h-10 w-full rounded-xl px-2 py-2 text-xs sm:py-2.5 sm:text-sm">{sel ? <><Check className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{isConfirmed ? "Confirmado" : "Selecionado"}</> : <>Selecionar <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></>}</Button>
                       </div>
                     </div>
@@ -234,6 +236,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
       )}
 
       {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} allowRemoteDetails={false} onClose={() => setActive(null)} />}
+      {paymentHotel && <PaymentOptionsDialog open={true} onOpenChange={open => { if (!open) setPaymentHotel(null); }} total={paymentHotel.total} rules={p.s.paymentRules} hotelName={paymentHotel.name} />}
     </div>
   );
 }
