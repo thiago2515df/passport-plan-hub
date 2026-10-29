@@ -5,6 +5,7 @@ import {
   installmentQuoteFromCustomerTotal,
   normalizePaymentRules,
   pixTotal,
+  rateForInterestFreeInstallments,
 } from "./payment-rules";
 
 describe("parcelamento mostrado ao cliente", () => {
@@ -97,18 +98,21 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(normalized.card.visaMaster.slice(0, 6)).toEqual([3.89,5.67,6.51,7.02,7.90,8.69]);
   });
 
-  it("faz o Pix usar a mesma taxa da quantidade escolhida na barra", () => {
-    const selections = [
-      { installments: 3, rate: 6.51 },
-      { installments: 6, rate: 8.69 },
-      { installments: 7, rate: 9.48 },
-      { installments: 8, rate: 9.97 },
-    ];
-    for (const { installments, rate } of selections) {
-      expect(DEFAULT_PAYMENT_RULES.card.visaMaster[installments - 1]).toBe(rate);
+  it("faz o Pix usar exatamente a taxa da posição escolhida na barra", () => {
+    const official = [3.89, 5.67, 6.51, 7.02, 7.90, 8.69, 9.48, 9.97, 11.02, 11.98, 12.90, 13.44];
+    official.forEach((rate, index) => {
+      expect(rateForInterestFreeInstallments(DEFAULT_PAYMENT_RULES, index + 1)).toBe(rate);
       const customerTotal = customerPackageTotal(3000, rate)!;
       expect(pixTotal(customerTotal, rate)).toBeCloseTo(3000, 2);
-    }
+    });
+  });
+
+  it("ignora embeddedFeePercent antigo e usa a posição atual da barra", () => {
+    const stale = structuredClone(DEFAULT_PAYMENT_RULES);
+    stale.card.embeddedFeePercent = 8.69;
+    expect(rateForInterestFreeInstallments(stale, 1)).toBe(3.89);
+    expect(rateForInterestFreeInstallments(stale, 2)).toBe(5.67);
+    expect(rateForInterestFreeInstallments(stale, 3)).toBe(6.51);
   });
 
   it("migra o antigo padrão de Pix sem desconto para 8,90%", () => {
