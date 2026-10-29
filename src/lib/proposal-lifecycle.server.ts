@@ -36,6 +36,7 @@ const purgeCancelled = async (rows: LifecycleRow[], now: number) => {
  * Aplica as regras automáticas do quadro:
  * - propostas criadas/enviadas expiram após 24h sem aprovação;
  * - expiradas viram canceladas e passam a ser tratadas como arquivo;
+ * - arquivadas manualmente ficam no arquivo sem prazo de exclusão;
  * - canceladas são eliminadas definitivamente após 30 dias.
  */
 export async function maintainProposalLifecycle() {
@@ -76,6 +77,11 @@ export async function getProposalLifecycleState(code: string) {
 
   if (row.status === "approved") {
     return { state: "approved" as ProposalLifecycleState, expiresAt: null };
+  }
+
+  // Arquivada manualmente: continua guardada, mas o cliente vê "Proposta arquivada".
+  if (row.status === "archived") {
+    return { state: "archived" as ProposalLifecycleState, expiresAt: null };
   }
 
   if (row.status === "cancelled") {

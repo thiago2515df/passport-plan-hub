@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Building2, Clock3 } from "lucide-react";
+import { Archive, Building2, Clock3 } from "lucide-react";
 import { decodeProposal } from "@/lib/hotels";
+import { customerNotice } from "@/lib/proposal-status";
 import { getProposal } from "@/lib/proposals.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { ProposalView } from "../proposta";
@@ -27,7 +28,7 @@ function ShortProposal() {
   const fetchProposal = useServerFn(getProposal);
   const [payload, setPayload] = useState<string | null | undefined>(undefined);
   const [acceptance, setAcceptance] = useState<{ hotelIndex: number; acceptedAt: string; total: number } | null>(null);
-  const [state, setState] = useState<"active" | "approved" | "expired" | "cancelled" | "missing" | "loading">("loading");
+  const [state, setState] = useState<"active" | "approved" | "expired" | "cancelled" | "archived" | "missing" | "loading">("loading");
 
   useEffect(() => {
     let alive = true;
