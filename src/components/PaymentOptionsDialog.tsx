@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { CreditCard, Landmark, QrCode, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { brl } from "@/lib/hotels";
-import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal, type PaymentRules } from "@/lib/payment-rules";
+import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal, rateForInterestFreeInstallments, type PaymentRules } from "@/lib/payment-rules";
 import { PAYMENT_CARD_BRANDS_IMAGE, PAYMENT_PIX_IMAGE } from "@/assets/payment-brand-assets";
 
 export function PaymentOptionsDialog({
@@ -18,7 +18,7 @@ export function PaymentOptionsDialog({
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
   const freeThrough = Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
-  const selectedRate = payment.card.visaMaster[freeThrough - 1] ?? payment.card.embeddedFeePercent;
+  const selectedRate = rateForInterestFreeInstallments(payment, freeThrough);
   const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
     installments: index + 1,
     rate,
