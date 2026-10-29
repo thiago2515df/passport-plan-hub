@@ -127,6 +127,13 @@
       "when": 1793268000000,
       "tag": "0015_fix_dynamic_pix_rate_source",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1793284471844,
+      "tag": "0016_proposal_archive_status",
+      "breakpoints": true
     }
   ]
 }

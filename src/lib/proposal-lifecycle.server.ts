@@ -11,7 +11,7 @@ type LifecycleRow = {
   updated_at: string;
 };
 
-export type ProposalLifecycleState = "active" | "approved" | "expired" | "cancelled" | "missing";
+export type ProposalLifecycleState = "active" | "approved" | "expired" | "cancelled" | "archived" | "missing";
 
 const deadlineFor = (row: Pick<LifecycleRow, "status" | "created_at" | "sent_at">) => {
   const base = row.status === "awaiting" && row.sent_at ? row.sent_at : row.created_at;
@@ -36,6 +36,7 @@ const purgeCancelled = async (rows: LifecycleRow[], now: number) => {
  * Aplica as regras automáticas do quadro:
  * - propostas criadas/enviadas expiram após 24h sem aprovação;
  * - expiradas viram canceladas e passam a ser tratadas como arquivo;
+ * - arquivadas manualmente ficam no arquivo sem prazo de exclusão;
  * - canceladas são eliminadas definitivamente após 30 dias.
  */
 export async function maintainProposalLifecycle() {
@@ -43,7 +44,7 @@ export async function maintainProposalLifecycle() {
   const { data, error } = await supabaseAdmin
     .from("proposals")
     .select("code,status,created_at,sent_at,updated_at")
-    .in("status", ["created", "awaiting", "cancelled"]);
+    .in("status", ["created", "awaiting", "cancelled", "archived"]);
 
   if (error) throw new Error("Não foi possível atualizar o ciclo de vida das propostas.");
   const rows = (data ?? []) as LifecycleRow[];
@@ -76,6 +77,11 @@ export async function getProposalLifecycleState(code: string) {
 
   if (row.status === "approved") {
     return { state: "approved" as ProposalLifecycleState, expiresAt: null };
+  }
+
+  // Arquivada manualmente: continua guardada, mas o cliente vê "Proposta arquivada".
+  if (row.status === "archived") {
+    return { state: "archived" as ProposalLifecycleState, expiresAt: null };
   }
 
   if (row.status === "cancelled") {

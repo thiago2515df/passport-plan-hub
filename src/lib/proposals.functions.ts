@@ -200,13 +200,14 @@ export const getEditableProposal = createServerFn({ method: "GET" })
 
 export const setProposalStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(data => z.object({ code: codeSchema, status: z.enum(["created", "awaiting", "approved", "cancelled"]) }).parse(data))
+  .inputValidator(data => z.object({ code: codeSchema, status: z.enum(["created", "awaiting", "approved", "cancelled", "archived"]) }).parse(data))
   .handler(async ({ context, data }) => {
     const { assertPermission } = await import("./access.server");
     await assertPermission(context.supabase, "create_proposals");
     const { data: current } = await context.supabase.from("proposals").select("status").eq("code", data.code).maybeSingle();
     // Reativar uma proposta arquivada reinicia o prazo de 24h a partir de agora.
-    const patch = current?.status === "cancelled" && data.status === "created" ? { status: data.status, created_at: new Date().toISOString(), sent_at: null } : { status: data.status };
+    const filedAway = current?.status === "cancelled" || current?.status === "archived";
+    const patch = filedAway && data.status === "created" ? { status: data.status, created_at: new Date().toISOString(), sent_at: null } : { status: data.status };
     const { data: row, error } = await context.supabase.from("proposals").update(patch).eq("code", data.code).select("code,status,sent_at").maybeSingle();
     if (error || !row) throw new Error("Não foi possível atualizar esta proposta.");
     return row;
@@ -218,7 +219,7 @@ export const getProposal = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { getProposalLifecycleState } = await import("./proposal-lifecycle.server");
     const lifecycle = await getProposalLifecycleState(data);
-    if (lifecycle.state === "missing" || lifecycle.state === "cancelled" || lifecycle.state === "expired") {
+    if (lifecycle.state === "missing" || lifecycle.state === "cancelled" || lifecycle.state === "expired" || lifecycle.state === "archived") {
       return { payload: null, acceptance: null, state: lifecycle.state, expiresAt: lifecycle.expiresAt };
     }
 

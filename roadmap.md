@@ -1,4 +1,5 @@
 # Transport proposal
+- [x] Add an "Arquivar" action to proposal cards and show "Proposta arquivada" to the customer; verified the real click, the card leaving the board in about 5s, the Arquivo list with the archive time, the blocked customer link and reactivation back to the board and to the live link.
 - [x] Show final package price and installments for the selected interest-free limit; applied pending payment schema, verified matching internal/public totals and 20 payment/API tests.
 - [ ] Replace Trivago forecasts with lowest dated supplier stay totals and calculate package prices; verify real supplier lookup and UI. Guaranteed all-fee final checkout price awaits the provider's explicit contract.
 - [x] Fix public Airbnb gallery projection; verified the real Curitiba proposal with nine photos, full description, next-photo navigation and mobile layout, without anonymous paid API requests.

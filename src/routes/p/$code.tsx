@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
-import { Building2, Clock3 } from "lucide-react";
+import { Archive, Building2, Clock3 } from "lucide-react";
 import { decodeProposal } from "@/lib/hotels";
+import { customerNotice } from "@/lib/proposal-status";
 import { getProposal } from "@/lib/proposals.functions";
 import { proposalPreviewMeta } from "@/lib/proposal-preview";
 import { ProposalView } from "../proposta";
@@ -27,7 +28,7 @@ function ShortProposal() {
   const fetchProposal = useServerFn(getProposal);
   const [payload, setPayload] = useState<string | null | undefined>(undefined);
   const [acceptance, setAcceptance] = useState<{ hotelIndex: number; acceptedAt: string; total: number } | null>(null);
-  const [state, setState] = useState<"active" | "approved" | "expired" | "cancelled" | "missing" | "loading">("loading");
+  const [state, setState] = useState<"active" | "approved" | "expired" | "cancelled" | "archived" | "missing" | "loading">("loading");
 
   useEffect(() => {
     let alive = true;
@@ -42,13 +43,13 @@ function ShortProposal() {
   }
   const p = payload ? decodeProposal(payload) : null;
   if (!p) {
-    const unavailable = state === "expired" || state === "cancelled";
+    const notice = customerNotice(state);
     return (
       <div className="grid min-h-screen place-items-center bg-background px-5 text-muted-foreground">
         <div className="w-full max-w-md rounded-3xl border border-border bg-card p-8 text-center shadow-md">
-          {unavailable ? <Clock3 className="mx-auto mb-4 h-14 w-14 text-primary" /> : <Building2 className="mx-auto mb-4 h-14 w-14 text-primary/60" />}
-          <h2 className="text-2xl font-bold text-foreground">{unavailable ? "Esta proposta está vencida" : "Proposta inválida ou expirada"}</h2>
-          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed">{unavailable ? "Esta proposta não está mais válida. Procure o seu agente de viagens para receber uma nova cotação atualizada." : "Verifique o link recebido com o seu agente de viagens."}</p>
+          {state === "archived" ? <Archive className="mx-auto mb-4 h-14 w-14 text-primary" /> : notice ? <Clock3 className="mx-auto mb-4 h-14 w-14 text-primary" /> : <Building2 className="mx-auto mb-4 h-14 w-14 text-primary/60" />}
+          <h2 className="text-2xl font-bold text-foreground">{notice?.title ?? "Proposta inválida ou expirada"}</h2>
+          <p className="mx-auto mt-3 max-w-sm text-sm leading-relaxed">{notice?.text ?? "Verifique o link recebido com o seu agente de viagens."}</p>
         </div>
       </div>
     );
