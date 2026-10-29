@@ -37,8 +37,10 @@ export const searchTrivago = createServerFn({ method: "POST" })
       const failures: string[] = [];
       // Each group has at most seven listings and two simultaneous PDP calls.
       // A failed hotel's name and image are still shown, without a fake price.
-      for (let i = 0; i < candidates.length; i += 2) {
-        const batch = await Promise.all(candidates.slice(i, i + 2).map(async hotel => {
+      // Three supplier quotes in parallel keeps the page responsive without
+      // recreating the old burst that triggered rate limits/timeouts.
+      for (let i = 0; i < candidates.length; i += 3) {
+        const batch = await Promise.all(candidates.slice(i, i + 3).map(async hotel => {
           if (!hotel.sourceUrl) return { ...hotel, quoteError: "URL pública indisponível." };
           try {
             const details = await geckoTrivagoDetails(hotel.sourceUrl, data);
