@@ -84,7 +84,9 @@ function Index() {
     queryKey: ["proposal-payment-rules"],
     queryFn: () => paymentRulesFn(),
     enabled: access.allowed,
-    staleTime: 60_000,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
   });
   const [ownerId, setOwnerId] = useState<string | undefined>();
   const commissions = useSellerCommissions(ownerId);
