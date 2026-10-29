@@ -86,6 +86,7 @@ export async function geckoAirbnbSearch(input: {
       numAdults: input.numAdults,
       page: input.page ?? 1,
     }),
+    signal: AbortSignal.timeout(20_000),
   });
   if (!response.ok) throw await readError(response);
   return (await response.json()) as GeckoAirbnbResponse;
@@ -142,7 +143,7 @@ export async function geckoAirbnbDetails(input: {
       ...(endDate ? { endDate } : {}),
       ...(numAdults ? { numAdults } : {}),
     }),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!response.ok) throw await readError(response);
   return (await response.json()) as GeckoAirbnbPdpResponse;
