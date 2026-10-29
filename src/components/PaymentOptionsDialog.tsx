@@ -39,18 +39,42 @@ export function PaymentOptionsDialog({
       <div className="space-y-4 px-4 pb-6 sm:px-6">
         {payment.card.enabled && <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-primary/5 p-4">
-            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até {freeThrough}x sem juros{freeThrough < 12 ? ` · de ${freeThrough + 1}x a 12x com juros` : ""}</p></div></div>
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span>
+              <div>
+                <h3 className="font-bold text-navy">Cartão de crédito</h3>
+                <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-700">
+                  Até {freeThrough}x sem juros
+                </span>
+              </div>
+            </div>
             <img src={PAYMENT_CARD_BRANDS_IMAGE} alt="Visa, Mastercard, American Express, Elo e Hipercard" className="h-7 max-w-[230px] object-contain sm:h-8"/>
           </div>
           <div className="p-4">
             <div className="divide-y divide-border rounded-xl border border-border">
-              {cardQuotes.map(({ installments, quote }) => quote && <div key={installments} className="grid grid-cols-[44px_1fr] items-center gap-3 px-3 py-3 text-sm sm:px-4">
-                <strong className="text-primary">{installments}x</strong>
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground">{installments}× de {brl(quote.installment)}</p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground">Total do pacote {brl(quote.total)}</p>
-                </div>
-              </div>)}
+              {cardQuotes.map(({ installments, quote }) => {
+                if (!quote) return null;
+                const interestFree = installments <= freeThrough;
+                return <div
+                  key={installments}
+                  className={`grid grid-cols-[44px_1fr_auto] items-center gap-3 px-3 py-3 text-sm sm:px-4 ${
+                    interestFree ? "bg-emerald-50/70" : "bg-amber-50/40"
+                  }`}
+                >
+                  <strong className={interestFree ? "text-emerald-700" : "text-amber-800"}>{installments}x</strong>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">{installments}× de {brl(quote.installment)}</p>
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">Total do pacote {brl(quote.total)}</p>
+                  </div>
+                  <span className={`rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide ${
+                    interestFree
+                      ? "bg-emerald-100 text-emerald-700"
+                      : "bg-amber-100 text-amber-800"
+                  }`}>
+                    {interestFree ? "Sem juros" : "Com juros"}
+                  </span>
+                </div>;
+              })}
             </div>
           </div>
         </section>}
