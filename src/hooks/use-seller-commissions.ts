@@ -12,9 +12,12 @@ export function useSellerCommissions(ownerId?: string) {
     queryFn: () => read({ data: { userId } }),
     enabled: access.allowed && !!userId,
     retry: false,
-    staleTime: 0,
-    refetchInterval: 10000,
-    refetchOnWindowFocus: true,
+    // Commission settings rarely change while composing a proposal.
+    // Avoid hitting Supabase every 10 seconds; explicit saves still invalidate this query.
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchInterval: false,
+    refetchOnWindowFocus: false,
     refetchOnReconnect: true,
   });
   return { ...query, ready: !!query.data?.configured && !query.data.issue && !query.isError };
