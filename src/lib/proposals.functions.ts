@@ -114,11 +114,11 @@ export const saveProposal = createServerFn({ method: "POST" })
     // Empty "Adicionar serviço" placeholders have no business meaning. Remove
     // them before validation/storage so existing and older clients can save.
     // Do not remove charged rows with no name: those need user attention.
-    const { normalizePaymentRules, DEFAULT_PAYMENT_RULES } = await import("./payment-rules");
+    const { normalizePaymentRules, DEFAULT_PAYMENT_RULES, rateForInterestFreeInstallments } = await import("./payment-rules");
     const { data: paymentSettings } = await context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle();
     const basePaymentRules = normalizePaymentRules(paymentSettings?.payment_rules ?? DEFAULT_PAYMENT_RULES);
     const interestFreeInstallments = z.number().int().min(1).max(12).parse(parsed.s.interestFreeInstallments ?? 6);
-    const embeddedFeePercent = basePaymentRules.card.visaMaster[interestFreeInstallments - 1] ?? basePaymentRules.card.embeddedFeePercent;
+    const embeddedFeePercent = rateForInterestFreeInstallments(basePaymentRules, interestFreeInstallments);
     const paymentRules = {
       ...basePaymentRules,
       card: { ...basePaymentRules.card, embeddedFeePercent },
