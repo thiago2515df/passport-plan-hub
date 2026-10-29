@@ -13,7 +13,11 @@ export async function assertPermission(client: SupabaseClient<Database>, permiss
 
 /** Check before importing/calling a paid supplier, including direct server requests. */
 export async function assertSearchPermission(client: SupabaseClient<Database>, userId: string, permission: "search_hotels" | "search_flights") {
-  await assertPermission(client, permission);
   const { assertSellerCommissions } = await import("./commissions.server");
-  await assertSellerCommissions(client, userId);
+  // The checks are independent; running them together removes one full
+  // Supabase round-trip from the critical path without weakening authorization.
+  await Promise.all([
+    assertPermission(client, permission),
+    assertSellerCommissions(client, userId),
+  ]);
 }
