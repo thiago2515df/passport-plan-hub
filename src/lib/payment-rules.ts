@@ -50,6 +50,11 @@ export const installmentQuote = (net: number, installments: number, percent: num
 export const pixTotal = (net: number, discountPercent: number) =>
   Math.round((net * (1 - discountPercent / 100) + Number.EPSILON) * 100) / 100;
 
+export const rateForInterestFreeInstallments = (rules: PaymentRules, installments: number) => {
+  const count = Math.max(1, Math.min(12, Math.floor(installments || 6)));
+  return rules.card.visaMaster[count - 1] ?? rules.card.embeddedFeePercent;
+};
+
 /** Final customer package price after embedding the 6x machine fee.
  * The agency keeps the original net amount after the provider deducts the fee. */
 export const customerPackageTotal = (netPackageTotal: number, embeddedFeePercent: number) =>
