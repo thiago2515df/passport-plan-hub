@@ -32,6 +32,7 @@ async function getToken(keyName: string) {
     method: "POST",
     headers: { "X-Api-Key": key, "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!res.ok) throw await parseError(res);
   const d = (await res.json()) as { accessToken: string; expiresAt: number };
@@ -47,6 +48,7 @@ export async function passhub<T>(path: string, init: { method?: string; body?: u
     method: init.method ?? "GET",
     headers: { "X-Api-Key": key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: init.body === undefined ? null : JSON.stringify(init.body),
+    signal: AbortSignal.timeout(20_000),
   });
   if (res.status === 401 && !retried) {
     const err = await parseError(res);
