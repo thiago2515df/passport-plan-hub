@@ -11,7 +11,7 @@ type LifecycleRow = {
   updated_at: string;
 };
 
-export type ProposalLifecycleState = "active" | "approved" | "expired" | "cancelled" | "missing";
+export type ProposalLifecycleState = "active" | "approved" | "expired" | "cancelled" | "archived" | "missing";
 
 const deadlineFor = (row: Pick<LifecycleRow, "status" | "created_at" | "sent_at">) => {
   const base = row.status === "awaiting" && row.sent_at ? row.sent_at : row.created_at;
@@ -43,7 +43,7 @@ export async function maintainProposalLifecycle() {
   const { data, error } = await supabaseAdmin
     .from("proposals")
     .select("code,status,created_at,sent_at,updated_at")
-    .in("status", ["created", "awaiting", "cancelled"]);
+    .in("status", ["created", "awaiting", "cancelled", "archived"]);
 
   if (error) throw new Error("Não foi possível atualizar o ciclo de vida das propostas.");
   const rows = (data ?? []) as LifecycleRow[];
