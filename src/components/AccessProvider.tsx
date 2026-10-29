@@ -12,7 +12,16 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [identity, setIdentity] = useState({ id: "", loading: true });
   const fetchAccess = useServerFn(getAccess);
-  const access = useQuery({ queryKey: ["access", identity.id], queryFn: () => fetchAccess(), enabled: !!identity.id, retry: false });
+  const access = useQuery({
+    queryKey: ["access", identity.id],
+    queryFn: () => fetchAccess(),
+    enabled: !!identity.id,
+    retry: false,
+    staleTime: 5 * 60_000,
+    gcTime: 30 * 60_000,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: true,
+  });
   useEffect(() => {
     let alive = true;
     const refresh = () => { supabase.auth.getUser().then(({ data }) => { if (alive) setIdentity({ id: data.user?.id ?? "", loading: false }); }); };
