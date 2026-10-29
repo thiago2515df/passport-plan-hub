@@ -31,7 +31,7 @@ export async function geckoTrivagoDetails(url: string, stay: TrivagoStay): Promi
       method: "POST",
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({ target: "trivago.com.br", type: "pdp", url: parsed.href, ...stay, currency: "BRL", lang: "pt-br" }),
-      signal: AbortSignal.timeout(45000),
+      signal: AbortSignal.timeout(25_000),
     });
     if (response.ok) {
       const result = await response.json() as {
@@ -117,7 +117,7 @@ export async function geckoTrivagoSearch(input: {
       numAdults: input.numAdults, numChildren: input.numChildren, numRooms: input.numRooms,
       page: input.page, lang: "pt-br", currency: "BRL",
     }),
-    signal: AbortSignal.timeout(45000),
+    signal: AbortSignal.timeout(25_000),
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { errorCode?: string; message?: string };
