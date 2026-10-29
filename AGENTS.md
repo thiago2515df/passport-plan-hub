@@ -19,6 +19,7 @@
 - Provision the first administrator only through trusted out-of-band administration; seller creation validates the administrator server-side and emails a password-setup link.
 - Use one shared ManagementNav sidebar on all workspace screens, preserving icon navigation when collapsed.
 - Persist Kanban status and timestamps on proposals; only explicit sending confirmation marks awaiting, with three grouped columns and server-authorized owner/admin updates.
+- Keep manual archiving on its own 'archived' proposal status, filed away without an expiry date, so the customer link reads "Proposta arquivada" and acceptance is blocked there while 'cancelled' stays reserved for expired links.
 - Hydrate proposal editing through authenticated exact-code reads and update the same code without replacing ownership; preserve guest counts and destination IDs in the encoded search metadata.
 - Generate proposal-sharing text through one browser-safe formatter for clipboard and WhatsApp so both actions always use identical personalized content.
 - Share versioned public proposal-preview artwork and absolute social-image metadata across short and legacy proposal routes so crawlers see the same branded preview without authentication.
