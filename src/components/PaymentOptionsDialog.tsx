@@ -17,12 +17,14 @@ export function PaymentOptionsDialog({
   interestFreeInstallments?: number;
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
+  const freeThrough = Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
+  const selectedRate = payment.card.visaMaster[freeThrough - 1] ?? payment.card.embeddedFeePercent;
   const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
     installments: index + 1,
     rate,
-    quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, payment.card.embeddedFeePercent, interestFreeInstallments),
-  })), [interestFreeInstallments, payment.card.embeddedFeePercent, payment.card.visaMaster, total]);
-  const pixValue = pixTotal(total, payment.card.embeddedFeePercent);
+    quote: installmentQuoteFromCustomerTotal(total, index + 1, rate, selectedRate, freeThrough),
+  })), [freeThrough, payment.card.visaMaster, selectedRate, total]);
+  const pixValue = pixTotal(total, selectedRate);
   const safeTravelers = Math.max(1, Math.floor(travelers || 1));
   const perPerson = Math.round((total / safeTravelers + Number.EPSILON) * 100) / 100;
 
