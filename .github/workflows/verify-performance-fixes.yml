@@ -1,0 +1,27 @@
+name: Verify performance fixes
+on:
+  push:
+    paths:
+      - '.github/workflows/verify-performance-fixes.yml'
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - name: Install
+        run: bun install --frozen-lockfile
+      - name: Test
+        run: bunx vitest run
+      - name: Build
+        run: bun run build
+      - name: Remove temporary workflow
+        if: success()
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/verify-performance-fixes.yml
+          git commit -m "Remove teste temporário de performance"
+          git push
