@@ -6,6 +6,7 @@ import {
   normalizePaymentRules,
   pixTotal,
   rateForInterestFreeInstallments,
+  resolveInterestFreeSelection,
 } from "./payment-rules";
 
 describe("parcelamento mostrado ao cliente", () => {
@@ -113,6 +114,12 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(rateForInterestFreeInstallments(stale, 1)).toBe(3.89);
     expect(rateForInterestFreeInstallments(stale, 2)).toBe(5.67);
     expect(rateForInterestFreeInstallments(stale, 3)).toBe(6.51);
+  });
+
+  it("recupera a parcela pela taxa embutida quando o link público não traz a barra", () => {
+    const stale = structuredClone(DEFAULT_PAYMENT_RULES);
+    stale.card.embeddedFeePercent = 9.97;
+    expect(resolveInterestFreeSelection(stale)).toEqual({ installments: 8, rate: 9.97 });
   });
 
   it("migra o antigo padrão de Pix sem desconto para 8,90%", () => {
