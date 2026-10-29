@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { CreditCard, Landmark, QrCode, ShieldCheck } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { brl } from "@/lib/hotels";
-import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal, rateForInterestFreeInstallments, type PaymentRules } from "@/lib/payment-rules";
+import { DEFAULT_PAYMENT_RULES, installmentQuote, installmentQuoteFromCustomerTotal, normalizePaymentRules, pixTotal, resolveInterestFreeSelection, type PaymentRules } from "@/lib/payment-rules";
 import { PAYMENT_CARD_BRANDS_IMAGE, PAYMENT_PIX_IMAGE } from "@/assets/payment-brand-assets";
 
 export function PaymentOptionsDialog({
-  open, onOpenChange, total, rules, hotelName, travelers = 1, interestFreeInstallments = 6,
+  open, onOpenChange, total, rules, hotelName, travelers = 1, interestFreeInstallments,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -17,8 +17,9 @@ export function PaymentOptionsDialog({
   interestFreeInstallments?: number;
 }) {
   const payment = normalizePaymentRules(rules ?? DEFAULT_PAYMENT_RULES);
-  const freeThrough = Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
-  const selectedRate = rateForInterestFreeInstallments(payment, freeThrough);
+  const selection = resolveInterestFreeSelection(payment, interestFreeInstallments);
+  const freeThrough = selection.installments;
+  const selectedRate = selection.rate;
   const cardQuotes = useMemo(() => payment.card.visaMaster.map((rate, index) => ({
     installments: index + 1,
     rate,
@@ -40,7 +41,7 @@ export function PaymentOptionsDialog({
       <div className="space-y-4 px-4 pb-6 sm:px-6">
         {payment.card.enabled && <section className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-primary/5 p-4">
-            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até {interestFreeInstallments}x sem juros{interestFreeInstallments < 12 ? ` · de ${interestFreeInstallments + 1}x a 12x com juros` : ""}</p></div></div>
+            <div className="flex items-center gap-2"><span className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground"><CreditCard className="h-5 w-5"/></span><div><h3 className="font-bold text-navy">Cartão de crédito</h3><p className="text-xs text-muted-foreground">Até {freeThrough}x sem juros{freeThrough < 12 ? ` · de ${freeThrough + 1}x a 12x com juros` : ""}</p></div></div>
             <img src={PAYMENT_CARD_BRANDS_IMAGE} alt="Visa, Mastercard, American Express, Elo e Hipercard" className="h-7 max-w-[230px] object-contain sm:h-8"/>
           </div>
           <div className="p-4">
@@ -48,7 +49,7 @@ export function PaymentOptionsDialog({
               {cardQuotes.map(({ installments, rate, quote }) => quote && <div key={installments} className="grid grid-cols-[48px_1fr_auto] items-center gap-2 px-3 py-2.5 text-sm">
                 <strong className="text-primary">{installments}x</strong>
                 <div><span className="font-semibold">{installments}× de {brl(quote.installment)}</span><p className="text-[11px] text-muted-foreground">Total do pacote {brl(quote.total)} · {brl(Math.round((quote.total / safeTravelers + Number.EPSILON) * 100) / 100)} por pessoa</p></div>
-                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${installments <= interestFreeInstallments ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{installments <= interestFreeInstallments ? "Sem juros" : `${rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% juros`}</span>
+                <span className={`rounded-full px-2 py-1 text-[10px] font-semibold ${installments <= freeThrough ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>{installments <= freeThrough ? "Sem juros" : `${rate.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}% juros`}</span>
               </div>)}
             </div>
           </div>
