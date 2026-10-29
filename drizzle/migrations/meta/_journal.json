@@ -120,6 +120,13 @@
       "when": 1793226000000,
       "tag": "0015_derive_public_fee_from_slider",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1793268000000,
+      "tag": "0015_fix_dynamic_pix_rate_source",
+      "breakpoints": true
     }
   ]
 }
