@@ -12,6 +12,7 @@ import { AcceptedPackageDetails } from "@/components/AcceptedPackageDetails";
 import { packagePricing, commissionForSearch, commissionLabel } from "@/lib/package-pricing";
 import { setProposalStatus } from "@/lib/proposals.functions";
 import { decodeProposal, brl, nightsBetween } from "@/lib/hotels";
+import { isArchived } from "@/lib/proposal-status";
 import { proposalShareMessage } from "@/lib/proposal-message";
 import { FileText, Send, CheckCircle2, Clock, Plus, ExternalLink, Pencil, Phone, UserRound, CalendarDays, MapPin, XCircle, Search, GripVertical, Loader2, Archive, ArrowRightLeft, RotateCcw } from "lucide-react";
 
