@@ -55,6 +55,20 @@ export const rateForInterestFreeInstallments = (rules: PaymentRules, installment
   return rules.card.visaMaster[count - 1] ?? rules.card.embeddedFeePercent;
 };
 
+/** Resolve the public proposal's selected installment count/rate robustly.
+ * New proposals carry interestFreeInstallments. Older/public projections may
+ * only carry embeddedFeePercent, so recover the count from the official table. */
+export const resolveInterestFreeSelection = (rules: PaymentRules, installments?: number) => {
+  const explicit = Number.isInteger(installments) && Number(installments) >= 1 && Number(installments) <= 12
+    ? Number(installments)
+    : null;
+  if (explicit !== null) return { installments: explicit, rate: rateForInterestFreeInstallments(rules, explicit) };
+  const embedded = rules.card.embeddedFeePercent;
+  const matchedIndex = rules.card.visaMaster.findIndex(rate => Math.abs(rate - embedded) < 0.005);
+  const recovered = matchedIndex >= 0 ? matchedIndex + 1 : 6;
+  return { installments: recovered, rate: matchedIndex >= 0 ? rules.card.visaMaster[matchedIndex]! : embedded };
+};
+
 /** Final customer package price after embedding the 6x machine fee.
  * The agency keeps the original net amount after the provider deducts the fee. */
 export const customerPackageTotal = (netPackageTotal: number, embeddedFeePercent: number) =>
