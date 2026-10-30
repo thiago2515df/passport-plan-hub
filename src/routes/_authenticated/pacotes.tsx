@@ -179,9 +179,6 @@ function Index() {
   const [backF, setBackF] = useState<Leg>(empty);
   const [destIata, setDestIata] = useState("");
   const [flightQuery, setFlightQuery] = useState("");
-  const [outNum, setOutNum] = useState(""), [backNum, setBackNum] = useState("");
-  const [numBusy, setNumBusy] = useState<{ out: boolean; back: boolean }>({ out: false, back: false });
-  const [numMsg, setNumMsg] = useState<{ out: string; back: string }>({ out: "", back: "" });
   const [flightSort, setFlightSort] = useState<"asc" | "desc">("asc");
   const [directOnly, setDirectOnly] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -448,8 +445,8 @@ function Index() {
     return sort === "asc" ? a.total - b.total : b.total - a.total;
   }), [displayedAccommodations, q, sort, mobile, minimumStars]);
   const hotelResults = paginateHotels(list, hotelPage);
-  const outboundResults = filterFlightResults(filterFlightResults(outF.list, flightQuery, directOnly, flightSort), outNum, false, flightSort);
-  const returnResults = filterFlightResults(filterFlightResults(backF.list, flightQuery, directOnly, flightSort), backNum, false, flightSort);
+  const outboundResults = filterFlightResults(outF.list, flightQuery, directOnly, flightSort);
+  const returnResults = filterFlightResults(backF.list, flightQuery, directOnly, flightSort);
   const searchByNumber = async (which: "out" | "back") => {
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     const epoch = searchEpoch.current;
@@ -530,21 +527,11 @@ function Index() {
     window.setTimeout(() => target?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  const numberField = (which: "out" | "back") => <div className="mb-3">
-    <form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4">
-      <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-      <input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} />
-      <Button type="submit" size="sm" variant="outline" disabled={!commissions.ready || numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button>
-    </form>
-    <div className="flex flex-wrap items-start justify-between gap-2">
-      <div>
-        {numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}
-        <FlightImageImporter direction={which} onImported={data => applyFlightImage(which, data)} />
-      </div>
-      <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
-        Envie uma captura da cotação. A IA lê companhia, voo, rota, datas, horários e o total quando estiver visível.
-      </p>
-    </div>
+  const flightImageField = (which: "out" | "back") => <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+    <FlightImageImporter direction={which} onImported={data => applyFlightImage(which, data)} />
+    <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+      Envie uma captura da cotação. A IA lê companhia, voo, rota, datas, horários e o total quando estiver visível.
+    </p>
   </div>;
 
   const toggle = (id: string) => { const offer = selectedOffers[id] ?? [...hotels, ...airbnbListings, ...trivagoListings].find(h => h.id === id); if (!offer || (offer.provider === "trivago" && offer.total <= 0)) return; setLink(""); setSelectedOffers(previous => { const next = { ...previous }; if (next[id]) delete next[id]; else next[id] = { ...offer, provider: offer.provider ?? "hotel" }; return next; }); setSel(previous => toggleHotelSelection(previous, id)); if (!mobile && sel.length === 0 && transport.mode === "air") setAdvanceTo("out"); };
