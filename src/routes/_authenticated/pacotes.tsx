@@ -15,6 +15,8 @@ import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { SelectedFlightsSummary } from "@/components/SelectedFlightsSummary";
+import { FlightImageImporter } from "@/components/FlightImageImporter";
+import type { FlightImageExtraction } from "@/lib/flight-image.functions";
 import { paginateHotels } from "@/lib/result-pagination";
 import { flightToTransportLeg } from "@/lib/customer-itinerary";
 import { restoreProposalFlights, savedFlightSnapshot, replaceProposalFlight, fullFlightPrice } from "@/lib/proposal-edit-flights";
@@ -48,6 +50,43 @@ const toD = (iso: string) => new Date(iso + "T12:00");
 const isoD = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fmtD = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
 const compactDate = (iso: string) => toD(iso).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+
+const imageLegToFlight = (
+  leg: FlightImageExtraction["legs"][number],
+  direction: "out" | "back",
+  fallbackDate: string,
+  index: number,
+): Flight => {
+  const baggage = {
+    ...(leg.baggage.personal != null ? { personal: leg.baggage.personal } : {}),
+    ...(leg.baggage.carryOn != null ? { carryOn: leg.baggage.carryOn } : {}),
+    ...(leg.baggage.checked != null ? { checked: leg.baggage.checked } : {}),
+  };
+  const bagParts = [
+    leg.baggage.personal === true ? "item pessoal" : "",
+    leg.baggage.carryOn === true ? "bagagem de mão" : "",
+    leg.baggage.checked === true ? "bagagem despachada" : "",
+  ].filter(Boolean);
+  return {
+    id: `image-${direction}-${Date.now()}-${index}`,
+    airline: leg.airline || "Companhia aérea",
+    flightNumber: leg.flightNumber || "",
+    from: leg.from || "",
+    to: leg.to || "",
+    departure: leg.departure || "",
+    arrival: leg.arrival || "",
+    departureDate: leg.departureDate || fallbackDate,
+    arrivalDate: leg.arrivalDate || leg.departureDate || fallbackDate,
+    duration: leg.duration || "",
+    stops: leg.stops || "",
+    price: 0,
+    savedPriceUnavailable: true,
+    travelClass: leg.travelClass || "Econômica",
+    fareCategory: leg.fareCategory || undefined,
+    baggage,
+    bags: bagParts.length ? bagParts.join(" · ") : "Bagagem não informada na imagem",
+  };
+};
 
 export const Route = createFileRoute("/_authenticated/pacotes")({
   validateSearch: (search: Record<string, unknown>): { code?: string; mode?: "air" | "bus"; etapa?: PackageStep } => ({ ...(typeof search['code'] === "string" && /^[a-z0-9]{6,12}$/.test(search['code']) ? { code: search['code'] } : {}), ...(search['mode'] === "air" || search['mode'] === "bus" ? { mode: search['mode'] } : {}), ...(parsePackageStep(search['etapa']) ? { etapa: parsePackageStep(search['etapa']) } : {}) }),
@@ -431,7 +470,82 @@ function Index() {
     } catch (e) { if (epoch !== searchEpoch.current) return; setNumMsg(m => ({ ...m, [which]: (e as Error).message })); }
     finally { setNumBusy(b => ({ ...b, [which]: false })); }
   };
-  const numberField = (which: "out" | "back") => <div className="mb-3"><form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} /><Button type="submit" size="sm" variant="outline" disabled={!commissions.ready || numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button></form>{numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}</div>;
+  const applyFlightImage = (sourceDirection: "out" | "back", data: FlightImageExtraction) => {
+    const assignments: { direction: "out" | "back"; flight: Flight }[] = [];
+    const used = new Set<"out" | "back">();
+
+    data.legs.forEach((leg, index) => {
+      let direction: "out" | "back";
+      if (leg.direction === "out" || leg.direction === "back") direction = leg.direction;
+      else if (!used.has(sourceDirection)) direction = sourceDirection;
+      else direction = sourceDirection === "out" ? "back" : "out";
+      if (used.has(direction) && data.legs.length > 1) {
+        const other = direction === "out" ? "back" : "out";
+        if (!used.has(other)) direction = other;
+      }
+      if (used.has(direction)) return;
+      used.add(direction);
+      assignments.push({
+        direction,
+        flight: imageLegToFlight(leg, direction, direction === "out" ? s.checkin : s.checkout, index),
+      });
+    });
+
+    if (!assignments.length) {
+      setErr("A IA não encontrou dados suficientes de voo nessa imagem.");
+      return;
+    }
+
+    const next = { ...pickF };
+    for (const item of assignments) next[item.direction] = item.flight;
+    setPickF(next);
+    setLink("");
+    setErr("");
+
+    for (const item of assignments) {
+      if (item.direction === "out") setOutF(prev => ({ ...prev, list: [item.flight, ...prev.list.filter(f => f.id !== item.flight.id)] }));
+      else setBackF(prev => ({ ...prev, list: [item.flight, ...prev.list.filter(f => f.id !== item.flight.id)] }));
+    }
+
+    setS(prev => {
+      const t = prev.transport ?? makeTransport("air", prev.destino);
+      const cleared = { company: "", departure: "", arrival: "" };
+      const primary = assignments[0]?.flight;
+      return {
+        ...prev,
+        selectedFlights: undefined,
+        transport: {
+          ...t,
+          mode: "air",
+          outbound: next.out ? flightToTransportLeg(next.out) : cleared,
+          inbound: next.back ? flightToTransportLeg(next.back) : cleared,
+          price: data.totalPrice != null ? data.totalPrice : (t.price ?? 0),
+          travelClass: primary?.travelClass || t.travelClass,
+          bags: primary?.bags || t.bags,
+        },
+      };
+    });
+
+    const target = assignments.some(item => item.direction === "out") ? outboundRef.current : returnRef.current;
+    window.setTimeout(() => target?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
+  const numberField = (which: "out" | "back") => <div className="mb-3">
+    <form onSubmit={e => { e.preventDefault(); void searchByNumber(which); }} className="flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4">
+      <SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <input aria-label={which === "out" ? "Número do voo de ida" : "Número do voo de volta"} placeholder={which === "out" ? "Número do voo de ida (ex.: G3 1682)" : "Número do voo de volta (ex.: G3 1683)"} className="min-w-0 w-full bg-transparent text-sm outline-none" value={which === "out" ? outNum : backNum} onChange={e => which === "out" ? setOutNum(e.target.value) : setBackNum(e.target.value)} />
+      <Button type="submit" size="sm" variant="outline" disabled={!commissions.ready || numBusy[which]}>{numBusy[which] ? "Buscando..." : "Buscar na API"}</Button>
+    </form>
+    <div className="flex flex-wrap items-start justify-between gap-2">
+      <div>
+        {numMsg[which] && <p role="status" className="mt-1 text-xs text-muted-foreground">{numMsg[which]}</p>}
+        <FlightImageImporter direction={which} onImported={data => applyFlightImage(which, data)} />
+      </div>
+      <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
+        Envie uma captura da cotação. A IA lê companhia, voo, rota, datas, horários e o total quando estiver visível.
+      </p>
+    </div>
+  </div>;
 
   const toggle = (id: string) => { const offer = selectedOffers[id] ?? [...hotels, ...airbnbListings, ...trivagoListings].find(h => h.id === id); if (!offer || (offer.provider === "trivago" && offer.total <= 0)) return; setLink(""); setSelectedOffers(previous => { const next = { ...previous }; if (next[id]) delete next[id]; else next[id] = { ...offer, provider: offer.provider ?? "hotel" }; return next; }); setSel(previous => toggleHotelSelection(previous, id)); if (!mobile && sel.length === 0 && transport.mode === "air") setAdvanceTo("out"); };
   const updateSelectedOffer = (id: string, updater: (offer: Hotel) => Hotel) => {
