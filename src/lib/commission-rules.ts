@@ -24,7 +24,7 @@ export const COMMISSION_CHANGED =
 
 export function commissionSettingsFromRow(row: unknown): SellerCommissionSettings {
   if (!row) return { ...emptyCommissions, configured: false, updatedAt: null };
-  const parsed = z.record(z.unknown()).safeParse(row);
+  const parsed = z.record(z.string(), z.unknown()).safeParse(row);
   if (!parsed.success)
     return { ...emptyCommissions, configured: false, updatedAt: null, issue: "invalid_data" };
   const record = parsed.data;
