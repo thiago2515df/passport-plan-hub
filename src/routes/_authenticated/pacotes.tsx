@@ -202,7 +202,7 @@ function Index() {
       setPickF(savedFlights);
       setOutF({ list: savedFlights.out ? [savedFlights.out] : [], loading: false });
       setBackF({ list: savedFlights.back ? [savedFlights.back] : [], loading: false });
-      setOutNum(""); setBackNum(""); setFlightQuery(""); setDirectOnly(false);
+      setFlightQuery(""); setDirectOnly(false);
       setAccommodationSource(restored[0]?.provider === "airbnb" ? "airbnb" : restored[0]?.provider === "trivago" ? "trivago" : "hotel");
       setHotelPage(1); setQ("");
       setS(proposal.s); setHotels(restored.filter(h => !h.provider || h.provider === "hotel")); setAirbnbListings(restored.filter(h => h.provider === "airbnb")); setTrivagoListings(restored.filter(h => h.provider === "trivago")); setSelectedOffers(Object.fromEntries(restored.map(h => [h.id, h]))); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
@@ -234,8 +234,7 @@ function Index() {
     setHotels([]); setAirbnbListings([]); setTrivagoListings([]); setSelectedOffers({}); setSel([]);
     setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({});
     setS(previous => previous.transport?.mode === "air" ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
-    setDestIata(""); setFlightQuery(""); setOutNum(""); setBackNum("");
-    setNumMsg({ out: "", back: "" }); setNumBusy({ out: false, back: false });
+    setDestIata(""); setFlightQuery("");
     setLink(""); setErr("");
   }, [searchKey, searchedKey, editLoading]);
   useEffect(() => {
