@@ -12,7 +12,8 @@ const dateLabel = (date?: string) => date && /^\d{4}-\d{2}-\d{2}/.test(date) ? d
 export function FlightCard({ flight: f, selected, onSelect }: { flight: Flight; selected: boolean; onSelect: () => void }) {
   const [dialog, setDialog] = useState<"details" | "rules" | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
-  const logo = /latam/i.test(f.airline) ? latam.url : /gol/i.test(f.airline) ? gol.url : /azul/i.test(f.airline) ? azul.url : undefined;
+  const airlineKey = `${f.airline ?? ""} ${f.flightNumber ?? ""}`;
+  const logo = /latam|\bLA\s*\d|\bJJ\s*\d/i.test(airlineKey) ? latam.url : /gol|\bG3\s*\d/i.test(airlineKey) ? gol.url : /azul|\bAD\s*[- ]?\d/i.test(airlineKey) ? azul.url : undefined;
   const baggage = [
     { name: "Item pessoal", Icon: Backpack, included: f.baggage?.personal },
     { name: "Bagagem de mão", Icon: BriefcaseBusiness, included: f.baggage?.carryOn },
