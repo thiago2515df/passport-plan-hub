@@ -1,4 +1,5 @@
 # Transport proposal
+- [x] Make the flight-ticket image reader use Lovable AI; verified with a real uploaded ticket: both flights (G3 1682/G3 1683), times and total identified and applied on the screen.
 - [x] Add an "Arquivar" action to proposal cards and show "Proposta arquivada" to the customer; verified the real click, the card leaving the board in about 5s, the Arquivo list with the archive time, the blocked customer link and reactivation back to the board and to the live link.
 - [x] Show final package price and installments for the selected interest-free limit; applied pending payment schema, verified matching internal/public totals and 20 payment/API tests.
 - [ ] Replace Trivago forecasts with lowest dated supplier stay totals and calculate package prices; verify real supplier lookup and UI. Guaranteed all-fee final checkout price awaits the provider's explicit contract.
