@@ -71,10 +71,16 @@ export const analyzeFlightImage = createServerFn({ method: "POST" })
     if (!raw.legs.length) throw new Error("A IA não retornou dados do voo.");
 
     const result = extractedSchema.parse({
-      legs: raw.legs.slice(0, 4).map((leg) => ({
+      legs: raw.legs.slice(0, 4).map((leg) => {
+        const flightNumber = toText(leg.flightNumber, 30);
+        const airlineRaw = toText(leg.airline, 80);
+        const airline = /(^|\s)AD(?:\s|[-]?\d|$)/i.test(`${airlineRaw} ${flightNumber}`) || /azul/i.test(airlineRaw)
+          ? "Azul"
+          : airlineRaw;
+        return {
         direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
-        airline: toText(leg.airline, 80),
-        flightNumber: toText(leg.flightNumber, 30),
+        airline,
+        flightNumber,
         from: toText(leg.from, 8),
         to: toText(leg.to, 8),
         departureDate: toDate(leg.departureDate),
@@ -90,7 +96,8 @@ export const analyzeFlightImage = createServerFn({ method: "POST" })
           carryOn: toBool(leg.baggage?.carryOn),
           checked: toBool(leg.baggage?.checked),
         },
-      })),
+      };
+      }),
       totalPrice: toPrice(raw.totalPrice),
       perPersonPrice: toPrice(raw.perPersonPrice),
       currency: toText(raw.currency, 8) || "BRL",
