@@ -447,26 +447,6 @@ function Index() {
   const hotelResults = paginateHotels(list, hotelPage);
   const outboundResults = filterFlightResults(outF.list, flightQuery, directOnly, flightSort);
   const returnResults = filterFlightResults(backF.list, flightQuery, directOnly, flightSort);
-  const searchByNumber = async (which: "out" | "back") => {
-    if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
-    const epoch = searchEpoch.current;
-    const number = (which === "out" ? outNum : backNum).trim();
-    if (!/\d/.test(number)) return;
-    const from = iataOf(s.origem) || cityIata(s.origem ?? ""), to = iataOf(destIata) || cityIata(destIata) || cityIata(s.destino);
-    if (!from || !to) { setNumMsg(m => ({ ...m, [which]: "Não reconheci os aeroportos da rota." })); return; }
-    setNumBusy(b => ({ ...b, [which]: true })); setNumMsg(m => ({ ...m, [which]: "" }));
-    try {
-      const r = await findFlights({ data: which === "out" ? { from, to, date: s.checkin, adults, children: kids.length } : { from: to, to: from, date: s.checkout, adults, children: kids.length } });
-      if (epoch !== searchEpoch.current) return;
-      const setLeg = which === "out" ? setOutF : setBackF;
-      const current = which === "out" ? outF.list : backF.list;
-      const merged = mergeFlights(current, r.flights);
-      setLeg(l => ({ ...l, list: mergeFlights(l.list, r.flights), error: undefined }));
-      const found = filterFlightResults(merged, number, false, "asc").length;
-      setNumMsg(m => ({ ...m, [which]: r.error ?? (found ? `Voo ${number} encontrado na API.` : `Voo ${number} não encontrado na API para esta data e rota.`) }));
-    } catch (e) { if (epoch !== searchEpoch.current) return; setNumMsg(m => ({ ...m, [which]: (e as Error).message })); }
-    finally { setNumBusy(b => ({ ...b, [which]: false })); }
-  };
   const applyFlightImage = (sourceDirection: "out" | "back", data: FlightImageExtraction) => {
     const assignments: { direction: "out" | "back"; flight: Flight }[] = [];
     const used = new Set<"out" | "back">();
