@@ -35,3 +35,4 @@
 - Preserve public Airbnb identity and saved detail snapshots in both database and browser customer projections so shared galleries work without paid anonymous API calls or exposing internal prices.
 - Discover Trivago identities through PLP and price only exact-date/occupancy PDP deals by lowest BRL pricePerStay; bound supplier lookups and never substitute forecasts or auto-confirm fees not guaranteed by the provider contract.
 - Reuse the browser-safe payment quote helper for internal installment previews and customer payment options, preserving the published package total throughout its saved interest-free range.
+- Read flight-ticket images through the Lovable AI Gateway Responses endpoint with strict structured output and server-held credentials, so the feature follows workspace AI credits and error rules instead of a separate provider key.
