@@ -5,6 +5,7 @@ import azul from "@/assets/azul-logo.png.asset.json";
 
 export function AirlineLogo({ airline }: { airline: string }) {
   const [failed, setFailed] = useState(false);
-  const logo = /latam/i.test(airline) ? latam.url : /gol/i.test(airline) ? gol.url : /azul/i.test(airline) ? azul.url : undefined;
+  const key = airline.trim();
+  const logo = /latam|\bLA\b|\bJJ\b/i.test(key) ? latam.url : /gol|\bG3\b/i.test(key) ? gol.url : /azul|\bAD\b/i.test(key) ? azul.url : undefined;
   return logo && !failed ? <img src={logo} alt={airline} onError={() => setFailed(true)} className="h-10 w-20 shrink-0 object-contain" /> : <span className="break-words text-sm font-semibold">{airline || "Companhia aérea"}</span>;
 }
