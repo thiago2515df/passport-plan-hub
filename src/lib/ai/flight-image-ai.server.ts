@@ -73,7 +73,7 @@ export async function extractFlightFromImage({
   imageDataUrl: string;
   directionHint: "out" | "back" | "auto";
 }): Promise<FlightImageAiExtraction> {
-  const apiKey = process.env.LOVABLE_API_KEY?.trim();
+  const apiKey = process.env["LOVABLE_API_KEY"]?.trim();
   if (!apiKey) throw new Error("A IA do Lovable ainda não está disponível neste projeto.");
 
   const directionInstruction = directionHint === "out"
