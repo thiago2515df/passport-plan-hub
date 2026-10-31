@@ -69,6 +69,7 @@ export const searchHotels = createServerFn({ method: "POST" })
       };
       const r = await passhub<{ offers: Offer[] }>("/searches", {
         method: "POST",
+        timeoutMs: 45_000,
         body: {
           type: "hotel",
           destinationId: data.destinationId,
