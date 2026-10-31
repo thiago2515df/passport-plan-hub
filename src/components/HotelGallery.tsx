@@ -178,7 +178,7 @@ export function HotelGallery({
 
   return (
     <div className="package-gallery-overlay fixed inset-0 z-50 grid place-items-end bg-foreground/70 p-0 sm:place-items-center sm:p-4" onClick={onClose}>
-      <div className="h-[100dvh] max-h-[100dvh] w-full max-w-4xl overflow-y-auto overscroll-contain bg-card p-3 shadow-2xl sm:h-auto sm:max-h-[92vh] sm:rounded-2xl sm:p-4" onClick={(e) => e.stopPropagation()}>
+      <div className="h-[100dvh] max-h-[100dvh] w-full max-w-5xl overflow-y-auto overscroll-contain bg-card p-3 shadow-2xl sm:h-auto sm:max-h-[94vh] sm:rounded-2xl sm:p-4" onClick={(e) => e.stopPropagation()}>
         <div className="sticky -top-3 z-10 -mx-3 -mt-3 mb-3 flex items-start justify-between gap-3 border-b border-border bg-card/95 px-3 py-3 backdrop-blur sm:static sm:mx-0 sm:mt-0 sm:border-0 sm:bg-transparent sm:p-0 sm:pb-0">
           <div className="min-w-0">
             <div className="truncate text-base font-bold text-foreground sm:text-lg">{hotel.name}</div>
@@ -187,8 +187,8 @@ export function HotelGallery({
           <button aria-label="Fechar" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary hover:bg-secondary/80"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="relative grid h-[260px] place-items-center overflow-hidden rounded-xl bg-secondary sm:h-[350px]">
-          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="h-full w-full object-cover sm:object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+        <div className="relative flex min-h-[240px] w-full items-center justify-center overflow-hidden rounded-xl bg-secondary/60 sm:min-h-[360px]">
+          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="block h-auto max-h-[58dvh] w-auto max-w-full object-contain sm:max-h-[64vh]" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
