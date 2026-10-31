@@ -281,8 +281,8 @@ function Index() {
     const epoch = searchEpoch.current;
     if (!commissions.ready) { setAirbnbError(COMMISSION_REQUIRED); return; }
     if (!access.allowed) { setAirbnbError("Seu acesso precisa ser liberado pelo administrador."); return; }
-    if (rooms > 1 || kids.length > 0) {
-      setAirbnbError("Esta API do Airbnb não permite reservar quartos separados nem informar idades das crianças. Para essa ocupação, use Hotéis.");
+    if (rooms > 1) {
+      setAirbnbError("Esta API do Airbnb não permite distribuir hóspedes em quartos separados. Para buscas com mais de um quarto, use Hotéis.");
       return;
     }
     if (!s.destino.trim()) { setAirbnbError("Escolha um destino antes de buscar Airbnb."); return; }
@@ -291,7 +291,7 @@ function Index() {
     setAirbnbError("");
     try {
       const result = await findAirbnb({ data: {
-        destination: s.destino, checkin: s.checkin, checkout: s.checkout, adults, page,
+        destination: s.destino, checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length, page,
       } });
       if (epoch !== searchEpoch.current) return;
       if (result.error) { setAirbnbError(result.error); return; }
