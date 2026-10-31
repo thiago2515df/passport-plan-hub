@@ -40,16 +40,33 @@ async function getToken(keyName: string) {
   return d.accessToken;
 }
 
-export async function passhub<T>(path: string, init: { method?: string; body?: unknown; keyName?: string } = {}, retried = false): Promise<T> {
+export async function passhub<T>(
+  path: string,
+  init: { method?: string; body?: unknown; keyName?: string; timeoutMs?: number } = {},
+  retried = false,
+): Promise<T> {
   const keyName = init.keyName ?? "PASSHUB_API_KEY";
   const { key } = creds(keyName);
   const token = await getToken(keyName);
-  const res = await fetch(`${BASE}${path}`, {
-    method: init.method ?? "GET",
-    headers: { "X-Api-Key": key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: init.body === undefined ? null : JSON.stringify(init.body),
-    signal: AbortSignal.timeout(20_000),
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, {
+      method: init.method ?? "GET",
+      headers: { "X-Api-Key": key, Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: init.body === undefined ? null : JSON.stringify(init.body),
+      signal: AbortSignal.timeout(init.timeoutMs ?? 20_000),
+    });
+  } catch (error) {
+    if (error instanceof Error && (error.name === "TimeoutError" || error.name === "AbortError")) {
+      throw new PasshubError(
+        504,
+        "TIMEOUT",
+        "A consulta à PassHub demorou mais que o esperado. Tente novamente em alguns segundos.",
+        true,
+      );
+    }
+    throw error;
+  }
   if (res.status === 401 && !retried) {
     const err = await parseError(res);
     if (err.code === "UNAUTHORIZED") {
