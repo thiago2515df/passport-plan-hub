@@ -187,8 +187,8 @@ export function HotelGallery({
           <button aria-label="Fechar" onClick={onClose} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-secondary hover:bg-secondary/80"><X className="h-5 w-5" /></button>
         </div>
 
-        <div className="relative flex min-h-[240px] w-full items-center justify-center overflow-hidden rounded-xl bg-secondary/60 sm:min-h-[360px]">
-          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="block h-auto max-h-[58dvh] w-auto max-w-full object-contain sm:max-h-[64vh]" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+        <div className="relative flex h-[52dvh] min-h-[240px] max-h-[560px] w-full items-center justify-center overflow-hidden rounded-xl bg-secondary/60 sm:h-[58vh] sm:min-h-[360px] sm:max-h-[640px]">
+          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="block h-full w-full object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
@@ -197,7 +197,7 @@ export function HotelGallery({
         </div>
 
         {photos.length > 1 && <div className="mt-2 flex snap-x gap-2 overflow-x-auto pb-1">
-          {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 snap-start overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-14 w-20 object-cover sm:h-16 sm:w-24" /></button>)}
+          {photos.map((p, k) => <button key={p} onClick={() => setI(k)} className={`shrink-0 snap-start overflow-hidden rounded-md border-2 ${k === i ? "border-primary" : "border-transparent"}`}><img src={p} alt="" loading="lazy" onError={() => setBad((b) => new Set(b).add(p))} className="h-14 w-20 bg-secondary/60 object-contain sm:h-16 sm:w-24" /></button>)}
         </div>}
 
         {isAirbnb && (
