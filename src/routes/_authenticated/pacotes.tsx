@@ -401,8 +401,16 @@ function Index() {
   const buscar = async () => {
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
-    if (!s.destino.trim() || (accommodationSource === "hotel" && !destId)) { setErr("Escolha um destino da lista de sugestões."); return; }
     if (s.checkout <= s.checkin) { setErr("A data de volta precisa ser posterior à de ida."); return; }
+    if (s.destino.trim() && accommodationSource === "hotel" && !destId && transport.mode === "air") {
+      // Hotel lookup unavailable or destination not picked: still search flights by city name.
+      searchEpoch.current += 1;
+      setHasSearched(true); setSearchedKey(searchKey); setHotels([]);
+      setErr("Hotéis indisponíveis para este destino agora. Mostrando apenas os voos.");
+      if (mobile) goStep("voos"); else startFlightSearch(true);
+      return;
+    }
+    if (!s.destino.trim() || (accommodationSource === "hotel" && !destId)) { setErr("Escolha um destino da lista de sugestões."); return; }
     if (rooms < 1 || roomGuests.some(r => r.adults < 1)) { setErr("Cada quarto precisa ter pelo menos um adulto."); return; }
     searchEpoch.current += 1;
     const epoch = searchEpoch.current;
