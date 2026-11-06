@@ -37,6 +37,9 @@ export const searchFlights = createServerFn({ method: "POST" })
           const r = await passhub<{ offers?: FlightOffer[] }>("/searches", {
             method: "POST",
             keyName: "PASSHUB_AIR_API_KEY",
+            // The flight search asks PassHub to wait up to 40s for supplier results.
+            // Keep the HTTP timeout above that window so our client does not abort first.
+            timeoutMs: 55_000,
             body: {
               type: "flight",
               iataFrom: from,
