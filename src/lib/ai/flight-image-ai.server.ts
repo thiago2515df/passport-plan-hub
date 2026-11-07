@@ -6,6 +6,8 @@ import { createLovableAiGatewayRunIdFetch } from "./run-id.ts";
 
 const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1";
 const FLIGHT_IMAGE_MODEL = "openai/gpt-6-astra";
+const STARIMG_BASE_URL = "https://ai.starimg.ru";
+const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5";
 
 const baggageSchema = z.strictObject({
   personal: z.boolean().nullable(),
@@ -66,6 +68,74 @@ const toUserError = (error: unknown, status: number | undefined): Error => {
   return new Error("A IA não conseguiu ler a imagem agora.");
 };
 
+const parseDataUrl = (imageDataUrl: string) => {
+  const match = imageDataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/s);
+  if (!match) throw new Error("Formato de imagem não suportado para leitura.");
+  const mediaType = match[1] === "image/jpg" ? "image/jpeg" : match[1];
+  return { mediaType, data: match[2] };
+};
+
+async function extractWithStarimg({
+  apiKey,
+  imageDataUrl,
+  prompt,
+}: {
+  apiKey: string;
+  imageDataUrl: string;
+  prompt: string;
+}): Promise<FlightImageAiExtraction> {
+  const image = parseDataUrl(imageDataUrl);
+  const response = await fetch(`${STARIMG_BASE_URL}/v1/messages`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      Authorization: `Bearer ${apiKey}`,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: STARIMG_MODEL,
+      max_tokens: 1800,
+      temperature: 0,
+      messages: [{
+        role: "user",
+        content: [
+          {
+            type: "text",
+            text: `${prompt}\n\nRetorne SOMENTE um objeto JSON válido, sem markdown, seguindo exatamente estes campos: legs, totalPrice, perPersonPrice, currency, confidence, notes. Cada item de legs deve conter direction, airline, flightNumber, from, to, departureDate, arrivalDate, departure, arrival, duration, stops, travelClass, fareCategory e baggage com personal, carryOn e checked.`,
+          },
+          {
+            type: "image",
+            source: { type: "base64", media_type: image.mediaType, data: image.data },
+          },
+        ],
+      }],
+    }),
+    signal: AbortSignal.timeout(65_000),
+  });
+
+  const body = await response.json().catch(() => ({})) as {
+    content?: { type?: string; text?: string }[];
+    error?: { message?: string };
+    message?: string;
+  };
+  if (!response.ok) {
+    const detail = body.error?.message || body.message || response.statusText;
+    throw new Error(`AI STAR ${response.status}: ${detail}`);
+  }
+
+  const raw = (body.content ?? [])
+    .filter((part) => part.type === "text" && typeof part.text === "string")
+    .map((part) => part.text)
+    .join("\n")
+    .trim()
+    .replace(/^\`\`\`(?:json)?\s*/i, "")
+    .replace(/\s*\`\`\`$/, "");
+
+  if (!raw) throw new Error("A AI STAR não retornou dados da imagem.");
+  return extractionSchema.parse(JSON.parse(raw));
+}
+
 export async function extractFlightFromImage({
   imageDataUrl,
   directionHint,
@@ -73,8 +143,11 @@ export async function extractFlightFromImage({
   imageDataUrl: string;
   directionHint: "out" | "back" | "auto";
 }): Promise<FlightImageAiExtraction> {
-  const apiKey = process.env["LOVABLE_API_KEY"]?.trim();
-  if (!apiKey) throw new Error("A IA do Lovable ainda não está disponível neste projeto.");
+  const starimgApiKey = process.env["STARIMG_API_KEY"]?.trim();
+  const lovableApiKey = process.env["LOVABLE_API_KEY"]?.trim();
+  if (!starimgApiKey && !lovableApiKey) {
+    throw new Error("Nenhuma IA de leitura de imagens está configurada neste projeto.");
+  }
 
   const directionInstruction = directionHint === "out"
     ? "Esta imagem foi enviada no campo de IDA. Se houver apenas um trecho, classifique-o como out."
@@ -96,6 +169,20 @@ export async function extractFlightFromImage({
     "Deixe null qualquer campo que não esteja visível na imagem.",
   ].join("\n");
 
+  let starimgError: unknown;
+  if (starimgApiKey) {
+    try {
+      return await extractWithStarimg({ apiKey: starimgApiKey, imageDataUrl, prompt });
+    } catch (error) {
+      starimgError = error;
+      console.error("AI STAR flight image extraction failed:", safeDetail(error) ?? error);
+    }
+  }
+
+  if (!lovableApiKey) {
+    throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
+  }
+
   const maxAttempts = 3;
   let lastError: unknown;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -106,8 +193,8 @@ export async function extractFlightFromImage({
       const runIdFetch = createLovableAiGatewayRunIdFetch(undefined);
       const provider = createOpenAI({
         baseURL: LOVABLE_AI_GATEWAY_URL,
-        apiKey,
-        headers: { "Lovable-API-Key": apiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
+        apiKey: lovableApiKey,
+        headers: { "Lovable-API-Key": lovableApiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
         fetch: runIdFetch.fetch,
       });
       const result = streamText({
