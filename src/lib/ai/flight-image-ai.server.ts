@@ -135,8 +135,16 @@ async function extractWithStarimg({
         .trim()
         .replace(/^\`\`\`(?:json)?\s*/i, "")
         .replace(/\s*\`\`\`$/, "");
-      if (!raw) errors.push("Messages: resposta sem texto.");
-      else return extractionSchema.parse(JSON.parse(raw));
+      if (!raw) {
+        errors.push("Messages: resposta sem texto.");
+      } else {
+        try {
+          return extractionSchema.parse(JSON.parse(raw));
+        } catch (error) {
+          errors.push(`Messages resposta: ${raw.slice(0, 500)}`);
+          errors.push(`Messages parse: ${safeDetail(error) || "JSON inválido"}`);
+        }
+      }
     }
   } catch (error) {
     errors.push(`${baseUrl} Messages: ${safeDetail(error) || "falha de conexão"}`);
@@ -179,15 +187,23 @@ async function extractWithStarimg({
       const raw = body.choices?.[0]?.message?.content?.trim()
         .replace(/^\`\`\`(?:json)?\s*/i, "")
         .replace(/\s*\`\`\`$/, "");
-      if (!raw) errors.push("Chat: resposta sem texto.");
-      else return extractionSchema.parse(JSON.parse(raw));
+      if (!raw) {
+        errors.push("Chat: resposta sem texto.");
+      } else {
+        try {
+          return extractionSchema.parse(JSON.parse(raw));
+        } catch (error) {
+          errors.push(`Chat resposta: ${raw.slice(0, 500)}`);
+          errors.push(`Chat parse: ${safeDetail(error) || "JSON inválido"}`);
+        }
+      }
     }
   } catch (error) {
     errors.push(`${baseUrl} Chat: ${safeDetail(error) || "falha de conexão"}`);
   }
   }
 
-  throw new Error(`AI STAR não conseguiu processar a imagem. ${errors.join(" | ").slice(0, 700)}`);
+  throw new Error(`AI STAR não conseguiu processar a imagem. ${errors.join(" | ").slice(0, 1200)}`);
 }
 
 export async function extractFlightFromImage({
