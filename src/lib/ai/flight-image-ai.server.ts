@@ -6,7 +6,12 @@ import { createLovableAiGatewayRunIdFetch } from "./run-id.ts";
 
 const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1";
 const FLIGHT_IMAGE_MODEL = "openai/gpt-6-astra";
-const STARIMG_BASE_URL = (process.env["STARIMG_BASE_URL"]?.trim() || "https://ai.starimg.ru").replace(/\/$/, "");
+const normalizeStarimgBase = (value: string) => value.trim().replace(/\/+$/, "").replace(/\/v1$/i, "");
+const STARIMG_BASE_URLS = Array.from(new Set([
+  normalizeStarimgBase(process.env["STARIMG_BASE_URL"]?.trim() || "https://ai.starimg.ru"),
+  "https://ai.starimg.ru",
+  "https://ai.starimg.space",
+]));
 const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5";
 
 const baggageSchema = z.strictObject({
@@ -89,9 +94,10 @@ async function extractWithStarimg({
 
   const errors: string[] = [];
 
+  for (const baseUrl of STARIMG_BASE_URLS) {
   // Prefer the native Anthropic Messages protocol.
   try {
-    const response = await fetch(`${STARIMG_BASE_URL}/v1/messages`, {
+    const response = await fetch(`${baseUrl}/v1/messages`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -133,12 +139,12 @@ async function extractWithStarimg({
       else return extractionSchema.parse(JSON.parse(raw));
     }
   } catch (error) {
-    errors.push(`Messages: ${safeDetail(error) || "falha de conexão"}`);
+    errors.push(`${baseUrl} Messages: ${safeDetail(error) || "falha de conexão"}`);
   }
 
   // Some custom gateways expose Claude through the OpenAI-compatible endpoint instead.
   try {
-    const response = await fetch(`${STARIMG_BASE_URL}/v1/chat/completions`, {
+    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -177,7 +183,8 @@ async function extractWithStarimg({
       else return extractionSchema.parse(JSON.parse(raw));
     }
   } catch (error) {
-    errors.push(`Chat: ${safeDetail(error) || "falha de conexão"}`);
+    errors.push(`${baseUrl} Chat: ${safeDetail(error) || "falha de conexão"}`);
+  }
   }
 
   throw new Error(`AI STAR não conseguiu processar a imagem. ${errors.join(" | ").slice(0, 700)}`);
