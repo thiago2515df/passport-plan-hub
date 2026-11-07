@@ -12,7 +12,7 @@ const STARIMG_BASE_URLS = Array.from(new Set([
   "https://ai.starimg.ru",
   "https://ai.starimg.space",
 ]));
-const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5";
+const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5-5";
 
 const baggageSchema = z.strictObject({
   personal: z.boolean().nullable(),
