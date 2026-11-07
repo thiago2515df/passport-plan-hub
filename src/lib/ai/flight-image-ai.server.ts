@@ -2,17 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Output, streamText } from "ai";
 import { z } from "zod";
 
-import { createLovableAiGatewayRunIdFetch } from "./run-id.ts";
-
-const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1";
-const FLIGHT_IMAGE_MODEL = "openai/gpt-6-astra";
-const normalizeStarimgBase = (value: string) => value.trim().replace(/\/+$/, "").replace(/\/v1$/i, "");
-const STARIMG_BASE_URLS = Array.from(new Set([
-  normalizeStarimgBase(process.env["STARIMG_BASE_URL"]?.trim() || "https://ai.starimg.ru"),
-  "https://ai.starimg.ru",
-  "https://ai.starimg.space",
-]));
-const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5-5";
+const OPENAI_IMAGE_MODEL = process.env["OPENAI_IMAGE_MODEL"]?.trim() || "gpt-4.1-mini";
 
 const baggageSchema = z.strictObject({
   personal: z.boolean().nullable(),
@@ -58,153 +48,19 @@ const statusOf = (error: unknown): number | undefined => {
 
 const safeDetail = (error: unknown): string | undefined => {
   const message = error instanceof Error ? error.message.trim() : undefined;
-  return message && message.length > 0 && message.length <= 400 ? message : undefined;
+  return message && message.length > 0 && message.length <= 500 ? message : undefined;
 };
 
 const toUserError = (error: unknown, status: number | undefined): Error => {
   const detail = safeDetail(error);
-  if (status === 401) return new Error("A IA do Lovable não está configurada neste projeto.");
-  if (status === 402) return new Error(detail || "Créditos de IA insuficientes. Peça ao administrador para reabastecer os créditos.");
-  if (status === 403) return new Error(detail || "O acesso à IA do Lovable está bloqueado para este espaço de trabalho.");
-  if (status === 404) return new Error("O modelo de IA usado na leitura de imagens não está disponível.");
-  if (status === 429) return new Error("A IA está muito solicitada agora. Tente novamente em alguns instantes.");
-  if (status != null && status >= 500) return new Error("A IA do Lovable está indisponível no momento. Tente novamente em instantes.");
-  if (status === 400) return new Error("A IA não conseguiu processar esta imagem. Tente uma captura mais nítida.");
-  return new Error("A IA não conseguiu ler a imagem agora.");
+  if (status === 401) return new Error("A chave da OpenAI não foi aceita. Confira o segredo OPENAI_API_KEY.");
+  if (status === 403) return new Error(detail || "A chave da OpenAI não tem permissão para usar este modelo.");
+  if (status === 404) return new Error("O modelo configurado para leitura de imagens não está disponível na OpenAI.");
+  if (status === 429) return new Error("A OpenAI atingiu um limite de uso agora. Tente novamente em alguns instantes.");
+  if (status != null && status >= 500) return new Error("A OpenAI está indisponível no momento. Tente novamente em instantes.");
+  if (status === 400) return new Error(detail || "A OpenAI não conseguiu processar esta imagem. Tente uma captura mais nítida.");
+  return new Error(detail || "A OpenAI não conseguiu ler a imagem agora.");
 };
-
-const parseDataUrl = (imageDataUrl: string) => {
-  const match = imageDataUrl.match(/^data:(image\/(?:png|jpeg|jpg|webp));base64,(.+)$/s);
-  if (!match) throw new Error("Formato de imagem não suportado para leitura.");
-  const mediaType = match[1] === "image/jpg" ? "image/jpeg" : match[1];
-  return { mediaType, data: match[2] };
-};
-
-async function extractWithStarimg({
-  apiKey,
-  imageDataUrl,
-  prompt,
-}: {
-  apiKey: string;
-  imageDataUrl: string;
-  prompt: string;
-}): Promise<FlightImageAiExtraction> {
-  const image = parseDataUrl(imageDataUrl);
-  const jsonInstruction = `${prompt}\n\nRetorne SOMENTE um objeto JSON válido, sem markdown, seguindo exatamente estes campos: legs, totalPrice, perPersonPrice, currency, confidence, notes. Cada item de legs deve conter direction, airline, flightNumber, from, to, departureDate, arrivalDate, departure, arrival, duration, stops, travelClass, fareCategory e baggage com personal, carryOn e checked.`;
-
-  const errors: string[] = [];
-
-  for (const baseUrl of STARIMG_BASE_URLS) {
-  // Prefer the native Anthropic Messages protocol.
-  try {
-    const response = await fetch(`${baseUrl}/v1/messages`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        Authorization: `Bearer ${apiKey}`,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: STARIMG_MODEL,
-        max_tokens: 1800,
-        temperature: 0,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: jsonInstruction },
-            { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } },
-          ],
-        }],
-      }),
-      signal: AbortSignal.timeout(65_000),
-    });
-
-    const body = await response.json().catch(() => ({})) as {
-      content?: { type?: string; text?: string }[];
-      error?: { message?: string };
-      message?: string;
-    };
-    if (!response.ok) {
-      errors.push(`Messages ${response.status}: ${body.error?.message || body.message || response.statusText}`);
-    } else {
-      const raw = (body.content ?? [])
-        .filter((part) => part.type === "text" && typeof part.text === "string")
-        .map((part) => part.text)
-        .join("\n")
-        .trim()
-        .replace(/^\`\`\`(?:json)?\s*/i, "")
-        .replace(/\s*\`\`\`$/, "");
-      if (!raw) {
-        errors.push("Messages: resposta sem texto.");
-      } else {
-        try {
-          return extractionSchema.parse(JSON.parse(raw));
-        } catch (error) {
-          errors.push(`Messages resposta: ${raw.slice(0, 500)}`);
-          errors.push(`Messages parse: ${safeDetail(error) || "JSON inválido"}`);
-        }
-      }
-    }
-  } catch (error) {
-    errors.push(`${baseUrl} Messages: ${safeDetail(error) || "falha de conexão"}`);
-  }
-
-  // Some custom gateways expose Claude through the OpenAI-compatible endpoint instead.
-  try {
-    const response = await fetch(`${baseUrl}/v1/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: STARIMG_MODEL,
-        temperature: 0,
-        max_tokens: 1800,
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: jsonInstruction },
-            {
-              type: "image_url",
-              image_url: { url: `data:${image.mediaType};base64,${image.data}` },
-            },
-          ],
-        }],
-      }),
-      signal: AbortSignal.timeout(65_000),
-    });
-
-    const body = await response.json().catch(() => ({})) as {
-      choices?: { message?: { content?: string } }[];
-      error?: { message?: string };
-      message?: string;
-    };
-    if (!response.ok) {
-      errors.push(`Chat ${response.status}: ${body.error?.message || body.message || response.statusText}`);
-    } else {
-      const raw = body.choices?.[0]?.message?.content?.trim()
-        .replace(/^\`\`\`(?:json)?\s*/i, "")
-        .replace(/\s*\`\`\`$/, "");
-      if (!raw) {
-        errors.push("Chat: resposta sem texto.");
-      } else {
-        try {
-          return extractionSchema.parse(JSON.parse(raw));
-        } catch (error) {
-          errors.push(`Chat resposta: ${raw.slice(0, 500)}`);
-          errors.push(`Chat parse: ${safeDetail(error) || "JSON inválido"}`);
-        }
-      }
-    }
-  } catch (error) {
-    errors.push(`${baseUrl} Chat: ${safeDetail(error) || "falha de conexão"}`);
-  }
-  }
-
-  throw new Error(`AI STAR não conseguiu processar a imagem. ${errors.join(" | ").slice(0, 1200)}`);
-}
 
 export async function extractFlightFromImage({
   imageDataUrl,
@@ -213,10 +69,9 @@ export async function extractFlightFromImage({
   imageDataUrl: string;
   directionHint: "out" | "back" | "auto";
 }): Promise<FlightImageAiExtraction> {
-  const starimgApiKey = process.env["STARIMG_API_KEY"]?.trim();
-  const lovableApiKey = process.env["LOVABLE_API_KEY"]?.trim();
-  if (!starimgApiKey && !lovableApiKey) {
-    throw new Error("Nenhuma IA de leitura de imagens está configurada neste projeto.");
+  const apiKey = process.env["OPENAI_API_KEY"]?.trim();
+  if (!apiKey) {
+    throw new Error("A leitura por imagem ainda não está configurada. Cadastre o segredo OPENAI_API_KEY.");
   }
 
   const directionInstruction = directionHint === "out"
@@ -239,36 +94,18 @@ export async function extractFlightFromImage({
     "Deixe null qualquer campo que não esteja visível na imagem.",
   ].join("\n");
 
-  let starimgError: unknown;
-  if (starimgApiKey) {
-    try {
-      return await extractWithStarimg({ apiKey: starimgApiKey, imageDataUrl, prompt });
-    } catch (error) {
-      starimgError = error;
-      console.error("AI STAR flight image extraction failed:", safeDetail(error) ?? error);
-    }
-  }
-
-  if (!lovableApiKey) {
-    throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
-  }
-
+  const provider = createOpenAI({ apiKey });
   const maxAttempts = 3;
   let lastError: unknown;
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (attempt > 1) {
-      await sleep(Math.min(8_000, 700 * 2 ** (attempt - 2)) + Math.floor(Math.random() * 400));
+      await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
     }
+
     try {
-      const runIdFetch = createLovableAiGatewayRunIdFetch(undefined);
-      const provider = createOpenAI({
-        baseURL: LOVABLE_AI_GATEWAY_URL,
-        apiKey: lovableApiKey,
-        headers: { "Lovable-API-Key": lovableApiKey, "X-Lovable-AIG-SDK": "vercel-ai-sdk" },
-        fetch: runIdFetch.fetch,
-      });
       const result = streamText({
-        model: provider.responses(FLIGHT_IMAGE_MODEL),
+        model: provider.responses(OPENAI_IMAGE_MODEL),
         messages: [{
           role: "user",
           content: [
@@ -280,24 +117,18 @@ export async function extractFlightFromImage({
         providerOptions: {
           openai: {
             store: false,
-            forceReasoning: true,
-            reasoningEffort: "medium",
-            reasoningSummary: "auto",
-            include: ["reasoning.encrypted_content"],
           },
         },
       });
+
       return await result.output;
     } catch (error) {
       lastError = error;
       const status = statusOf(error);
       const retryable = status === 429 || (status != null && status >= 500 && status <= 599);
-      if (!retryable || attempt === maxAttempts) {
-        if (starimgError) throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
-        throw toUserError(error, status);
-      }
+      if (!retryable || attempt === maxAttempts) throw toUserError(error, status);
     }
   }
-  if (starimgError) throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
+
   throw toUserError(lastError, statusOf(lastError));
 }
