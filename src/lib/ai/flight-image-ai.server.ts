@@ -6,7 +6,7 @@ import { createLovableAiGatewayRunIdFetch } from "./run-id.ts";
 
 const LOVABLE_AI_GATEWAY_URL = "https://ai.gateway.lovable.dev/v1";
 const FLIGHT_IMAGE_MODEL = "openai/gpt-6-astra";
-const STARIMG_BASE_URL = "https://ai.starimg.ru";
+const STARIMG_BASE_URL = (process.env["STARIMG_BASE_URL"]?.trim() || "https://ai.starimg.ru").replace(/\/$/, "");
 const STARIMG_MODEL = process.env["STARIMG_MODEL"]?.trim() || "claude-sonnet-5";
 
 const baggageSchema = z.strictObject({
