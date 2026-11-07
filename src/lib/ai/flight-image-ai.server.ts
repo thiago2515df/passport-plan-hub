@@ -85,55 +85,102 @@ async function extractWithStarimg({
   prompt: string;
 }): Promise<FlightImageAiExtraction> {
   const image = parseDataUrl(imageDataUrl);
-  const response = await fetch(`${STARIMG_BASE_URL}/v1/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey,
-      Authorization: `Bearer ${apiKey}`,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: STARIMG_MODEL,
-      max_tokens: 1800,
-      temperature: 0,
-      messages: [{
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `${prompt}\n\nRetorne SOMENTE um objeto JSON válido, sem markdown, seguindo exatamente estes campos: legs, totalPrice, perPersonPrice, currency, confidence, notes. Cada item de legs deve conter direction, airline, flightNumber, from, to, departureDate, arrivalDate, departure, arrival, duration, stops, travelClass, fareCategory e baggage com personal, carryOn e checked.`,
-          },
-          {
-            type: "image",
-            source: { type: "base64", media_type: image.mediaType, data: image.data },
-          },
-        ],
-      }],
-    }),
-    signal: AbortSignal.timeout(65_000),
-  });
+  const jsonInstruction = `${prompt}\n\nRetorne SOMENTE um objeto JSON válido, sem markdown, seguindo exatamente estes campos: legs, totalPrice, perPersonPrice, currency, confidence, notes. Cada item de legs deve conter direction, airline, flightNumber, from, to, departureDate, arrivalDate, departure, arrival, duration, stops, travelClass, fareCategory e baggage com personal, carryOn e checked.`;
 
-  const body = await response.json().catch(() => ({})) as {
-    content?: { type?: string; text?: string }[];
-    error?: { message?: string };
-    message?: string;
-  };
-  if (!response.ok) {
-    const detail = body.error?.message || body.message || response.statusText;
-    throw new Error(`AI STAR ${response.status}: ${detail}`);
+  const errors: string[] = [];
+
+  // Prefer the native Anthropic Messages protocol.
+  try {
+    const response = await fetch(`${STARIMG_BASE_URL}/v1/messages`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        Authorization: `Bearer ${apiKey}`,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: STARIMG_MODEL,
+        max_tokens: 1800,
+        temperature: 0,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: jsonInstruction },
+            { type: "image", source: { type: "base64", media_type: image.mediaType, data: image.data } },
+          ],
+        }],
+      }),
+      signal: AbortSignal.timeout(65_000),
+    });
+
+    const body = await response.json().catch(() => ({})) as {
+      content?: { type?: string; text?: string }[];
+      error?: { message?: string };
+      message?: string;
+    };
+    if (!response.ok) {
+      errors.push(`Messages ${response.status}: ${body.error?.message || body.message || response.statusText}`);
+    } else {
+      const raw = (body.content ?? [])
+        .filter((part) => part.type === "text" && typeof part.text === "string")
+        .map((part) => part.text)
+        .join("\n")
+        .trim()
+        .replace(/^\`\`\`(?:json)?\s*/i, "")
+        .replace(/\s*\`\`\`$/, "");
+      if (!raw) errors.push("Messages: resposta sem texto.");
+      else return extractionSchema.parse(JSON.parse(raw));
+    }
+  } catch (error) {
+    errors.push(`Messages: ${safeDetail(error) || "falha de conexão"}`);
   }
 
-  const raw = (body.content ?? [])
-    .filter((part) => part.type === "text" && typeof part.text === "string")
-    .map((part) => part.text)
-    .join("\n")
-    .trim()
-    .replace(/^\`\`\`(?:json)?\s*/i, "")
-    .replace(/\s*\`\`\`$/, "");
+  // Some custom gateways expose Claude through the OpenAI-compatible endpoint instead.
+  try {
+    const response = await fetch(`${STARIMG_BASE_URL}/v1/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: STARIMG_MODEL,
+        temperature: 0,
+        max_tokens: 1800,
+        messages: [{
+          role: "user",
+          content: [
+            { type: "text", text: jsonInstruction },
+            {
+              type: "image_url",
+              image_url: { url: `data:${image.mediaType};base64,${image.data}` },
+            },
+          ],
+        }],
+      }),
+      signal: AbortSignal.timeout(65_000),
+    });
 
-  if (!raw) throw new Error("A AI STAR não retornou dados da imagem.");
-  return extractionSchema.parse(JSON.parse(raw));
+    const body = await response.json().catch(() => ({})) as {
+      choices?: { message?: { content?: string } }[];
+      error?: { message?: string };
+      message?: string;
+    };
+    if (!response.ok) {
+      errors.push(`Chat ${response.status}: ${body.error?.message || body.message || response.statusText}`);
+    } else {
+      const raw = body.choices?.[0]?.message?.content?.trim()
+        .replace(/^\`\`\`(?:json)?\s*/i, "")
+        .replace(/\s*\`\`\`$/, "");
+      if (!raw) errors.push("Chat: resposta sem texto.");
+      else return extractionSchema.parse(JSON.parse(raw));
+    }
+  } catch (error) {
+    errors.push(`Chat: ${safeDetail(error) || "falha de conexão"}`);
+  }
+
+  throw new Error(`AI STAR não conseguiu processar a imagem. ${errors.join(" | ").slice(0, 700)}`);
 }
 
 export async function extractFlightFromImage({
@@ -222,8 +269,12 @@ export async function extractFlightFromImage({
       lastError = error;
       const status = statusOf(error);
       const retryable = status === 429 || (status != null && status >= 500 && status <= 599);
-      if (!retryable || attempt === maxAttempts) throw toUserError(error, status);
+      if (!retryable || attempt === maxAttempts) {
+        if (starimgError) throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
+        throw toUserError(error, status);
+      }
     }
   }
+  if (starimgError) throw new Error(safeDetail(starimgError) || "A AI STAR não conseguiu ler a imagem agora.");
   throw toUserError(lastError, statusOf(lastError));
 }
