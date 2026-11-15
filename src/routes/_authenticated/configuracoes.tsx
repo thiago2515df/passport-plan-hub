@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { ManagementNav } from "@/components/ManagementNav";
 import { useAccess } from "@/components/AccessProvider";
-import { createSeller, deleteSeller, getSettings, saveSettings, updateSeller } from "@/lib/settings.functions";
+import { createSeller, deleteSeller, saveSettings, updateSeller } from "@/lib/settings.functions";
+import { getSettingsClient } from "@/lib/client-dashboard";
 import { decodeProposal } from "@/lib/hotels";
 import { COMMISSION_MIGRATION_REQUIRED, COMMISSION_UNAVAILABLE } from "@/lib/commission-rules";
 import { emptyCommissions } from "@/lib/package-pricing";
@@ -28,12 +29,11 @@ const initial = { id: "", name: "", email: "", phone: "", password: "", active: 
 
 function SettingsPage() {
   const access = useAccess();
-  const fetchSettings = useServerFn(getSettings);
   const create = useServerFn(createSeller);
   const update = useServerFn(updateSeller);
   const remove = useServerFn(deleteSeller);
   const save = useServerFn(saveSettings);
-  const settingsQuery = useQuery({ queryKey: ["settings", access.userId], queryFn: () => fetchSettings(), enabled: access.admin, retry: false });
+  const settingsQuery = useQuery({ queryKey: ["settings", access.userId], queryFn: () => getSettingsClient(), enabled: access.admin, retry: false });
   const data = { ...settingsQuery, data: access.admin ? settingsQuery.data : undefined };
   const [tab, setTab] = useState<string>("people");
   const [editing, setEditing] = useState(false);
