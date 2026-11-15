@@ -3,6 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LockKeyhole, Mail, Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { setSupabaseAccessCookie } from "@/integrations/supabase/auth-cookie";
 import { useAccess } from "@/components/AccessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ export function SignOutButton({ compact = false }: { compact?: boolean }) {
     await queryClient.cancelQueries();
     queryClient.clear();
     const { error } = await supabase.auth.signOut();
+    setSupabaseAccessCookie(null);
     if (!error) await navigate({ to: "/auth", replace: true });
     setBusy(false);
   }}><LogOut className="h-4 w-4" /><span>Sair</span></Button>;
@@ -44,8 +46,9 @@ export function AuthScreen() {
         if (error) throw error;
         setMessage("Se o e-mail estiver cadastrado, você receberá um link para definir sua senha.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) { setMessage("Não foi possível entrar. Confira seu e-mail e sua senha e confirme seu acesso pelo e-mail."); return; }
+        setSupabaseAccessCookie(data.session?.access_token);
         await navigate({ to: "/pacotes", replace: true });
       }
     } catch { setMessage("Não foi possível concluir. Tente novamente em alguns instantes."); }
