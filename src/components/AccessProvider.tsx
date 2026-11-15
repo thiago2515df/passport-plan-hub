@@ -1,10 +1,9 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { getAccess } from "@/lib/settings.functions";
 import { setSupabaseAccessCookie } from "@/integrations/supabase/auth-cookie";
+import { getAccessClient } from "@/lib/client-dashboard";
 
 const AccessContext = createContext({ userId: "", loading: true, admin: false, allowed: false, name: "" });
 export const useAccess = () => useContext(AccessContext);
@@ -12,10 +11,9 @@ export const useAccess = () => useContext(AccessContext);
 export function AccessProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [identity, setIdentity] = useState({ id: "", loading: true });
-  const fetchAccess = useServerFn(getAccess);
   const access = useQuery({
     queryKey: ["access", identity.id],
-    queryFn: () => fetchAccess(),
+    queryFn: () => getAccessClient(identity.id),
     enabled: !!identity.id,
     retry: false,
     staleTime: 5 * 60_000,
