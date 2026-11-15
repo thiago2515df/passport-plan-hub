@@ -4,6 +4,7 @@ import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { getAccess } from "@/lib/settings.functions";
+import { setSupabaseAccessCookie } from "@/integrations/supabase/auth-cookie";
 
 const AccessContext = createContext({ userId: "", loading: true, admin: false, allowed: false, name: "" });
 export const useAccess = () => useContext(AccessContext);
@@ -24,10 +25,20 @@ export function AccessProvider({ children }: { children: ReactNode }) {
   });
   useEffect(() => {
     let alive = true;
-    const refresh = () => { supabase.auth.getUser().then(({ data }) => { if (alive) setIdentity({ id: data.user?.id ?? "", loading: false }); }); };
+    const refresh = async () => {
+      const [{ data: userData }, { data: sessionData }] = await Promise.all([
+        supabase.auth.getUser(),
+        supabase.auth.getSession(),
+      ]);
+      setSupabaseAccessCookie(sessionData.session?.access_token);
+      if (alive) setIdentity({ id: userData.user?.id ?? "", loading: false });
+    };
     const { data: subscription } = supabase.auth.onAuthStateChange(event => {
       if (!["SIGNED_IN", "SIGNED_OUT", "USER_UPDATED"].includes(event)) return;
-      if (event === "SIGNED_OUT") setIdentity({ id: "", loading: false });
+      if (event === "SIGNED_OUT") {
+        setSupabaseAccessCookie(null);
+        setIdentity({ id: "", loading: false });
+      }
       else queueMicrotask(refresh);
       router.invalidate();
       if (event !== "SIGNED_OUT") router.options.context?.queryClient.invalidateQueries();
