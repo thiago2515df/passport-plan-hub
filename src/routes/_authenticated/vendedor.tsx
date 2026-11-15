@@ -7,7 +7,7 @@ import { useAccess } from "@/components/AccessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { listMyProposals } from "@/lib/settings.functions";
+import { listMyProposalsClient } from "@/lib/client-dashboard";
 import { AcceptedPackageDetails } from "@/components/AcceptedPackageDetails";
 import { packagePricing, commissionForSearch, commissionLabel } from "@/lib/package-pricing";
 import { setProposalStatus } from "@/lib/proposals.functions";
@@ -17,7 +17,7 @@ import { proposalShareMessage } from "@/lib/proposal-message";
 import { FileText, Send, CheckCircle2, Clock, Plus, ExternalLink, Pencil, Phone, UserRound, CalendarDays, MapPin, XCircle, Search, GripVertical, Loader2, Archive, ArrowRightLeft, RotateCcw } from "lucide-react";
 
 
-const boardOptions = (id: string) => queryOptions({ queryKey: ["proposal-board", id], queryFn: () => listMyProposals(), refetchInterval: 10000 });
+const boardOptions = (id: string) => queryOptions({ queryKey: ["proposal-board", id], queryFn: () => listMyProposalsClient(), refetchInterval: 10000 });
 export const Route = createFileRoute("/_authenticated/vendedor")({
   validateSearch: (search: Record<string, unknown>) => ({ q: typeof search['q'] === "string" ? search['q'] : "" }),
   loader: async ({ context }) => { await context.queryClient.ensureQueryData(boardOptions(context.user.id)); },
