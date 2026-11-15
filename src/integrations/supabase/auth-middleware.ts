@@ -54,9 +54,17 @@ export const requireSupabaseAuth = createMiddleware({ type: 'function' }).server
     }
 
 
+    const cookieHeader = request.headers.get('cookie') ?? '';
+    const cookieToken = cookieHeader
+      .split(';')
+      .map(part => part.trim())
+      .find(part => part.startsWith('ebx-sb-access-token='))
+      ?.slice('ebx-sb-access-token='.length);
     const dedicatedToken = request.headers.get('x-supabase-access-token');
     const authHeader = request.headers.get('authorization');
-    const token = dedicatedToken || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '');
+    const token = cookieToken
+      ? decodeURIComponent(cookieToken)
+      : dedicatedToken || (authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '');
 
     if (!token) {
       throw new Error('Unauthorized: No Supabase session token provided');
