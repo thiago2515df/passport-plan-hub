@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LockKeyhole, Mail, Loader2, LogOut } from "lucide-react";
@@ -30,6 +30,13 @@ export function AuthScreen() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (!access.loading && access.allowed) {
+      void navigate({ to: "/pacotes", replace: true });
+    }
+  }, [access.loading, access.allowed, navigate]);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault(); setBusy(true); setMessage("");
     try {
@@ -48,7 +55,7 @@ export function AuthScreen() {
   return <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground"><div className="w-full max-w-sm">
     <img src={logo.url} alt="Excursão Brasília" className="mx-auto mb-10 h-28 w-auto" />
     <div className="mb-7 flex items-center gap-3"><LockKeyhole className="h-6 w-6 text-primary" /><h1 className="text-2xl font-bold">{forgot ? "Definir senha" : "Entrar no sistema"}</h1></div>
-    {access.loading ? <Loader2 aria-label="Verificando acesso" className="mx-auto animate-spin" /> : access.allowed ? <div className="space-y-4"><p>{access.name || "Sua conta"}</p><Button className="w-full" asChild><Link to="/pacotes">Abrir Pacotes</Link></Button>{access.admin && <Button variant="outline" className="w-full" asChild><Link to="/configuracoes">Gerenciar vendedores</Link></Button>}<SignOutButton /></div> : <>
+    {access.loading || access.allowed ? <Loader2 aria-label="Abrindo pacotes" className="mx-auto animate-spin" /> : <>
       {access.userId && <div className="mb-5"><p className="mb-3 text-sm text-destructive">Sua conta não tem acesso ativo. Entre em contato com o administrador.</p><SignOutButton /></div>}
       <form onSubmit={submit} className="space-y-5"><label className="block text-sm font-medium">E-mail<Input className="mt-2" type="email" autoComplete="username" required value={email} onChange={e => setEmail(e.target.value)} /></label>
       {!forgot && <label className="block text-sm font-medium">Senha<Input className="mt-2" type="password" autoComplete="current-password" required value={password} onChange={e => setPassword(e.target.value)} /></label>}
