@@ -2,16 +2,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Hotel } from "./hotels";
 import { passhubRoomGroups } from "./room-occupancy";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 type Fail = { error: string };
 
 export const searchDestinations = createServerFn({ method: "GET" })
-  .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ q: z.string().min(3).max(80) }).parse(d))
-  .handler(async ({ data, context }): Promise<{ items: { id: string; name: string; type: string }[] } & Partial<Fail>> => {
-    const { assertSearchPermission } = await import("./access.server");
-    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
+  .inputValidator((d) => z.object({ q: z.string().min(3).max(80), accessToken: z.string().min(20) }).parse(d))
+  .handler(async ({ data }): Promise<{ items: { id: string; name: string; type: string }[] } & Partial<Fail>> => {
+    const { authorizeServerToken } = await import("./server-auth");
+    await authorizeServerToken(data.accessToken, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       const r = await passhub<{ destinations: { destinationId: string; name: string; type: string }[] }>(
@@ -31,10 +29,10 @@ export const searchDestinations = createServerFn({ method: "GET" })
   });
 
 export const searchHotels = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z
       .object({
+        accessToken: z.string().min(20),
         destinationId: z.string().min(1),
         checkinDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
         nights: z.number().int().min(1).max(30),
@@ -58,9 +56,9 @@ export const searchHotels = createServerFn({ method: "POST" })
       })
       .parse(d),
   )
-  .handler(async ({ data, context }): Promise<{ hotels: Hotel[] } & Partial<Fail>> => {
-    const { assertSearchPermission } = await import("./access.server");
-    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
+  .handler(async ({ data }): Promise<{ hotels: Hotel[] } & Partial<Fail>> => {
+    const { authorizeServerToken } = await import("./server-auth");
+    await authorizeServerToken(data.accessToken, "search_hotels");
     const { passhub } = await import("./passhub.server");
     try {
       type Offer = {
