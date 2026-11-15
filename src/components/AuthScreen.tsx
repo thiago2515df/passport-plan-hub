@@ -6,7 +6,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAccess } from "@/components/AccessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import logo from "@/assets/excursao-brasilia.png.asset.json";
 
 export function SignOutButton({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient();
@@ -53,7 +52,7 @@ export function AuthScreen() {
     finally { setBusy(false); }
   }
   return <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground"><div className="w-full max-w-sm">
-    <img src={logo.url} alt="Excursão Brasília" className="mx-auto mb-10 h-28 w-auto" />
+    <img src={"/icon-512.png"} alt="Excursão Brasília" className="mx-auto mb-10 h-28 w-auto" />
     <div className="mb-7 flex items-center gap-3"><LockKeyhole className="h-6 w-6 text-primary" /><h1 className="text-2xl font-bold">{forgot ? "Definir senha" : "Entrar no sistema"}</h1></div>
     {access.loading || access.allowed ? <Loader2 aria-label="Abrindo pacotes" className="mx-auto animate-spin" /> : <>
       {access.userId && <div className="mb-5"><p className="mb-3 text-sm text-destructive">Sua conta não tem acesso ativo. Entre em contato com o administrador.</p><SignOutButton /></div>}
