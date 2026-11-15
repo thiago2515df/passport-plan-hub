@@ -1,19 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
 import { useAccess } from "@/components/AccessProvider";
-import { getSellerCommissions } from "@/lib/commissions.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { commissionSettingsFromRow } from "@/lib/commission-rules";
 
 export function useSellerCommissions(ownerId?: string) {
   const access = useAccess();
-  const read = useServerFn(getSellerCommissions);
   const userId = ownerId ?? access.userId;
   const query = useQuery({
     queryKey: ["seller-commissions", userId],
-    queryFn: () => read({ data: { userId } }),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("seller_commissions")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (error) throw error;
+      return commissionSettingsFromRow(data);
+    },
     enabled: access.allowed && !!userId,
     retry: false,
-    // Commission settings rarely change while composing a proposal.
-    // Avoid hitting Supabase every 10 seconds; explicit saves still invalidate this query.
     staleTime: 5 * 60_000,
     gcTime: 30 * 60_000,
     refetchInterval: false,
