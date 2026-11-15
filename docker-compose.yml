@@ -13,3 +13,11 @@ services:
       PORT: 3000
     ports:
       - "127.0.0.1:3000:3000"
+    networks:
+      - default
+      - caddy-sites
+
+networks:
+  caddy-sites:
+    external: true
+    name: deskcommcrm_caddy-sites
