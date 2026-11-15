@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { LockKeyhole, Mail, Loader2, LogOut } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
