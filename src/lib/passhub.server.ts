@@ -9,10 +9,17 @@ export class PasshubError extends Error {
 }
 
 function creds(keyName = "PASSHUB_API_KEY") {
-  const key = process.env[keyName];
+  const key = process.env[keyName] || (keyName === "PASSHUB_AIR_API_KEY" ? process.env["PASSHUB_API_KEY"] : undefined);
   const email = process.env["PASSHUB_API_EMAIL"];
   const password = process.env["PASSHUB_API_PASSWORD"];
-  if (!key || !email || !password) throw new PasshubError(500, "CONFIG", "Credenciais PassHub não configuradas");
+  if (!key || !email || !password) {
+    const missing = [
+      !key ? (keyName === "PASSHUB_AIR_API_KEY" ? "PASSHUB_AIR_API_KEY ou PASSHUB_API_KEY" : keyName) : null,
+      !email ? "PASSHUB_API_EMAIL" : null,
+      !password ? "PASSHUB_API_PASSWORD" : null,
+    ].filter(Boolean).join(", ");
+    throw new PasshubError(500, "CONFIG", `Credenciais PassHub não configuradas: ${missing}`);
+  }
   return { key, email, password };
 }
 
