@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
 import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, type Hotel } from "@/lib/hotels";
-import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
 import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
@@ -105,7 +104,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
     <div className="proposta min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background pb-40 text-foreground sm:pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-4 sm:py-3">
-          <img src={logoAsset.url} alt="Excursão Brasília" className="h-9 w-auto object-contain sm:h-12" />
+          <span className="h-11 w-11 overflow-hidden rounded-full bg-white sm:h-14 sm:w-14"><img src="/icon-1024.png" alt="Excursão Brasília" className="h-full w-full object-contain" style={{ clipPath: "circle(48% at 50% 50%)" }} /></span>
           <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-primary px-3 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground sm:gap-2 sm:px-4 sm:text-sm">
             <MessageCircle className="h-4 w-4" /> Fale conosco
           </a>
