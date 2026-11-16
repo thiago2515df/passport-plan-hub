@@ -261,18 +261,21 @@ export type Database = {
         Row: {
           agency_name: string
           id: number
+          logo_url: string | null
           payment_rules: Json
           whatsapp: string
         }
         Insert: {
           agency_name?: string
           id?: number
+          logo_url?: string | null
           payment_rules?: Json
           whatsapp?: string
         }
         Update: {
           agency_name?: string
           id?: number
+          logo_url?: string | null
           payment_rules?: Json
           whatsapp?: string
         }
