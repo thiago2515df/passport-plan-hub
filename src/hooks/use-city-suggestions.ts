@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { searchDestinations } from "@/lib/passhub.functions";
-import { supabase } from "@/integrations/supabase/client";
+import { getValidAccessToken } from "@/integrations/supabase/session";
 
 type City = { id: string; name: string; type: string };
 type Result = { items: City[]; error?: string };
@@ -26,10 +26,9 @@ export function useCitySuggestions(query: string) {
       try {
         let request = pending.get(key);
         if (!request) {
-          request = supabase.auth.getSession().then(({ data, error }) => {
-            if (error || !data.session?.access_token) throw new Error("Sessão expirada.");
-            return search({ data: { q: text, accessToken: data.session.access_token } });
-          });
+          request = getValidAccessToken().then((accessToken) =>
+            search({ data: { q: text, accessToken } }),
+          );
           pending.set(key, request);
           request.finally(() => pending.delete(key)).catch(() => {});
         }
