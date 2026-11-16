@@ -14,6 +14,7 @@ export const searchDestinations = createServerFn({ method: "GET" })
     try {
       const r = await passhub<{ destinations: { destinationId: string; name: string; type: string }[] }>(
         `/hotel/destinations?q=${encodeURIComponent(data.q)}`,
+        { keyName: "PASSHUB_HOTEL_API_KEY" },
       );
       const label: Record<string, string> = { City: "Cidade", "Multi-City (Vicinity)": "Região", Neighborhood: "Bairro", Airport: "Aeroporto" };
       const seen = new Set<string>();
@@ -67,6 +68,7 @@ export const searchHotels = createServerFn({ method: "POST" })
       };
       const r = await passhub<{ offers: Offer[] }>("/searches", {
         method: "POST",
+        keyName: "PASSHUB_HOTEL_API_KEY",
         timeoutMs: 45_000,
         body: {
           type: "hotel",
@@ -113,7 +115,10 @@ export const getHotelDetails = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const { passhub } = await import("./passhub.server");
     try {
-      const h = await passhub<{ description?: string; photos?: { url: string }[]; amenities?: { name: string }[] }>(`/hotel/hotels/${data.hotelId}`);
+      const h = await passhub<{ description?: string; photos?: { url: string }[]; amenities?: { name: string }[] }>(
+        `/hotel/hotels/${data.hotelId}`,
+        { keyName: "PASSHUB_HOTEL_API_KEY" },
+      );
       return {
         photos: (h.photos ?? []).map((p) => p.url).filter(Boolean),
         description: h.description ?? "",
