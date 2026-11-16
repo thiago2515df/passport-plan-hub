@@ -3,9 +3,7 @@ import { Backpack, Check, Clock3, CreditCard, Info, Luggage, BriefcaseBusiness, 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { brl, type Flight } from "@/lib/hotels";
-import latam from "@/assets/latam-logo.png.asset.json";
-import gol from "@/assets/gol-logo.png.asset.json";
-import azul from "@/assets/azul-logo.png.asset.json";
+import { LATAM_LOGO, GOL_LOGO, AZUL_LOGO } from "@/lib/airline-logos";
 
 const dateLabel = (date?: string) => date && /^\d{4}-\d{2}-\d{2}/.test(date) ? date.slice(0, 10).split("-").reverse().map((v, i) => i === 2 ? v.slice(-2) : v).join("/") : "Data não informada";
 
@@ -13,7 +11,7 @@ export function FlightCard({ flight: f, selected, onSelect }: { flight: Flight; 
   const [dialog, setDialog] = useState<"details" | "rules" | null>(null);
   const [logoFailed, setLogoFailed] = useState(false);
   const airlineKey = `${f.airline ?? ""} ${f.flightNumber ?? ""}`;
-  const logo = /latam|\bLA\s*\d|\bJJ\s*\d/i.test(airlineKey) ? latam.url : /gol|\bG3\s*\d/i.test(airlineKey) ? gol.url : /azul|\bAD\s*[- ]?\d/i.test(airlineKey) ? azul.url : undefined;
+  const logo = /latam|\bLA\s*\d|\bJJ\s*\d/i.test(airlineKey) ? LATAM_LOGO : /gol|\bG3\s*\d/i.test(airlineKey) ? GOL_LOGO : /azul|\bAD\s*[- ]?\d/i.test(airlineKey) ? AZUL_LOGO : undefined;
   const baggage = [
     { name: "Item pessoal", Icon: Backpack, included: f.baggage?.personal },
     { name: "Bagagem de mão", Icon: BriefcaseBusiness, included: f.baggage?.carryOn },
