@@ -8,13 +8,13 @@ export class PasshubError extends Error {
   }
 }
 
-function creds(keyName = "PASSHUB_API_KEY") {
-  const key = process.env[keyName] || (keyName === "PASSHUB_AIR_API_KEY" ? process.env["PASSHUB_API_KEY"] : undefined);
+function creds(keyName = "PASSHUB_HOTEL_API_KEY") {
+  const key = process.env[keyName];
   const email = process.env["PASSHUB_API_EMAIL"];
   const password = process.env["PASSHUB_API_PASSWORD"];
   if (!key || !email || !password) {
     const missing = [
-      !key ? (keyName === "PASSHUB_AIR_API_KEY" ? "PASSHUB_AIR_API_KEY ou PASSHUB_API_KEY" : keyName) : null,
+      !key ? keyName : null,
       !email ? "PASSHUB_API_EMAIL" : null,
       !password ? "PASSHUB_API_PASSWORD" : null,
     ].filter(Boolean).join(", ");
@@ -52,7 +52,7 @@ export async function passhub<T>(
   init: { method?: string; body?: unknown; keyName?: string; timeoutMs?: number } = {},
   retried = false,
 ): Promise<T> {
-  const keyName = init.keyName ?? "PASSHUB_API_KEY";
+  const keyName = init.keyName ?? "PASSHUB_HOTEL_API_KEY";
   const { key } = creds(keyName);
   const token = await getToken(keyName);
   let res: Response;
