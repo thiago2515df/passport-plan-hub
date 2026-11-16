@@ -25,7 +25,11 @@ export const getAgencyContact = createServerFn({ method: "GET" }).handler(async 
   } } });
   const { data, error } = await client.rpc("agency_contact");
   if (error || !data || typeof data !== "object") return null;
-  return { agency_name: typeof data.agency_name === "string" ? data.agency_name : "Excursão Brasília", whatsapp: typeof data.whatsapp === "string" && /^\d{10,15}$/.test(data.whatsapp) ? data.whatsapp : "5561992267062" };
+  return {
+    agency_name: typeof data.agency_name === "string" ? data.agency_name : "Excursão Brasília",
+    whatsapp: typeof data.whatsapp === "string" && /^\d{10,15}$/.test(data.whatsapp) ? data.whatsapp : "5561992267062",
+    logo_url: typeof data.logo_url === "string" && data.logo_url.trim() ? data.logo_url : null,
+  };
 });
 
 export const getAccess = createServerFn({ method: "GET" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
@@ -128,7 +132,11 @@ export const deleteSeller = createServerFn({ method: "POST" }).middleware([requi
   });
 
 export const saveSettings = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
-  .inputValidator(d => z.object({ agency_name: z.string().trim().min(2).max(100), whatsapp: z.string().regex(/^\d{10,15}$/) }).parse(d))
+  .inputValidator(d => z.object({
+    agency_name: z.string().trim().min(2).max(100),
+    whatsapp: z.string().regex(/^\d{10,15}$/),
+    logo_url: z.string().url().nullable().optional(),
+  }).parse(d))
   .handler(async ({ context, data }) => {
     const { assertAdmin } = await import("./access.server");
     await assertAdmin(context.supabase, context.userId);
