@@ -6,7 +6,7 @@ import { SignOutButton } from "@/components/AuthScreen";
 import { useAccess } from "@/components/AccessProvider";
 import "@/mobile-dashboard.css";
 import "@/desktop-calendar.css";
-import { BRAND_LOGO } from "@/assets/brand-logo";
+import { AgencyLogo } from "@/components/AgencyLogo";
 
 export function ManagementNav({ current }: { current: "settings" | "seller" | "packages" | "aereo" }) {
   const access = useAccess();
@@ -16,7 +16,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
 
   return <>
     <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card p-4 lg:flex ${collapsed ? "w-16" : "w-60"}`}>
-      <Link to="/pacotes" className="mb-6 flex justify-center"><span className={collapsed ? "h-10 w-10 overflow-hidden rounded-full bg-white" : "h-24 w-24 overflow-hidden rounded-full bg-white"}><img src={BRAND_LOGO} alt="Excursão Brasília" className="h-full w-full object-contain"  /></span></Link>
+      <Link to="/pacotes" className="mb-6 flex justify-center"><AgencyLogo className={collapsed ? "h-10 w-10" : "h-24 w-24"} /></Link>
       <Button variant="ghost" size="icon" className="mb-5 self-center" title={collapsed ? "Expandir menu" : "Recolher menu"} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
       <nav className={`space-y-2 ${collapsed ? "[&_span]:hidden" : "[&_span]:inline"}`} aria-label="Menu principal">
         <Button title="Pacotes" variant={current === "packages" ? "secondary" : "ghost"} className={item} asChild><Link to="/pacotes" search={{}}><Building2 /><span>Pacotes</span></Link></Button>
