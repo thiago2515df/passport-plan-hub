@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { Users, Settings, ShieldCheck, History, Plus, Save, Pencil, Loader2, Search, Plane, FileText, Bus, LockKeyhole, X, Trash2, CreditCard } from "lucide-react";
+import { Users, Settings, ShieldCheck, History, Plus, Save, Pencil, Loader2, Search, Plane, FileText, Bus, LockKeyhole, X, Trash2, CreditCard, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,8 @@ import { emptyCommissions } from "@/lib/package-pricing";
 import { CommissionFields, CommissionSettings } from "@/components/CommissionSettings";
 import { PasshubDataSettings } from "@/components/PasshubDataSettings";
 import { PaymentRulesSettings } from "@/components/PaymentRulesSettings";
+import { supabase } from "@/integrations/supabase/client";
+import { AgencyLogo } from "@/components/AgencyLogo";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({ head: () => ({ meta: [
   { title: "Configurações e vendedores — Excursão Brasília" }, { name: "description", content: "Administração de vendedores, permissões e configurações da Excursão Brasília." },
@@ -29,6 +31,7 @@ const initial = { id: "", name: "", email: "", phone: "", password: "", active: 
 
 function SettingsPage() {
   const access = useAccess();
+  const queryClient = useQueryClient();
   const create = useServerFn(createSeller);
   const update = useServerFn(updateSeller);
   const remove = useServerFn(deleteSeller);
@@ -41,12 +44,51 @@ function SettingsPage() {
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
-  const [agency, setAgency] = useState<{ agency_name: string; whatsapp: string } | null>(null);
+  const [agency, setAgency] = useState<{ agency_name: string; whatsapp: string; logo_url: string | null } | null>(null);
   const people = data.data?.people ?? [];
   const sellers = people.filter(p => data.data?.rights.some(r => r.user_id === p.id));
   const team = people.filter(p => sellers.some(seller => seller.id === p.id) || p.id === access.userId);
   const editingAdministrator = access.admin && form.id === access.userId;
-  const agencyValues = agency ?? { agency_name: data.data?.settings?.agency_name ?? "Excursão Brasília", whatsapp: data.data?.settings?.whatsapp ?? "5561992267062" };
+  const agencyValues = agency ?? {
+    agency_name: data.data?.settings?.agency_name ?? "Excursão Brasília",
+    whatsapp: data.data?.settings?.whatsapp ?? "5561992267062",
+    logo_url: data.data?.settings?.logo_url ?? null,
+  };
+
+  const uploadLogo = async (file?: File) => {
+    if (!file) return;
+    if (!["image/png", "image/jpeg", "image/webp"].includes(file.type)) {
+      setMessage("Use uma imagem PNG, JPG ou WEBP.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage("A logo deve ter no máximo 5 MB.");
+      return;
+    }
+    setBusy(true);
+    setMessage("");
+    try {
+      const path = "agency/logo";
+      const { error: uploadError } = await supabase.storage
+        .from("agency-branding")
+        .upload(path, file, { upsert: true, contentType: file.type, cacheControl: "3600" });
+      if (uploadError) throw uploadError;
+      const { data: publicData } = supabase.storage.from("agency-branding").getPublicUrl(path);
+      const logo_url = `${publicData.publicUrl}?v=${Date.now()}`;
+      const next = { ...agencyValues, logo_url };
+      await save({ data: next });
+      setAgency(next);
+      await Promise.all([
+        data.refetch(),
+        queryClient.invalidateQueries({ queryKey: ["agency-brand"] }),
+      ]);
+      setMessage("Logo atualizada com sucesso.");
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Não foi possível enviar a logo.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setMessage("");
     try {
@@ -73,7 +115,31 @@ function SettingsPage() {
         {data.data && team.length === 0 && <div className="border-y border-border py-12 text-center"><Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground" /><h3 className="font-semibold">Nenhum vendedor cadastrado</h3></div>}
         <div className="divide-y divide-border">{team.filter(p => `${p.name} ${p.email}`.toLowerCase().includes(query.toLowerCase())).map(p => <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="font-semibold">{p.name || "Vendedor"}{p.id === access.userId && <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-primary"><ShieldCheck className="h-3 w-3" />Administrador</span>}</p><p className="text-sm text-muted-foreground break-all">{p.email} · {p.phone || "Sem telefone"}</p><p className="mt-1 text-xs text-muted-foreground">{data.data?.proposals.filter(x => x.owner_id === p.id).length ?? 0} propostas</p></div><div className="flex flex-wrap items-center gap-3"><span className="text-xs text-muted-foreground">{data.data?.commissions.some(c => c.user_id === p.id && c.configured_at) ? "Comissões confirmadas" : "Comissões pendentes · pesquisas bloqueadas"}</span><span className={p.active ? "text-sm text-primary" : "text-sm text-muted-foreground"}>{p.active ? "Ativo" : "Suspenso"}</span><Button variant="outline" onClick={() => { const r = data.data?.rights.find(x => x.user_id === p.id); setForm({ ...initial, id: p.id, name: p.name, email: p.email, phone: p.phone, password: "", active: p.active, permissions: r ? { search_hotels: r.search_hotels, search_flights: r.search_flights, create_proposals: r.create_proposals, manage_transport: r.manage_transport } : initial.permissions }); setEditing(true); }}><Pencil className="h-4 w-4" />Gerenciar</Button></div></div>)}</div>
       </section>}
-      {tab === "agency" && <section className="max-w-xl"><h2 className="mb-6 text-xl font-semibold">Dados da agência</h2><form onSubmit={async e => { e.preventDefault(); setBusy(true); try { await save({ data: agencyValues }); setMessage("Configurações salvas."); await data.refetch(); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar."); } finally { setBusy(false); } }} className="space-y-5"><label className="block text-sm">Nome da agência<Input className="mt-2" required value={agencyValues.agency_name} onChange={e => setAgency({ ...agencyValues, agency_name: e.target.value })} /></label><label className="block text-sm">WhatsApp (com código do país)<Input className="mt-2" required inputMode="tel" pattern="[0-9]{10,15}" value={agencyValues.whatsapp} onChange={e => setAgency({ ...agencyValues, whatsapp: e.target.value.replace(/\D/g, "") })} /></label><Button disabled={!access.admin || busy}><Save className="h-4 w-4" />Salvar alterações</Button></form></section>}
+      {tab === "agency" && <section className="max-w-xl">
+        <h2 className="mb-6 text-xl font-semibold">Dados da agência</h2>
+        <div className="mb-7">
+          <p className="mb-3 text-sm font-medium">Logo da agência</p>
+          <label className="group relative inline-block cursor-pointer rounded-full" title="Clique para trocar a logo">
+            <AgencyLogo logoUrl={agencyValues.logo_url} className="h-28 w-28 ring-2 ring-border shadow-sm" />
+            <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/0 text-white transition group-hover:bg-black/35">
+              <Upload className="h-7 w-7 opacity-0 transition group-hover:opacity-100" />
+            </span>
+            <input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              className="sr-only"
+              disabled={!access.admin || busy}
+              onChange={e => { void uploadLogo(e.target.files?.[0]); e.currentTarget.value = ""; }}
+            />
+          </label>
+          <p className="mt-2 text-xs text-muted-foreground">Clique no círculo para enviar uma nova logo. PNG, JPG ou WEBP, até 5 MB.</p>
+        </div>
+        <form onSubmit={async e => { e.preventDefault(); setBusy(true); try { await save({ data: agencyValues }); setMessage("Configurações salvas."); await data.refetch(); await queryClient.invalidateQueries({ queryKey: ["agency-brand"] }); } catch (error) { setMessage(error instanceof Error ? error.message : "Não foi possível salvar."); } finally { setBusy(false); } }} className="space-y-5">
+          <label className="block text-sm">Nome da agência<Input className="mt-2" required value={agencyValues.agency_name} onChange={e => setAgency({ ...agencyValues, agency_name: e.target.value })} /></label>
+          <label className="block text-sm">WhatsApp (com código do país)<Input className="mt-2" required inputMode="tel" pattern="[0-9]{10,15}" value={agencyValues.whatsapp} onChange={e => setAgency({ ...agencyValues, whatsapp: e.target.value.replace(/\D/g, "") })} /></label>
+          <Button disabled={!access.admin || busy}><Save className="h-4 w-4" />Salvar alterações</Button>
+        </form>
+      </section>}
       {tab === "proposals" && <section><h2 className="mb-5 text-xl font-semibold">Propostas da equipe</h2><div className="divide-y divide-border">{data.data?.proposals.map(row => { const p = decodeProposal(row.payload); return <div key={row.code} className="flex flex-wrap items-center justify-between gap-3 py-4"><div><p className="font-semibold">{p?.s.cliente || "Cliente"} · {p?.s.destino || "Proposta"}</p><p className="text-sm text-muted-foreground">{people.find(x => x.id === row.owner_id)?.name || "Proposta anterior ao cadastro de vendedores"} · {new Date(row.created_at).toLocaleDateString("pt-BR")}</p></div><Button variant="outline" asChild><a href={`/p/${row.code}`} target="_blank" rel="noreferrer">Ver proposta</a></Button></div>; })}</div>{!data.data?.proposals.length && <p className="py-10 text-muted-foreground">Nenhuma proposta disponível.</p>}</section>}
       {tab === "activity" && <section><h2 className="mb-5 text-xl font-semibold">Histórico de alterações</h2>{data.data?.activities.map(a => <div key={a.id} className="border-b border-border py-4"><p className="font-medium">{a.action}</p><p className="text-sm text-muted-foreground">{people.find(p => p.id === a.actor_id)?.name || "Administrador"}{a.target_id ? ` · ${people.find(p => p.id === a.target_id)?.name || "Vendedor"}` : ""} · {new Date(a.created_at).toLocaleString("pt-BR")}</p></div>)}{!data.data?.activities.length && <p className="py-10 text-muted-foreground">Nenhuma atividade registrada.</p>}</section>}
       {tab === "payments" && <PaymentRulesSettings admin={access.admin} />}
