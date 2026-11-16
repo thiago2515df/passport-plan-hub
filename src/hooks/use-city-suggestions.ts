@@ -39,9 +39,14 @@ export function useCitySuggestions(query: string) {
           if (cache.size >= 100) cache.clear();
           cache.set(key, items);
         }
-        if (current) setState({ query: text, items, loading: false, error: result.error ? "Não foi possível buscar as cidades. Tente novamente." : "" });
-      } catch {
-        if (current) setState({ query: text, items: [], loading: false, error: "Não foi possível buscar as cidades. Tente novamente." });
+        if (current) setState({ query: text, items, loading: false, error: result.error ?? "" });
+      } catch (error) {
+        if (current) setState({
+          query: text,
+          items: [],
+          loading: false,
+          error: error instanceof Error ? error.message : "Não foi possível buscar as cidades.",
+        });
       }
     }, 120);
     return () => { current = false; clearTimeout(timer); };
