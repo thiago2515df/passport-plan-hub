@@ -15,7 +15,7 @@ export function ManagementNav({ current }: { current: "settings" | "seller" | "p
 
   return <>
     <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-border bg-card p-4 lg:flex ${collapsed ? "w-16" : "w-60"}`}>
-      <Link to="/pacotes" className="mb-6 flex justify-center"><img src={"/icon-512.png"} alt="Excursão Brasília" className={collapsed ? "h-10 w-10 rounded-full object-cover" : "h-24 w-24 rounded-full object-cover"} /></Link>
+      <Link to="/pacotes" className="mb-6 flex justify-center"><span className={collapsed ? "h-10 w-10 overflow-hidden rounded-full bg-white" : "h-24 w-24 overflow-hidden rounded-full bg-white"}><img src="/icon-1024.png" alt="Excursão Brasília" className="h-full w-full object-contain" style={{ clipPath: "circle(48% at 50% 50%)" }} /></span></Link>
       <Button variant="ghost" size="icon" className="mb-5 self-center" title={collapsed ? "Expandir menu" : "Recolher menu"} aria-label={collapsed ? "Expandir menu" : "Recolher menu"} onClick={() => setCollapsed(!collapsed)}>{collapsed ? <PanelLeftOpen /> : <PanelLeftClose />}</Button>
       <nav className={`space-y-2 ${collapsed ? "[&_span]:hidden" : "[&_span]:inline"}`} aria-label="Menu principal">
         <Button title="Pacotes" variant={current === "packages" ? "secondary" : "ghost"} className={item} asChild><Link to="/pacotes" search={{}}><Building2 /><span>Pacotes</span></Link></Button>
