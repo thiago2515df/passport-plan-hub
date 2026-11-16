@@ -7,7 +7,7 @@ import { setSupabaseAccessCookie } from "@/integrations/supabase/auth-cookie";
 import { useAccess } from "@/components/AccessProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BRAND_LOGO } from "@/assets/brand-logo";
+import { AgencyLogo } from "@/components/AgencyLogo";
 
 export function SignOutButton({ compact = false }: { compact?: boolean }) {
   const queryClient = useQueryClient();
@@ -56,7 +56,7 @@ export function AuthScreen() {
     finally { setBusy(false); }
   }
   return <main className="flex min-h-screen items-center justify-center bg-background px-5 py-12 text-foreground"><div className="w-full max-w-sm">
-    <div className="mx-auto mb-10 h-28 w-28 overflow-hidden rounded-full bg-white"><img src={BRAND_LOGO} alt="Excursão Brasília" className="h-full w-full object-contain"  /></div>
+    <div className="mb-10 flex justify-center"><AgencyLogo className="h-28 w-28 shadow-sm" /></div>
     <div className="mb-7 flex items-center gap-3"><LockKeyhole className="h-6 w-6 text-primary" /><h1 className="text-2xl font-bold">{forgot ? "Definir senha" : "Entrar no sistema"}</h1></div>
     {access.loading || access.allowed ? <Loader2 aria-label="Abrindo pacotes" className="mx-auto animate-spin" /> : <>
       {access.userId && <div className="mb-5"><p className="mb-3 text-sm text-destructive">Sua conta não tem acesso ativo. Entre em contato com o administrador.</p><SignOutButton /></div>}
