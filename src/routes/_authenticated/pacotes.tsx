@@ -32,7 +32,7 @@ import { ptBR } from "react-day-picker/locale";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useCitySuggestions } from "@/hooks/use-city-suggestions";
 import { useAccess } from "@/components/AccessProvider";
-import { supabase } from "@/integrations/supabase/client";
+import { getValidAccessToken } from "@/integrations/supabase/session";
 import { SignOutButton } from "@/components/AuthScreen";
 import { useSellerCommissions } from "@/hooks/use-seller-commissions";
 import { CommissionNotice } from "@/components/CommissionNotice";
@@ -423,9 +423,8 @@ function Index() {
     if (accommodationSource === "trivago") { await fetchTrivagoListings(1); return; }
     setLoading(true);
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !sessionData.session?.access_token) throw new Error("Sessão expirada. Entre novamente.");
-      const result = await findHotels({ data: { accessToken: sessionData.session.access_token, destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, roomOccupancies: roomGuests, rav: 0 } });
+      const accessToken = await getValidAccessToken();
+      const result = await findHotels({ data: { accessToken, destinationId: destId, checkinDate: s.checkin, nights: Math.min(30, nights), adults, childAges: kids, rooms, roomOccupancies: roomGuests, rav: 0 } });
       if (epoch !== searchEpoch.current) return;
       const selectedSaved = Object.values(selectedOffers).filter(h => !h.provider || h.provider === "hotel");
       setHotels([...selectedSaved, ...result.hotels.filter(h => !selectedSaved.some(saved => saved.id === h.id))]);
