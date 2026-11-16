@@ -14,7 +14,7 @@ import { proposalTravelerCount } from "@/lib/customer-package-price";
 import { CustomerPackagePrice } from "@/components/CustomerPackagePrice";
 import { PaymentOptionsDialog } from "@/components/PaymentOptionsDialog";
 import { acceptProposalPackage } from "@/lib/proposals.functions";
-import { BRAND_LOGO } from "@/assets/brand-logo";
+import { AgencyLogo } from "@/components/AgencyLogo";
 
 export const Route = createFileRoute("/proposta")({
   validateSearch: (s: Record<string, unknown>) => ({ t: String(s["t"] ?? "") }),
@@ -105,7 +105,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
     <div className="proposta min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background pb-40 text-foreground sm:pb-28">
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-4 sm:py-3">
-          <span className="h-11 w-11 overflow-hidden rounded-full bg-white sm:h-14 sm:w-14"><img src={BRAND_LOGO} alt="Excursão Brasília" className="h-full w-full object-contain"  /></span>
+          <AgencyLogo logoUrl={agency.data?.logo_url} className="h-11 w-11 sm:h-14 sm:w-14" />
           <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-primary px-3 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground sm:gap-2 sm:px-4 sm:text-sm">
             <MessageCircle className="h-4 w-4" /> Fale conosco
           </a>
