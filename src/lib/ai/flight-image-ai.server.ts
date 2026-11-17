@@ -2,7 +2,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Output, generateText } from "ai";
 import { z } from "zod";
 
-const OPENAI_IMAGE_MODEL = process.env["OPENAI_IMAGE_MODEL"]?.trim() || "gpt-4.1-mini";
+const AI_MODEL = process.env["FLATKEY_MODEL"]?.trim() || "MiniMax-H3";
+const AI_BASE_URL = process.env["FLATKEY_BASE_URL"]?.trim() || "https://router.flatkey.ai/v1";
 
 const baggageSchema = z.strictObject({
   personal: z.boolean().nullable(),
@@ -54,15 +55,15 @@ const safeDetail = (error: unknown): string | undefined => {
 const toUserError = (error: unknown, status: number | undefined): Error => {
   const detail = safeDetail(error);
   if (/no credits remaining|credit_balance_exhausted|insufficient_quota/i.test(detail ?? "")) {
-    return new Error("Sua conta da API da OpenAI está sem créditos. Adicione saldo em platform.openai.com/account/billing e tente novamente.");
+    return new Error("Sua conta da Flatkey está sem créditos ou sem saldo disponível. Adicione saldo no painel da Flatkey e tente novamente.");
   }
-  if (status === 401) return new Error("A chave da OpenAI não foi aceita. Confira o segredo OPENAI_API_KEY.");
-  if (status === 403) return new Error(detail || "A chave da OpenAI não tem permissão para usar este modelo.");
-  if (status === 404) return new Error("O modelo configurado para leitura de imagens não está disponível na OpenAI.");
-  if (status === 429) return new Error("A OpenAI atingiu um limite de uso agora. Tente novamente em alguns instantes.");
-  if (status != null && status >= 500) return new Error("A OpenAI está indisponível no momento. Tente novamente em instantes.");
-  if (status === 400) return new Error(detail || "A OpenAI não conseguiu processar esta imagem. Tente uma captura mais nítida.");
-  return new Error(detail || "A OpenAI não conseguiu ler a imagem agora.");
+  if (status === 401) return new Error("A chave da Flatkey não foi aceita. Confira o segredo FLATKEY_API_KEY.");
+  if (status === 403) return new Error(detail || "A chave da Flatkey não tem permissão para usar este modelo.");
+  if (status === 404) return new Error("O modelo configurado para leitura não está disponível na Flatkey.");
+  if (status === 429) return new Error("A Flatkey atingiu um limite de uso agora. Verifique créditos/limites e tente novamente.");
+  if (status != null && status >= 500) return new Error("A Flatkey ou o modelo selecionado está indisponível no momento. Tente novamente em instantes.");
+  if (status === 400) return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
+  return new Error(detail || "A IA não conseguiu ler o conteúdo agora.");
 };
 
 
@@ -93,12 +94,12 @@ async function runExtraction({
 }: {
   content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }>;
 }): Promise<FlightImageAiExtraction> {
-  const apiKey = process.env["OPENAI_API_KEY"]?.trim();
+  const apiKey = process.env["FLATKEY_API_KEY"]?.trim();
   if (!apiKey) {
-    throw new Error("A leitura com IA ainda não está configurada. Cadastre o segredo OPENAI_API_KEY.");
+    throw new Error("A leitura com IA ainda não está configurada. Cadastre o segredo FLATKEY_API_KEY.");
   }
 
-  const provider = createOpenAI({ apiKey });
+  const provider = createOpenAI({ apiKey, baseURL: AI_BASE_URL });
   const maxAttempts = 3;
   let lastError: unknown;
 
@@ -106,7 +107,7 @@ async function runExtraction({
     if (attempt > 1) await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
     try {
       const result = await generateText({
-        model: provider.responses(OPENAI_IMAGE_MODEL),
+        model: provider.chat(AI_MODEL),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: extractionSchema }),
         providerOptions: { openai: { store: false } },
