@@ -2,7 +2,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Output, generateText } from "ai";
 import { z } from "zod";
 
-const AI_MODEL = process.env["FLATKEY_MODEL"]?.trim() || "MiniMax-H3";
+const configuredModel = process.env["FLATKEY_MODEL"]?.trim();
+const AI_MODEL = !configuredModel || /^MiniMax-H3$/i.test(configuredModel) ? "gpt-5.6-luna" : configuredModel;
 const AI_BASE_URL = process.env["FLATKEY_BASE_URL"]?.trim() || "https://router.flatkey.ai/v1";
 
 const baggageSchema = z.strictObject({
@@ -62,7 +63,12 @@ const toUserError = (error: unknown, status: number | undefined): Error => {
   if (status === 404) return new Error("O modelo configurado para leitura não está disponível na Flatkey.");
   if (status === 429) return new Error("A Flatkey atingiu um limite de uso agora. Verifique créditos/limites e tente novamente.");
   if (status != null && status >= 500) return new Error("A Flatkey ou o modelo selecionado está indisponível no momento. Tente novamente em instantes.");
-  if (status === 400) return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
+  if (status === 400) {
+    if (/url error|check url/i.test(detail ?? "")) {
+      return new Error("O modelo configurado na Flatkey não aceita este tipo de entrada. O sistema usa automaticamente gpt-5.6-luna para leitura de passagem.");
+    }
+    return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
+  }
   return new Error(detail || "A IA não conseguiu ler o conteúdo agora.");
 };
 
