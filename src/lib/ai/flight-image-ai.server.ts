@@ -53,6 +53,9 @@ const safeDetail = (error: unknown): string | undefined => {
 
 const toUserError = (error: unknown, status: number | undefined): Error => {
   const detail = safeDetail(error);
+  if (/no credits remaining|credit_balance_exhausted|insufficient_quota/i.test(detail ?? "")) {
+    return new Error("Sua conta da API da OpenAI está sem créditos. Adicione saldo em platform.openai.com/account/billing e tente novamente.");
+  }
   if (status === 401) return new Error("A chave da OpenAI não foi aceita. Confira o segredo OPENAI_API_KEY.");
   if (status === 403) return new Error(detail || "A chave da OpenAI não tem permissão para usar este modelo.");
   if (status === 404) return new Error("O modelo configurado para leitura de imagens não está disponível na OpenAI.");
