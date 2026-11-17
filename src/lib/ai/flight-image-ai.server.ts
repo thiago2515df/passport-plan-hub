@@ -62,65 +62,52 @@ const toUserError = (error: unknown, status: number | undefined): Error => {
   return new Error(detail || "A OpenAI não conseguiu ler a imagem agora.");
 };
 
-export async function extractFlightFromImage({
-  imageDataUrl,
-  directionHint,
+
+function extractionPrompt(directionHint: "out" | "back" | "auto", source: "imagem" | "texto") {
+  const directionInstruction = directionHint === "out"
+    ? "Este conteúdo foi enviado no campo de IDA. Se houver apenas um trecho, classifique-o como out."
+    : directionHint === "back"
+      ? "Este conteúdo foi enviado no campo de VOLTA. Se houver apenas um trecho, classifique-o como back."
+      : "Identifique ida e volta pelo conteúdo disponível.";
+
+  return [
+    `Extraia SOMENTE informações realmente presentes neste ${source} de cotação/reserva/passagem aérea.`,
+    directionInstruction,
+    "Não invente aeroportos, datas, horários, bagagem, companhia, número do voo ou valores.",
+    "Use códigos IATA de 3 letras apenas quando estiverem presentes ou quando o texto trouxer claramente o aeroporto junto do código.",
+    "Datas devem sair em YYYY-MM-DD; horários em HH:MM.",
+    "Se houver ida e volta, devolva os dois trechos em legs.",
+    "Se houver preço 'Total', 'Valor total' ou equivalente, coloque em totalPrice. Não some nem multiplique valores para criar um total que não esteja explícito.",
+    "Se houver preço por pessoa explícito, coloque em perPersonPrice.",
+    "Para stops use 'Direto' apenas quando estiver explicitamente indicado; caso contrário preserve a informação visível ou deixe vazio.",
+    "Bagagem: true apenas se claramente incluída; false apenas se claramente não incluída; null se não der para saber.",
+    "Deixe null qualquer campo ausente ou duvidoso.",
+  ].join("\n");
+}
+
+async function runExtraction({
+  content,
 }: {
-  imageDataUrl: string;
-  directionHint: "out" | "back" | "auto";
+  content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }>;
 }): Promise<FlightImageAiExtraction> {
   const apiKey = process.env["OPENAI_API_KEY"]?.trim();
   if (!apiKey) {
-    throw new Error("A leitura por imagem ainda não está configurada. Cadastre o segredo OPENAI_API_KEY.");
+    throw new Error("A leitura com IA ainda não está configurada. Cadastre o segredo OPENAI_API_KEY.");
   }
-
-  const directionInstruction = directionHint === "out"
-    ? "Esta imagem foi enviada no campo de IDA. Se houver apenas um trecho, classifique-o como out."
-    : directionHint === "back"
-      ? "Esta imagem foi enviada no campo de VOLTA. Se houver apenas um trecho, classifique-o como back."
-      : "Identifique ida e volta pelo conteúdo visível.";
-
-  const prompt = [
-    "Extraia SOMENTE informações visíveis nesta captura de cotação/reserva aérea.",
-    directionInstruction,
-    "Não invente aeroportos, datas, horários, bagagem ou valores.",
-    "Use códigos IATA de 3 letras somente quando estiverem visíveis (ex.: BSB, BPS).",
-    "Datas devem sair em YYYY-MM-DD; horários em HH:MM.",
-    "Se a imagem tiver ida e volta, devolva os dois trechos em legs.",
-    "Se houver preço 'Total', 'Valor total' ou equivalente, coloque em totalPrice. Não some nem multiplique valores para criar um total que não esteja explícito.",
-    "Se houver preço por pessoa explícito, coloque em perPersonPrice.",
-    "Para stops use 'Direto' quando estiver explicitamente indicado; caso contrário preserve a informação visível ou deixe vazio.",
-    "Bagagem: true apenas se claramente incluída; false apenas se claramente não incluída; null se não der para saber.",
-    "Deixe null qualquer campo que não esteja visível na imagem.",
-  ].join("\n");
 
   const provider = createOpenAI({ apiKey });
   const maxAttempts = 3;
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    if (attempt > 1) {
-      await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
-    }
-
+    if (attempt > 1) await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
     try {
       const result = streamText({
         model: provider.responses(OPENAI_IMAGE_MODEL),
-        messages: [{
-          role: "user",
-          content: [
-            { type: "text", text: prompt },
-            { type: "image", image: new URL(imageDataUrl) },
-          ],
-        }],
+        messages: [{ role: "user", content }],
         output: Output.object({ schema: extractionSchema }),
-        providerOptions: {
-          openai: {
-            store: false,
-          },
-        },
+        providerOptions: { openai: { store: false } },
       });
-
       return await result.output;
     } catch (error) {
       lastError = error;
@@ -129,6 +116,35 @@ export async function extractFlightFromImage({
       if (!retryable || attempt === maxAttempts) throw toUserError(error, status);
     }
   }
-
   throw toUserError(lastError, statusOf(lastError));
+}
+
+export async function extractFlightFromText({
+  text,
+  directionHint,
+}: {
+  text: string;
+  directionHint: "out" | "back" | "auto";
+}): Promise<FlightImageAiExtraction> {
+  const clean = text.trim();
+  if (!clean) throw new Error("Cole a mensagem ou os dados da passagem.");
+  if (clean.length > 20_000) throw new Error("O texto é muito grande. Envie apenas a parte da cotação ou passagem.");
+  return runExtraction({
+    content: [{ type: "text", text: `${extractionPrompt(directionHint, "texto")}\n\nCONTEÚDO PARA LER:\n${clean}` }],
+  });
+}
+
+export async function extractFlightFromImage({
+  imageDataUrl,
+  directionHint,
+}: {
+  imageDataUrl: string;
+  directionHint: "out" | "back" | "auto";
+}): Promise<FlightImageAiExtraction> {
+  return runExtraction({
+    content: [
+      { type: "text", text: extractionPrompt(directionHint, "imagem") },
+      { type: "image", image: new URL(imageDataUrl) },
+    ],
+  });
 }
