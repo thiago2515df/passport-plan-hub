@@ -1,5 +1,5 @@
 import { createOpenAI } from "@ai-sdk/openai";
-import { Output, streamText } from "ai";
+import { Output, generateText } from "ai";
 import { z } from "zod";
 
 const OPENAI_IMAGE_MODEL = process.env["OPENAI_IMAGE_MODEL"]?.trim() || "gpt-4.1-mini";
@@ -102,13 +102,13 @@ async function runExtraction({
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     if (attempt > 1) await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
     try {
-      const result = streamText({
+      const result = await generateText({
         model: provider.responses(OPENAI_IMAGE_MODEL),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: extractionSchema }),
         providerOptions: { openai: { store: false } },
       });
-      return await result.output;
+      return result.output;
     } catch (error) {
       lastError = error;
       const status = statusOf(error);
