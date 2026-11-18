@@ -1,22 +1,21 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import type { Hotel, AirbnbPropertyDetails } from "./hotels";
 import { nightsBetween } from "./hotels";
 import { geckoAirbnbPrice } from "./gecko-price";
 
 export const searchAirbnb = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((value) => z.object({
     destination: z.string().min(2).max(120),
     checkin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     checkout: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     adults: z.number().int().min(1).max(30),
     page: z.number().int().min(1).max(50).default(1),
+    accessToken: z.string().min(20),
   }).parse(value))
-  .handler(async ({ data, context }): Promise<{ listings: Hotel[]; totalResults: number; page: number; nextPage?: number; error?: string }> => {
-    const { assertSearchPermission } = await import("./access.server");
-    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
+  .handler(async ({ data }): Promise<{ listings: Hotel[]; totalResults: number; page: number; nextPage?: number; error?: string }> => {
+    const { authorizeServerToken } = await import("./server-auth");
+    await authorizeServerToken(data.accessToken, "search_hotels");
     const { geckoAirbnbSearch } = await import("./gecko-airbnb.server");
     try {
       const response = await geckoAirbnbSearch({
@@ -80,16 +79,16 @@ export const searchAirbnb = createServerFn({ method: "POST" })
  * description, complete image array, amenities and cancellation policy.
  */
 export const getAirbnbDetails = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((value) => z.object({
     listingId: z.string().regex(/^\d{6,22}$/),
     startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     numAdults: z.number().int().min(1).max(30).optional(),
+    accessToken: z.string().min(20),
   }).parse(value))
-  .handler(async ({ data, context }): Promise<AirbnbPropertyDetails & { error?: string }> => {
-    const { assertSearchPermission } = await import("./access.server");
-    await assertSearchPermission(context.supabase, context.userId, "search_hotels");
+  .handler(async ({ data }): Promise<AirbnbPropertyDetails & { error?: string }> => {
+    const { authorizeServerToken } = await import("./server-auth");
+    await authorizeServerToken(data.accessToken, "search_hotels");
     try {
       const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
       const response = await geckoAirbnbDetails(data);
