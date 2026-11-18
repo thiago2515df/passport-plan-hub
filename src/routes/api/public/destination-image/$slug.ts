@@ -25,11 +25,14 @@ async function logAvailableImageModels(baseUrl: string, apiKey: string) {
 }
 
 async function generateDestinationImage(city: string): Promise<Uint8Array | null> {
-  const apiKey = process.env["GEMINI_API_KEY"]?.trim();
-  const model = process.env["GEMINI_IMAGE_MODEL"]?.trim() || "gemini-3.1-flash-image";
+  const apiKey = (
+    process.env["FLATKEY_IMAGE_API_KEY"] ??
+    process.env["FLATKEY_API_KEY"]
+  )?.trim();
+  const model = process.env["FLATKEY_IMAGE_MODEL"]?.trim() || "gemini-3.1-flash-image";
 
   if (!apiKey) {
-    console.error("[destination-image] GEMINI_API_KEY is not configured");
+    console.error("[destination-image] FLATKEY_IMAGE_API_KEY is not configured");
     return null;
   }
 
@@ -37,30 +40,35 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
     `Photorealistic premium travel photograph of ${city}, Brazil.`,
     "Show a recognizable authentic city landscape or landmark associated with the destination.",
     "Natural daylight or golden hour, elegant tourism campaign photography, realistic architecture and scenery.",
-    "Wide cinematic composition designed as a website hero banner, with useful negative space for white title text on the left.",
+    "Wide cinematic 16:9 composition designed as a website hero banner, with useful negative space for white title text on the left.",
     "No text, no logos, no watermark, no fictional landmarks, no collage."
   ].join(" ");
 
-  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
+  const endpoint = `https://router.flatkey.ai/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: {
-      "x-goog-api-key": apiKey,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model,
-      input: prompt,
-      response_format: {
-        type: "image",
-        aspect_ratio: "16:9",
+      contents: [{
+        role: "user",
+        parts: [{ text: prompt }],
+      }],
+      generationConfig: {
+        responseModalities: ["TEXT", "IMAGE"],
+        imageConfig: {
+          aspectRatio: "16:9",
+        },
       },
     }),
-    signal: AbortSignal.timeout(90_000),
+    signal: AbortSignal.timeout(120_000),
   });
 
   const raw = await response.text();
   if (!response.ok) {
-    console.error(`[destination-image] Gemini generation failed (${response.status}): ${raw.slice(0, 1200)}`);
+    console.error(`[destination-image] Flatkey Gemini generation failed (${response.status}): ${raw.slice(0, 1500)}`);
     return null;
   }
 
@@ -68,26 +76,28 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
   try {
     json = JSON.parse(raw);
   } catch {
-    console.error("[destination-image] Gemini returned invalid JSON");
+    console.error("[destination-image] Flatkey returned invalid JSON");
     return null;
   }
 
-  const candidates = [
-    json?.output_image?.data,
-    json?.outputImage?.data,
-    json?.outputs?.[0]?.image?.data,
-    json?.outputs?.[0]?.data,
-  ].filter((value): value is string => typeof value === "string" && value.length > 100);
-
-  const b64 = candidates[0];
-  if (!b64) {
-    console.error("[destination-image] Gemini response did not contain output_image.data");
-    console.error("[destination-image] Response preview:", raw.slice(0, 1600));
-    return null;
+  const candidates = Array.isArray(json?.candidates) ? json.candidates : [];
+  for (const candidate of candidates) {
+    const parts = candidate?.content?.parts;
+    if (!Array.isArray(parts)) continue;
+    for (const part of parts) {
+      const inline = part?.inlineData ?? part?.inline_data;
+      const b64 = inline?.data;
+      const mimeType = inline?.mimeType ?? inline?.mime_type;
+      if (typeof b64 === "string" && b64.length > 100 && (!mimeType || /^image\//i.test(String(mimeType)))) {
+        const normalized = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
+        return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
+      }
+    }
   }
 
-  const normalized = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
-  return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
+  console.error("[destination-image] Flatkey Gemini response did not contain inline image data");
+  console.error("[destination-image] Response preview:", raw.slice(0, 1800));
+  return null;
 }
 
 export const Route = createFileRoute("/api/public/destination-image/$slug")({
