@@ -19,6 +19,7 @@ import { CommissionNotice } from "@/components/CommissionNotice";
 import { COMMISSION_REQUIRED, requireConfiguredCommissions } from "@/lib/commission-rules";
 import { flightToTransportLeg } from "@/lib/customer-itinerary";
 import { emptyCommissions, packagePricing, commissionLabel } from "@/lib/package-pricing";
+import { getValidAccessToken } from "@/integrations/supabase/session";
 
 export const Route = createFileRoute("/_authenticated/aereo")({
   head: () => ({ meta: [{ title: "Aéreo — Excursão Brasília" }, { name: "description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:title", content: "Aéreo — Excursão Brasília" }, { property: "og:description", content: "Busque passagens aéreas e monte propostas de voos para seus clientes." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" }] }),
@@ -89,7 +90,8 @@ export default function AereoPage() {
     setReturnLeg({ list: [], loading: true });
 
     try {
-      const outRes = await findFlights({ data: { from: fromIata, to: toIata, date: departureDate, adults: passengersCount, children: 0 } });
+      const accessToken = await getValidAccessToken();
+      const outRes = await findFlights({ data: { from: fromIata, to: toIata, date: departureDate, adults: passengersCount, children: 0, accessToken } });
       setOutboundLeg({ list: outRes.flights, loading: false, error: outRes.error || (outRes.flights.length ? undefined : "Nenhum voo de ida encontrado.") });
     } catch (e) {
       setOutboundLeg({ list: [], loading: false, error: (e as Error).message });
@@ -97,7 +99,8 @@ export default function AereoPage() {
 
     if (tripType === "roundtrip") {
       try {
-        const retRes = await findFlights({ data: { from: toIata, to: fromIata, date: returnDate, adults: passengersCount, children: 0 } });
+        const accessToken = await getValidAccessToken();
+        const retRes = await findFlights({ data: { from: toIata, to: fromIata, date: returnDate, adults: passengersCount, children: 0, accessToken } });
         setReturnLeg({ list: retRes.flights, loading: false, error: retRes.error || (retRes.flights.length ? undefined : "Nenhum voo de volta encontrado.") });
       } catch (e) {
         setReturnLeg({ list: [], loading: false, error: (e as Error).message });
