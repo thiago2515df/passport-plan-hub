@@ -2,7 +2,6 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import type { Flight } from "./hotels";
 import { mapFlightOffer, type FlightOffer } from "./flight-offers";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const METRO_AIRPORTS: Record<string, string[]> = {
   SAO: ["CGH", "GRU", "VCP"],
@@ -15,7 +14,6 @@ const flightSearchCache = new Map<string, { expiresAt: number; flights: Flight[]
 const FLIGHT_CACHE_TTL_MS = 90_000;
 
 export const searchFlights = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
     z.object({
       from: z.string().regex(/^[A-Z]{3}$/),
@@ -23,11 +21,12 @@ export const searchFlights = createServerFn({ method: "POST" })
       date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       adults: z.number().int().min(1).max(9),
       children: z.number().int().min(0).max(8),
+      accessToken: z.string().min(20),
     }).parse(d),
   )
-  .handler(async ({ data, context }): Promise<{ flights: Flight[]; error?: string }> => {
-    const { assertSearchPermission } = await import("./access.server");
-    await assertSearchPermission(context.supabase, context.userId, "search_flights");
+  .handler(async ({ data }): Promise<{ flights: Flight[]; error?: string }> => {
+    const { authorizeServerToken } = await import("./server-auth");
+    await authorizeServerToken(data.accessToken, "search_flights");
 
     const cacheKey = [data.from, data.to, data.date, data.adults, data.children].join("|");
     const cached = flightSearchCache.get(cacheKey);
