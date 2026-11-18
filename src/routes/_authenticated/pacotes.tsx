@@ -397,7 +397,8 @@ function Index() {
     }
     const run = (a: string, b: string, date: string, set: React.Dispatch<React.SetStateAction<Leg>>) => {
       set(previous => ({ ...previous, loading: true, error: undefined }));
-      findFlights({ data: { from: a, to: b, date, adults, children: kids.length } })
+      getValidAccessToken()
+        .then(accessToken => findFlights({ data: { from: a, to: b, date, adults, children: kids.length, accessToken } }))
         .then(result => { if (epoch === searchEpoch.current) set(previous => ({ list: mergeFlights(previous.list, result.flights), loading: false, error: result.error ?? (!result.flights.length ? "Nenhuma nova opção disponível na API. Os voos salvos continuam visíveis." : undefined) })); })
         .catch(error => { if (epoch === searchEpoch.current) set(previous => ({ ...previous, loading: false, error: error instanceof Error ? error.message : "Não foi possível buscar os voos." })); });
     };
