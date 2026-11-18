@@ -25,12 +25,11 @@ async function logAvailableImageModels(baseUrl: string, apiKey: string) {
 }
 
 async function generateDestinationImage(city: string): Promise<Uint8Array | null> {
-  const apiKey = process.env["AI_API_KEY"]?.trim();
-  const baseUrl = cleanBaseUrl(process.env["AI_BASE_URL"]?.trim() || "https://ai.starimg.ru/v1");
-  const model = process.env["AI_IMAGE_MODEL"]?.trim() || "gemini-3.1-flash-image";
+  const apiKey = process.env["GEMINI_API_KEY"]?.trim();
+  const model = process.env["GEMINI_IMAGE_MODEL"]?.trim() || "gemini-3.1-flash-image";
 
   if (!apiKey) {
-    console.error("[destination-image] AI_API_KEY is not configured");
+    console.error("[destination-image] GEMINI_API_KEY is not configured");
     return null;
   }
 
@@ -42,26 +41,26 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
     "No text, no logos, no watermark, no fictional landmarks, no collage."
   ].join(" ");
 
-  const response = await fetch(`${baseUrl}/images/generations`, {
+  const response = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "x-goog-api-key": apiKey,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
       model,
-      prompt,
-      n: 1,
-      size: "1536x1024",
-      response_format: "b64_json",
+      input: prompt,
+      response_format: {
+        type: "image",
+        aspect_ratio: "16:9",
+      },
     }),
     signal: AbortSignal.timeout(90_000),
   });
 
   const raw = await response.text();
   if (!response.ok) {
-    console.error(`[destination-image] AI generation failed (${response.status}): ${raw.slice(0, 800)}`);
-    await logAvailableImageModels(baseUrl, apiKey);
+    console.error(`[destination-image] Gemini generation failed (${response.status}): ${raw.slice(0, 1200)}`);
     return null;
   }
 
@@ -69,36 +68,26 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
   try {
     json = JSON.parse(raw);
   } catch {
-    console.error("[destination-image] AI returned invalid JSON");
+    console.error("[destination-image] Gemini returned invalid JSON");
     return null;
   }
 
-  const item = json?.data?.[0] ?? json?.images?.[0] ?? null;
-  const b64 =
-    item?.b64_json ??
-    item?.base64 ??
-    item?.image_base64 ??
-    json?.b64_json ??
-    json?.image_base64;
+  const candidates = [
+    json?.output_image?.data,
+    json?.outputImage?.data,
+    json?.outputs?.[0]?.image?.data,
+    json?.outputs?.[0]?.data,
+  ].filter((value): value is string => typeof value === "string" && value.length > 100);
 
-  if (typeof b64 === "string" && b64.length > 100) {
-    const normalized = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
-    return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
+  const b64 = candidates[0];
+  if (!b64) {
+    console.error("[destination-image] Gemini response did not contain output_image.data");
+    console.error("[destination-image] Response preview:", raw.slice(0, 1600));
+    return null;
   }
 
-  const imageUrl = item?.url ?? item?.image_url ?? json?.url ?? json?.image_url;
-  if (typeof imageUrl === "string" && /^https?:\/\//i.test(imageUrl)) {
-    const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(45_000) });
-    if (!imageResponse.ok) {
-      console.error(`[destination-image] Generated image download failed: ${imageResponse.status}`);
-      return null;
-    }
-    return new Uint8Array(await imageResponse.arrayBuffer());
-  }
-
-  console.error("[destination-image] AI response did not contain an image");
-  await logAvailableImageModels(baseUrl, apiKey);
-  return null;
+  const normalized = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
+  return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
 }
 
 export const Route = createFileRoute("/api/public/destination-image/$slug")({
