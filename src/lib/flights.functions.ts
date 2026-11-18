@@ -11,6 +11,9 @@ const METRO_AIRPORTS: Record<string, string[]> = {
 
 const expandAirport = (code: string) => METRO_AIRPORTS[code] ?? [code];
 
+const flightSearchCache = new Map<string, { expiresAt: number; flights: Flight[] }>();
+const FLIGHT_CACHE_TTL_MS = 90_000;
+
 export const searchFlights = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((d) =>
@@ -25,6 +28,13 @@ export const searchFlights = createServerFn({ method: "POST" })
   .handler(async ({ data, context }): Promise<{ flights: Flight[]; error?: string }> => {
     const { assertSearchPermission } = await import("./access.server");
     await assertSearchPermission(context.supabase, context.userId, "search_flights");
+
+    const cacheKey = [data.from, data.to, data.date, data.adults, data.children].join("|");
+    const cached = flightSearchCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) {
+      return { flights: cached.flights };
+    }
+
     const { passhub } = await import("./passhub.server");
 
     const origins = expandAirport(data.from);
@@ -37,9 +47,8 @@ export const searchFlights = createServerFn({ method: "POST" })
           const r = await passhub<{ offers?: FlightOffer[] }>("/searches", {
             method: "POST",
             keyName: "PASSHUB_AIR_API_KEY",
-            // The flight search asks PassHub to wait up to 40s for supplier results.
-            // Keep the HTTP timeout above that window so our client does not abort first.
-            timeoutMs: 55_000,
+            // Return partial supplier results sooner instead of holding the UI for ~40s.
+            timeoutMs: 30_000,
             body: {
               type: "flight",
               iataFrom: from,
@@ -48,7 +57,7 @@ export const searchFlights = createServerFn({ method: "POST" })
               ...(data.children ? { children: data.children } : {}),
               dates: [{ departure: data.date }],
               ravPercentage: 0,
-              initialWaitSeconds: 40,
+              initialWaitSeconds: 20,
             },
           });
           return (r.offers ?? []).map((o, i) => mapFlightOffer(o, i, from, to));
@@ -63,7 +72,10 @@ export const searchFlights = createServerFn({ method: "POST" })
         })
         .sort((a, b) => a.price - b.price);
 
-      if (flights.length) return { flights };
+      if (flights.length) {
+        flightSearchCache.set(cacheKey, { flights, expiresAt: Date.now() + FLIGHT_CACHE_TTL_MS });
+        return { flights };
+      }
 
       const firstError = settled.find((result) => result.status === "rejected");
       return {
