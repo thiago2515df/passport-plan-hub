@@ -292,8 +292,9 @@ function Index() {
     setAirbnbLoading(true);
     setAirbnbError("");
     try {
+      const accessToken = await getValidAccessToken();
       const result = await findAirbnb({ data: {
-        destination: s.destino, checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length, page,
+        destination: s.destino, checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length, page, accessToken,
       } });
       if (epoch !== searchEpoch.current) return;
       if (result.error) { setAirbnbError(result.error); return; }
