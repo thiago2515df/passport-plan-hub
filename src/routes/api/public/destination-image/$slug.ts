@@ -3,6 +3,83 @@ import { createFileRoute } from "@tanstack/react-router";
 const toHex = (bytes: Uint8Array) => "\\x" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 const fromHex = (hex: string) => Uint8Array.from(hex.slice(2).match(/.{2}/g)!.map((h) => parseInt(h, 16)));
 
+const cleanBaseUrl = (value: string) => value.replace(/\/+$/, "");
+
+async function generateDestinationImage(city: string): Promise<Uint8Array | null> {
+  const apiKey = process.env["AI_API_KEY"]?.trim();
+  const baseUrl = cleanBaseUrl(process.env["AI_BASE_URL"]?.trim() || "https://ai.starimg.ru/v1");
+  const model = process.env["AI_IMAGE_MODEL"]?.trim() || "gemini-3.1-flash-image";
+
+  if (!apiKey) {
+    console.error("[destination-image] AI_API_KEY is not configured");
+    return null;
+  }
+
+  const prompt = [
+    `Photorealistic premium travel photograph of ${city}, Brazil.`,
+    "Show a recognizable authentic city landscape or landmark associated with the destination.",
+    "Natural daylight or golden hour, elegant tourism campaign photography, realistic architecture and scenery.",
+    "Wide cinematic composition designed as a website hero banner, with useful negative space for white title text on the left.",
+    "No text, no logos, no watermark, no fictional landmarks, no collage."
+  ].join(" ");
+
+  const response = await fetch(`${baseUrl}/images/generations`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model,
+      prompt,
+      n: 1,
+      size: "1536x1024",
+      response_format: "b64_json",
+    }),
+    signal: AbortSignal.timeout(90_000),
+  });
+
+  const raw = await response.text();
+  if (!response.ok) {
+    console.error(`[destination-image] AI generation failed (${response.status}): ${raw.slice(0, 800)}`);
+    return null;
+  }
+
+  let json: any;
+  try {
+    json = JSON.parse(raw);
+  } catch {
+    console.error("[destination-image] AI returned invalid JSON");
+    return null;
+  }
+
+  const item = json?.data?.[0] ?? json?.images?.[0] ?? null;
+  const b64 =
+    item?.b64_json ??
+    item?.base64 ??
+    item?.image_base64 ??
+    json?.b64_json ??
+    json?.image_base64;
+
+  if (typeof b64 === "string" && b64.length > 100) {
+    const normalized = b64.includes(",") ? b64.slice(b64.indexOf(",") + 1) : b64;
+    return Uint8Array.from(atob(normalized), (char) => char.charCodeAt(0));
+  }
+
+  const imageUrl = item?.url ?? item?.image_url ?? json?.url ?? json?.image_url;
+  if (typeof imageUrl === "string" && /^https?:\/\//i.test(imageUrl)) {
+    const imageResponse = await fetch(imageUrl, { signal: AbortSignal.timeout(45_000) });
+    if (!imageResponse.ok) {
+      console.error(`[destination-image] Generated image download failed: ${imageResponse.status}`);
+      return null;
+    }
+    return new Uint8Array(await imageResponse.arrayBuffer());
+  }
+
+  console.error("[destination-image] AI response did not contain an image");
+  return null;
+}
+
 export const Route = createFileRoute("/api/public/destination-image/$slug")({
   server: {
     handlers: {
@@ -17,7 +94,15 @@ export const Route = createFileRoute("/api/public/destination-image/$slug")({
         if (!slug) return new Response("Not found", { status: 404 });
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data } = await supabaseAdmin.from("destination_images").select("content").eq("slug", slug).maybeSingle();
+        const { data, error: readError } = await supabaseAdmin
+          .from("destination_images")
+          .select("content")
+          .eq("slug", slug)
+          .maybeSingle();
+
+        if (readError) {
+          console.error("[destination-image] Cache read failed", readError.message);
+        }
 
         let bytes: Uint8Array | null = null;
         if (data?.content) {
@@ -26,25 +111,29 @@ export const Route = createFileRoute("/api/public/destination-image/$slug")({
         }
 
         if (!bytes) {
-          const apiKey = process.env["LOVABLE_API_KEY"];
-          if (!apiKey) return new Response("Not found", { status: 404 });
-          const city = slug.replace(/-/g, " ");
-          const prompt = `Breathtaking realistic travel photograph of ${city}, Brazil, iconic landmark scenery, golden hour light, professional tourism photography, high detail, no text, no watermark`;
-          const res = await fetch("https://ai.gateway.lovable.dev/v1/images/generations", {
-            method: "POST",
-            headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-            body: JSON.stringify({ model: "openai/gpt-image-2.5-sunburst", prompt, size: "1536x1024", quality: "medium" }),
-          });
-          if (!res.ok) return new Response("Not found", { status: 404 });
-          const json = (await res.json()) as { data?: { b64_json?: string }[] };
-          const b64 = json?.data?.[0]?.b64_json;
-          if (!b64) return new Response("Not found", { status: 404 });
-          bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-          await supabaseAdmin.from("destination_images").upsert({ slug, content: toHex(bytes) });
+          const city = slug
+            .split("-")
+            .filter(Boolean)
+            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+            .join(" ");
+
+          bytes = await generateDestinationImage(city);
+          if (!bytes) return new Response("Not found", { status: 404 });
+
+          const { error: saveError } = await supabaseAdmin
+            .from("destination_images")
+            .upsert({ slug, content: toHex(bytes) }, { onConflict: "slug" });
+
+          if (saveError) {
+            console.error("[destination-image] Cache save failed", saveError.message);
+          }
         }
 
         return new Response(bytes.buffer as ArrayBuffer, {
-          headers: { "Content-Type": "image/png", "Cache-Control": "public, max-age=604800, immutable" },
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+          },
         });
       },
     },
