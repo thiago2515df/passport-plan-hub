@@ -5,6 +5,7 @@ import { getHotelDetails } from "@/lib/passhub.functions";
 import { getAirbnbDetails } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
 import { airbnbListingId } from "@/lib/hotel-listing-id";
+import { getValidAccessToken } from "@/integrations/supabase/session";
 
 type Details = { photos: string[]; description: string; amenities: string[] };
 const cache = new Map<number, Promise<Details>>();
@@ -36,12 +37,13 @@ function useAirbnbDetails(
     setDetails(null); setLoading(true); setError("");
     const cacheKey = [listingId, stay?.checkin ?? "", stay?.checkout ?? "", stay?.adults ?? ""].join(":");
     if (!airbnbDetailsCache.has(cacheKey)) {
-      airbnbDetailsCache.set(cacheKey, load({ data: {
+      airbnbDetailsCache.set(cacheKey, getValidAccessToken().then(accessToken => load({ data: {
         listingId,
         ...(stay?.checkin ? { startDate: stay.checkin } : {}),
         ...(stay?.checkout ? { endDate: stay.checkout } : {}),
         ...(stay?.adults ? { numAdults: stay.adults } : {}),
-      } }));
+        accessToken,
+      } })));
     }
     airbnbDetailsCache.get(cacheKey)!.then(response => {
       if (!active) return;
