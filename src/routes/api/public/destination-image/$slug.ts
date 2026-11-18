@@ -5,6 +5,25 @@ const fromHex = (hex: string) => Uint8Array.from(hex.slice(2).match(/.{2}/g)!.ma
 
 const cleanBaseUrl = (value: string) => value.replace(/\/+$/, "");
 
+async function logAvailableImageModels(baseUrl: string, apiKey: string) {
+  try {
+    const response = await fetch(`${baseUrl}/models`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!response.ok) {
+      console.error(`[destination-image] Could not list AI STAR models: HTTP ${response.status}`);
+      return;
+    }
+    const json = await response.json() as { data?: Array<{ id?: string }> };
+    const ids = (json.data ?? []).map(item => item.id).filter((id): id is string => Boolean(id));
+    const candidates = ids.filter(id => /image|imagen|gemini|flash|nano|banana/i.test(id));
+    console.error("[destination-image] Available image/Gemini model candidates:", candidates.slice(0, 80).join(", ") || "(none)");
+  } catch (error) {
+    console.error("[destination-image] Model discovery failed:", error instanceof Error ? error.message : String(error));
+  }
+}
+
 async function generateDestinationImage(city: string): Promise<Uint8Array | null> {
   const apiKey = process.env["AI_API_KEY"]?.trim();
   const baseUrl = cleanBaseUrl(process.env["AI_BASE_URL"]?.trim() || "https://ai.starimg.ru/v1");
@@ -42,6 +61,7 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
   const raw = await response.text();
   if (!response.ok) {
     console.error(`[destination-image] AI generation failed (${response.status}): ${raw.slice(0, 800)}`);
+    await logAvailableImageModels(baseUrl, apiKey);
     return null;
   }
 
@@ -77,6 +97,7 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
   }
 
   console.error("[destination-image] AI response did not contain an image");
+  await logAvailableImageModels(baseUrl, apiKey);
   return null;
 }
 
