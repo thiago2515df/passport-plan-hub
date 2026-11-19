@@ -536,6 +536,28 @@ function Index() {
   const saveProp = useServerFn(saveProposal);
   const [saving, setSaving] = useState(false);
   const [clientNameError, setClientNameError] = useState("");
+  const copyProposalMessage = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        const copied = document.execCommand("copy");
+        document.body.removeChild(textarea);
+        return copied;
+      } catch {
+        return false;
+      }
+    }
+  };
+
   const gerar = async () => {
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     if (transport.mode === "air" && !flightsReady) {
@@ -565,7 +587,23 @@ function Index() {
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
       const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF) }, hotels: chosen }) } });
-      const url = `${window.location.origin}/p/${code}`; setLink(url); navigator.clipboard?.writeText(url).catch(() => {});
+      const url = `${window.location.origin}/p/${code}`;
+      setLink(url);
+      const destinationName = (s.destino.split(",")[0] || s.destino).trim();
+      const message = [
+        `Olá, ${clientName}! ✈️`,
+        "",
+        `Preparamos sua proposta de viagem para *${destinationName}*.`,
+        `Período: ${fmtD(s.checkin)} a ${fmtD(s.checkout)}.`,
+        "",
+        "Confira todos os detalhes, opções e valores no link abaixo:",
+        url,
+        "",
+        "Qualquer dúvida, estamos à disposição. 💙",
+        "Excursão Brasília",
+      ].join("\n");
+      const copied = await copyProposalMessage(message);
+      if (!copied) setErr("A proposta foi gerada, mas o navegador não permitiu copiar automaticamente. Copie o link manualmente.");
       queryClient.invalidateQueries({ queryKey: ["proposal-board"] }); queryClient.invalidateQueries({ queryKey: ["settings"] });
     } catch (e) {
       setErr(e instanceof Error ? e.message : "Não foi possível gerar a proposta.");
@@ -688,7 +726,7 @@ function Index() {
               ⚠️ {clientNameError}
             </div>
           )}
-        </div><Button disabled={!access.allowed || !commissions.ready || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : mobile ? "Gerar proposta" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success p-2 text-xs text-success-foreground"><Check className="mr-1 inline h-3 w-3" />Link copiado! <a href={link} target="_blank" rel="noreferrer" className="underline">Abrir proposta</a></div>}</div></div></div>}
+        </div><Button disabled={!access.allowed || !commissions.ready || !sel.length || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : mobile ? "Gerar proposta" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success px-3 py-3 text-sm font-semibold text-success-foreground"><Check className="mr-1.5 inline h-4 w-4" />Proposta copiada com sucesso. Encaminhar para o cliente.</div>}</div></div></div>}
     {flowActive && commissions.ready && !flowLoading && (step === "hoteis" || step === "voos") && <MobilePackageFooter label={step === "hoteis" ? transport.mode === "air" ? "Próximo: voos" : transport.mode === "bus" ? "Próximo: transporte" : "Próximo: resumo" : "Próximo: resumo"} detail={step === "hoteis" ? `${sel.length} ${sel.length === 1 ? "hotel selecionado" : "hotéis selecionados"}` : transport.mode === "air" ? `${Number(outboundReady) + Number(inboundReady)}/2 voos selecionados` : "Confira os dados do transporte"} disabled={flowLoading || !sel.length || uploading || (step === "voos" && transport.mode === "air" && !flightsReady)} onNext={nextStep} />}
   </main>{gallery && <HotelGallery hotel={gallery} stay={{ checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length }} onClose={() => setGallery(null)} />}</div>;
 }
