@@ -52,6 +52,29 @@ const toNotes = (value: unknown) => (Array.isArray(value)
   ? value.filter((note): note is string => typeof note === "string").map(note => note.trim().slice(0, 180)).filter(Boolean).slice(0, 8)
   : []);
 
+const normalizeFlightNumber = (value: string) => value
+  .trim()
+  .toUpperCase()
+  .replace(/^([A-Z0-9]{2,3})\s*[-–—]\s*(\d{1,5})$/, "$1 $2");
+
+const normalizeAirline = (airlineRaw: string, flightNumberRaw: string) => {
+  const airline = airlineRaw.trim();
+  const flightNumber = normalizeFlightNumber(flightNumberRaw);
+  const combined = `${airline} ${flightNumber}`;
+
+  if (/\b(?:LA|JJ)\s*\d/i.test(flightNumber) || /\blatam\b/i.test(combined)) return "LATAM Airlines";
+  if (/\bG3\s*\d/i.test(flightNumber) || /\bgol\b/i.test(combined)) return "GOL Linhas Aéreas";
+  if (/\bAD\s*\d/i.test(flightNumber) || /\bazul\b/i.test(combined)) return "Azul Linhas Aéreas";
+  if (/\b2Z\s*\d/i.test(flightNumber) || /\bvoepass\b/i.test(combined)) return "Voepass";
+  if (/\bTP\s*\d/i.test(flightNumber) || /\btap\b/i.test(combined)) return "TAP Air Portugal";
+  if (/\bAR\s*\d/i.test(flightNumber) || /aerol[ií]neas argentinas/i.test(combined)) return "Aerolíneas Argentinas";
+  if (/\bAV\s*\d/i.test(flightNumber) || /\bavianca\b/i.test(combined)) return "Avianca";
+  if (/\bCM\s*\d/i.test(flightNumber) || /\bcopa\b/i.test(combined)) return "Copa Airlines";
+
+  if (!airline || /^(companhia a[eé]rea|operadora|light\s*-?\s*operadora)$/i.test(airline)) return "";
+  return airline;
+};
+
 export const analyzeFlightImage = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({
@@ -72,11 +95,9 @@ export const analyzeFlightImage = createServerFn({ method: "POST" })
 
     const result = extractedSchema.parse({
       legs: raw.legs.slice(0, 4).map((leg) => {
-        const flightNumber = toText(leg.flightNumber, 30);
+        const flightNumber = normalizeFlightNumber(toText(leg.flightNumber, 30));
         const airlineRaw = toText(leg.airline, 80);
-        const airline = /(^|\s)AD(?:\s|[-]?\d|$)/i.test(`${airlineRaw} ${flightNumber}`) || /azul/i.test(airlineRaw)
-          ? "Azul"
-          : airlineRaw;
+        const airline = normalizeAirline(airlineRaw, flightNumber);
         return {
         direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
         airline,
@@ -128,11 +149,9 @@ export const analyzeFlightText = createServerFn({ method: "POST" })
 
     const result = extractedSchema.parse({
       legs: raw.legs.slice(0, 4).map((leg) => {
-        const flightNumber = toText(leg.flightNumber, 30);
+        const flightNumber = normalizeFlightNumber(toText(leg.flightNumber, 30));
         const airlineRaw = toText(leg.airline, 80);
-        const airline = /(^|\s)AD(?:\s|[-]?\d|$)/i.test(`${airlineRaw} ${flightNumber}`) || /azul/i.test(airlineRaw)
-          ? "Azul"
-          : airlineRaw;
+        const airline = normalizeAirline(airlineRaw, flightNumber);
         return {
           direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
           airline,
