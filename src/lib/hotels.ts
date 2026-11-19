@@ -85,18 +85,69 @@ export type Search = { paymentRules?: PaymentRules; interestFreeInstallments?: n
 
 export const isCaldasNovas = (destination: string) => /\bcaldas\s+novas?\b/i.test(destination);
 
-// Aeroporto/código metropolitano usado quando o usuário escolhe uma cidade genérica.
-// SAO e RIO são expandidos no servidor para todos os aeroportos principais da região.
+// Aeroporto/código metropolitano usado quando o usuário escolhe uma cidade genérica
+// ou um destino turístico sem aeroporto comercial relevante.
+// SAO e RIO são expandidos no servidor para os aeroportos principais da região.
 const CITY_IATA: [RegExp, string][] = [
-  [/caldas\s+novas?/i, "CLV"], [/rio\s+de\s+janeiro/i, "RIO"], [/macei/i, "MCZ"], [/s[aã]o\s+paulo/i, "SAO"],
+  // Destinos turísticos sem aeroporto próprio/relevante
+  [/arraial\s+do\s+cabo|b[uú]zios|arma[cç][aã]o\s+dos\s+b[uú]zios|cabo\s+frio|angra\s+dos\s+reis|paraty/i, "RIO"],
+  [/porto\s+de\s+galinhas|ipojuca|muro\s+alto|maraca[ií]pe|carneiros|tamandar[eé]/i, "REC"],
+  [/pipa|tibau\s+do\s+sul|s[aã]o\s+miguel\s+do\s+gostoso/i, "NAT"],
+  [/praia\s+do\s+forte|mata\s+de\s+s[aã]o\s+jo[aã]o|morro\s+de\s+s[aã]o\s+paulo|itacar[eé]/i, "SSA"],
+  [/gramado|canela|bento\s+gon[cç]alves|nova\s+petr[oó]polis/i, "POA"],
+  [/balne[aá]rio\s+cambori[uú]|bombinhas|itapema|penha/i, "NVT"],
+  [/campos\s+do\s+jord[aã]o|ilhabela|ubatuba/i, "SAO"],
+  [/guarapari|vila\s+velha/i, "VIX"],
+  [/porto\s+de\s+pedras|s[aã]o\s+miguel\s+dos\s+milagres|maragogi/i, "MCZ"],
+  [/caldas\s+novas?/i, "CLV"],
+
+  // Capitais e cidades com aeroporto comercial
+  [/rio\s+de\s+janeiro/i, "RIO"], [/macei/i, "MCZ"], [/s[aã]o\s+paulo/i, "SAO"],
   [/bras[ií]lia/i, "BSB"], [/salvador/i, "SSA"], [/fortaleza/i, "FOR"], [/recife/i, "REC"], [/natal/i, "NAT"],
   [/porto\s+seguro/i, "BPS"], [/florian/i, "FLN"], [/curitiba/i, "CWB"], [/belo\s+horizonte/i, "CNF"],
   [/goi[aâ]nia/i, "GYN"], [/foz\s+do\s+igua/i, "IGU"], [/manaus/i, "MAO"], [/bel[eé]m/i, "BEL"],
-  [/jo[aã]o\s+pessoa/i, "JPA"], [/aracaju/i, "AJU"], [/gramado|canela|porto\s+alegre/i, "POA"],
-  [/balne[aá]rio\s+cambori/i, "NVT"], [/canc[uú]n/i, "CUN"], [/orlando|miami/i, "MCO"], [/buenos\s+aires/i, "EZE"],
+  [/jo[aã]o\s+pessoa/i, "JPA"], [/aracaju/i, "AJU"], [/porto\s+alegre/i, "POA"],
+  [/vit[oó]ria/i, "VIX"], [/teresina/i, "THE"], [/s[aã]o\s+lu[ií]s/i, "SLZ"], [/palmas/i, "PMW"],
+  [/campo\s+grande/i, "CGR"], [/cuiab[aá]/i, "CGB"], [/porto\s+velho/i, "PVH"], [/rio\s+branco/i, "RBR"],
+  [/boa\s+vista/i, "BVB"], [/macap[aá]/i, "MCP"],
+
+  // Fallback por estado/UF quando a cidade escolhida não tiver aeroporto mapeado.
+  [/\b(?:rio\s+de\s+janeiro|rj)\b/i, "RIO"],
+  [/\b(?:pernambuco|pe)\b/i, "REC"],
+  [/\b(?:rio\s+grande\s+do\s+norte|rn)\b/i, "NAT"],
+  [/\b(?:bahia|ba)\b/i, "SSA"],
+  [/\b(?:rio\s+grande\s+do\s+sul|rs)\b/i, "POA"],
+  [/\b(?:santa\s+catarina|sc)\b/i, "FLN"],
+  [/\b(?:s[aã]o\s+paulo|sp)\b/i, "SAO"],
+  [/\b(?:esp[ií]rito\s+santo|es)\b/i, "VIX"],
+  [/\b(?:alagoas|al)\b/i, "MCZ"],
+  [/\b(?:para[ií]ba|pb)\b/i, "JPA"],
+  [/\b(?:sergipe|se)\b/i, "AJU"],
+  [/\b(?:cear[aá]|ce)\b/i, "FOR"],
+  [/\b(?:goi[aá]s|go)\b/i, "GYN"],
+  [/\b(?:minas\s+gerais|mg)\b/i, "CNF"],
+  [/\b(?:paran[aá]|pr)\b/i, "CWB"],
+  [/\b(?:par[aá]|pa)\b/i, "BEL"],
+  [/\b(?:amazonas|am)\b/i, "MAO"],
+  [/\b(?:maranh[aã]o|ma)\b/i, "SLZ"],
+  [/\b(?:piau[ií]|pi)\b/i, "THE"],
+  [/\b(?:tocantins|to)\b/i, "PMW"],
+  [/\b(?:mato\s+grosso\s+do\s+sul|ms)\b/i, "CGR"],
+  [/\b(?:mato\s+grosso|mt)\b/i, "CGB"],
+  [/\b(?:rond[oô]nia|ro)\b/i, "PVH"],
+  [/\b(?:acre|ac)\b/i, "RBR"],
+  [/\b(?:roraima|rr)\b/i, "BVB"],
+  [/\b(?:amap[aá]|ap)\b/i, "MCP"],
+
+  // Internacionais
+  [/canc[uú]n/i, "CUN"], [/orlando/i, "MCO"], [/miami/i, "MIA"], [/buenos\s+aires/i, "EZE"],
   [/santiago/i, "SCL"], [/lisboa/i, "LIS"], [/paris/i, "CDG"], [/nova\s+york|new\s+york/i, "JFK"],
 ];
-export const cityIata = (destination: string) => CITY_IATA.find(([re]) => re.test(destination))?.[1] ?? "";
+
+export const cityIata = (destination: string) => {
+  const value = destination.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return CITY_IATA.find(([re]) => re.test(value))?.[1] ?? "";
+};
 export const makeTransport = (mode: TransportMode, destination: string): Transport => {
   const standard = mode === "bus" && isCaldasNovas(destination);
   return { mode, standard,
