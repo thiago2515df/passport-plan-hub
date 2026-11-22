@@ -185,3 +185,118 @@ export const analyzeFlightText = createServerFn({ method: "POST" })
     }
     return result;
   });
+
+
+export const analyzeFlightImageWithClaudia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({
+    imageDataUrl: z.string().min(100),
+    directionHint: z.enum(["out", "back", "auto"]).default("auto"),
+  }).parse(input))
+  .handler(async ({ data, context }): Promise<FlightImageExtraction> => {
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_flights");
+
+    const { claudiaExtractFlightFromImage } = await import("./ai/claudia-flight.server.ts");
+    const raw = await claudiaExtractFlightFromImage({
+      imageDataUrl: normalizeDataUrl(data.imageDataUrl),
+      directionHint: data.directionHint,
+    });
+
+    if (!raw.legs.length) throw new Error("A Claudia não retornou dados do voo.");
+
+    const result = extractedSchema.parse({
+      legs: raw.legs.slice(0, 4).map((leg) => {
+        const flightNumber = normalizeFlightNumber(toText(leg.flightNumber, 30));
+        const airlineRaw = toText(leg.airline, 80);
+        const airline = normalizeAirline(airlineRaw, flightNumber);
+        return {
+          direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
+          airline,
+          flightNumber,
+          from: toText(leg.from, 8),
+          to: toText(leg.to, 8),
+          departureDate: toDate(leg.departureDate),
+          arrivalDate: toDate(leg.arrivalDate),
+          departure: toTime(leg.departure),
+          arrival: toTime(leg.arrival),
+          duration: toText(leg.duration, 30),
+          stops: toText(leg.stops, 80),
+          travelClass: toText(leg.travelClass, 50),
+          fareCategory: toText(leg.fareCategory, 80),
+          baggage: {
+            personal: toBool(leg.baggage?.personal),
+            carryOn: toBool(leg.baggage?.carryOn),
+            checked: toBool(leg.baggage?.checked),
+          },
+        };
+      }),
+      totalPrice: toPrice(raw.totalPrice),
+      perPersonPrice: toPrice(raw.perPersonPrice),
+      currency: toText(raw.currency, 8) || "BRL",
+      confidence: toConfidence(raw.confidence),
+      notes: toNotes(raw.notes),
+    });
+
+    if (!result.legs.some(leg => leg.from || leg.to || leg.flightNumber || leg.airline)) {
+      throw new Error("A Claudia não conseguiu identificar um voo nessa imagem.");
+    }
+    return result;
+  });
+
+export const analyzeFlightTextWithClaudia = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({
+    text: z.string().trim().min(5).max(20_000),
+    directionHint: z.enum(["out", "back", "auto"]).default("auto"),
+  }).parse(input))
+  .handler(async ({ data, context }): Promise<FlightImageExtraction> => {
+    const { assertSearchPermission } = await import("./access.server");
+    await assertSearchPermission(context.supabase, context.userId, "search_flights");
+
+    const { claudiaExtractFlightFromText } = await import("./ai/claudia-flight.server.ts");
+    const raw = await claudiaExtractFlightFromText({
+      text: data.text,
+      directionHint: data.directionHint,
+    });
+
+    if (!raw.legs.length) throw new Error("A Claudia não retornou dados do voo.");
+
+    const result = extractedSchema.parse({
+      legs: raw.legs.slice(0, 4).map((leg) => {
+        const flightNumber = normalizeFlightNumber(toText(leg.flightNumber, 30));
+        const airlineRaw = toText(leg.airline, 80);
+        const airline = normalizeAirline(airlineRaw, flightNumber);
+        return {
+          direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
+          airline,
+          flightNumber,
+          from: toText(leg.from, 8),
+          to: toText(leg.to, 8),
+          departureDate: toDate(leg.departureDate),
+          arrivalDate: toDate(leg.arrivalDate),
+          departure: toTime(leg.departure),
+          arrival: toTime(leg.arrival),
+          duration: toText(leg.duration, 30),
+          stops: toText(leg.stops, 80),
+          travelClass: toText(leg.travelClass, 50),
+          fareCategory: toText(leg.fareCategory, 80),
+          baggage: {
+            personal: toBool(leg.baggage?.personal),
+            carryOn: toBool(leg.baggage?.carryOn),
+            checked: toBool(leg.baggage?.checked),
+          },
+        };
+      }),
+      totalPrice: toPrice(raw.totalPrice),
+      perPersonPrice: toPrice(raw.perPersonPrice),
+      currency: toText(raw.currency, 8) || "BRL",
+      confidence: toConfidence(raw.confidence),
+      notes: toNotes(raw.notes),
+    });
+
+    if (!result.legs.some(leg => leg.from || leg.to || leg.flightNumber || leg.airline)) {
+      throw new Error("A Claudia não conseguiu identificar um voo nesse texto.");
+    }
+    return result;
+  });
