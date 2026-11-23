@@ -3,7 +3,7 @@ import { useState } from "react";
 import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, MessageCircle, Coffee, Check, Plane, PlusCircle } from "lucide-react";
 import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, type Hotel } from "@/lib/hotels";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
-import { TransportPanel, TransportItinerary } from "@/components/TransportPanel";
+import { CustomerFlightOptions, TransportPanel, TransportItinerary } from "@/components/TransportPanel";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -155,7 +155,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
 
         {tab === 0 && (
           <>
-            {p.s.transport && hasTransport && <div className="mt-5 sm:mt-8"><h2 className="mb-2 text-xl font-extrabold text-navy sm:mb-3 sm:text-2xl md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seu voo"}</h2><TransportItinerary s={p.s} value={p.s.transport} /></div>}
+            {p.s.transport && hasTransport && <div className="mt-5 sm:mt-8"><h2 className="mb-2 text-xl font-extrabold text-navy sm:mb-3 sm:text-2xl md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seus voos disponíveis"}</h2>{p.s.transport.mode === "air" && p.s.selectedFlightOptions && (p.s.selectedFlightOptions.out.length || p.s.selectedFlightOptions.back.length) ? <CustomerFlightOptions outbound={p.s.selectedFlightOptions.out} inbound={p.s.selectedFlightOptions.back} outboundDate={p.s.checkin} inboundDate={p.s.checkout} /> : <TransportItinerary s={p.s} value={p.s.transport} />}</div>}
             <h2 className="mt-6 text-xl font-extrabold text-navy sm:mt-8 sm:text-2xl md:text-3xl">Selecione o seu pacote</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -207,7 +207,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
             </div>
           </>
         )}
-        {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-5 max-w-3xl sm:mt-8"><TransportPanel s={p.s} value={p.s.transport} /></div>}
+        {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-5 max-w-3xl sm:mt-8">{p.s.transport.mode === "air" && p.s.selectedFlightOptions && (p.s.selectedFlightOptions.out.length || p.s.selectedFlightOptions.back.length) ? <CustomerFlightOptions outbound={p.s.selectedFlightOptions.out} inbound={p.s.selectedFlightOptions.back} outboundDate={p.s.checkin} inboundDate={p.s.checkout} /> : <TransportPanel s={p.s} value={p.s.transport} />}</div>}
         {(tab === 2 || (tab === 1 && (!p.s.transport || p.s.transport.mode === "none"))) && (
           <div className="mt-6 rounded-2xl bg-card p-6 text-center shadow-md sm:mt-10 sm:rounded-3xl sm:p-10">
             {tab === 1 ? <Plane className="mx-auto h-10 w-10 text-primary" /> : <PlusCircle className="mx-auto h-10 w-10 text-primary" />}
