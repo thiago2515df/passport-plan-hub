@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { viewTicket } from "@/lib/tickets.functions";
-import type { Search, Ticket, Transport, TransportLeg } from "@/lib/hotels";
+import type { Flight, Search, Ticket, Transport, TransportLeg } from "@/lib/hotels";
 import { AirlineLogo } from "@/components/AirlineLogo";
 import { connectionAirportLabel, passengerCounts } from "@/lib/customer-itinerary";
 import { isCaldasNovas } from "@/lib/hotels";
@@ -157,6 +157,70 @@ function CustomerFlightTickets({ s, value }: { s: Search; value: Transport }) {
         {!connectionLeg?.connections?.length && !connectionLeg?.connectionDetails?.length && <p className="text-sm text-muted-foreground">O aeroporto e os horários da conexão não foram disponibilizados nesta proposta. Fale com seu agente para confirmar.</p>}
       </DialogContent>
     </Dialog>
+  </section>;
+}
+
+
+function PublicFlightOptionCard({ flight, label, fallbackDate }: { flight: Omit<Flight, "price"> & { price?: number }; label: string; fallbackDate: string }) {
+  const date = (d?: string) => d ? new Date(`${d}T12:00`).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" }) : "";
+  return <article className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <div className="flex items-center gap-3">
+        <AirlineLogo airline={flight.airline} />
+        <div>
+          <div className="text-xs font-bold uppercase tracking-wide text-primary">{label}</div>
+          <div className="text-sm font-semibold">{flight.airline}{flight.flightNumber ? ` · ${flight.flightNumber}` : ""}</div>
+        </div>
+      </div>
+      <span className="rounded-full bg-secondary px-3 py-1 text-xs font-semibold">{flight.travelClass || flight.fareCategory || "Econômica"}</span>
+    </div>
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+      <div>
+        <div className="text-xs text-muted-foreground">{date(flight.departureDate || fallbackDate)}</div>
+        <div className="text-2xl font-bold tabular-nums">{flight.departure || "—"}</div>
+        <div className="text-sm font-semibold">{flight.from || "—"}</div>
+      </div>
+      <div className="min-w-[90px] text-center text-xs text-muted-foreground">
+        <div className="flex items-center gap-1"><span className="h-px flex-1 bg-border" /><Clock3 className="h-3 w-3" /><span>{flight.duration || "—"}</span><span className="h-px flex-1 bg-border" /></div>
+        <div className="mt-1">{flight.stops || "Direto"}</div>
+      </div>
+      <div className="text-right">
+        <div className="text-xs text-muted-foreground">{date(flight.arrivalDate || flight.departureDate || fallbackDate)}</div>
+        <div className="text-2xl font-bold tabular-nums">{flight.arrival || "—"}</div>
+        <div className="text-sm font-semibold">{flight.to || "—"}</div>
+      </div>
+    </div>
+    {flight.bags && <div className="mt-3 border-t border-border pt-3 text-xs text-muted-foreground">{flight.bags}</div>}
+  </article>;
+}
+
+export function CustomerFlightOptions({
+  outbound,
+  inbound,
+  outboundDate,
+  inboundDate,
+}: {
+  outbound: Array<Omit<Flight, "price"> & { price?: number }>;
+  inbound: Array<Omit<Flight, "price"> & { price?: number }>;
+  outboundDate: string;
+  inboundDate: string;
+}) {
+  return <section className="space-y-5">
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="font-bold text-navy">Opções de ida</h3>
+        <span className="text-xs text-muted-foreground">{outbound.length} {outbound.length === 1 ? "opção" : "opções"}</span>
+      </div>
+      <div className="space-y-3">{outbound.map((flight, i) => <PublicFlightOptionCard key={flight.id || `out-${i}`} flight={flight} label={i === 0 ? "Opção de referência" : `Opção ${i + 1}`} fallbackDate={outboundDate} />)}</div>
+    </div>
+    <div>
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h3 className="font-bold text-navy">Opções de volta</h3>
+        <span className="text-xs text-muted-foreground">{inbound.length} {inbound.length === 1 ? "opção" : "opções"}</span>
+      </div>
+      <div className="space-y-3">{inbound.map((flight, i) => <PublicFlightOptionCard key={flight.id || `back-${i}`} flight={flight} label={i === 0 ? "Opção de referência" : `Opção ${i + 1}`} fallbackDate={inboundDate} />)}</div>
+    </div>
+    <p className="rounded-xl bg-primary/5 p-3 text-xs text-muted-foreground">O valor exibido no pacote usa a primeira opção de ida e a primeira opção de volta como referência. Outras opções podem alterar disponibilidade e valor na confirmação.</p>
   </section>;
 }
 
