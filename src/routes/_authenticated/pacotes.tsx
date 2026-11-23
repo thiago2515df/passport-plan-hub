@@ -706,14 +706,17 @@ function Index() {
             target?.focus({ preventScroll: true });
           }}
           onRemove={direction => {
-            const remaining = direction === "out" ? pickF.back : pickF.out;
-            const next: { out?: Flight; back?: Flight } = remaining?.savedPriceUnavailable ? {} : { ...pickF, [direction]: undefined };
-            setPickF(next); setLink("");
+            const current = flightOptions[direction];
+            const nextOptions = { ...flightOptions, [direction]: current.slice(1) };
+            const next = primaryFlightsFromOptions(nextOptions);
+            setFlightOptions(nextOptions);
+            setPickF(next);
+            setLink("");
             setS(prev => {
               const t = prev.transport;
               if (!t) return prev;
               const cleared = { company: "", departure: "", arrival: "" };
-              return { ...prev, selectedFlights: savedFlightSnapshot(next), transport: {
+              return { ...prev, selectedFlights: savedFlightSnapshot(next), selectedFlightOptions: savedFlightOptionsSnapshot(nextOptions), transport: {
                 ...t,
                 outbound: next.out ? flightToTransportLeg(next.out) : cleared,
                 inbound: next.back ? flightToTransportLeg(next.back) : cleared,
