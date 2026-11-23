@@ -19,7 +19,7 @@ import { FlightImageImporter } from "@/components/FlightImageImporter";
 import type { FlightImageExtraction } from "@/lib/flight-image.functions";
 import { paginateHotels } from "@/lib/result-pagination";
 import { flightToTransportLeg } from "@/lib/customer-itinerary";
-import { restoreProposalFlights, savedFlightSnapshot, replaceProposalFlight, fullFlightPrice } from "@/lib/proposal-edit-flights";
+import { restoreProposalFlights, restoreProposalFlightOptions, savedFlightSnapshot, savedFlightOptionsSnapshot, primaryFlightsFromOptions, toggleFlightOption, fullFlightPrice } from "@/lib/proposal-edit-flights";
 import { toggleHotelSelection, nextFlightSelectionStep, type ProposalSelectionStep } from "@/lib/proposal-selection";
 import { searchFlights } from "@/lib/flights.functions";
 import { saveProposal, getEditableProposal } from "@/lib/proposals.functions";
@@ -186,6 +186,7 @@ function Index() {
   const [picking, setPicking] = useState(false);
   const [calMonth, setCalMonth] = useState<Date>(() => calendarOpenMonth());
   const [pickF, setPickF] = useState<{ out?: Flight | undefined; back?: Flight | undefined }>({});
+  const [flightOptions, setFlightOptions] = useState<{ out: Flight[]; back: Flight[] }>({ out: [], back: [] });
   const [editLoading, setEditLoading] = useState(false);
   useEffect(() => {
     if (!mode) return;
@@ -201,9 +202,11 @@ function Index() {
       if (!proposal) throw new Error("Proposta inválida.");
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
       const savedFlights = restoreProposalFlights(proposal.s);
+      const savedOptions = restoreProposalFlightOptions(proposal.s);
       setPickF(savedFlights);
-      setOutF({ list: savedFlights.out ? [savedFlights.out] : [], loading: false });
-      setBackF({ list: savedFlights.back ? [savedFlights.back] : [], loading: false });
+      setFlightOptions(savedOptions);
+      setOutF({ list: savedOptions.out.length ? savedOptions.out : (savedFlights.out ? [savedFlights.out] : []), loading: false });
+      setBackF({ list: savedOptions.back.length ? savedOptions.back : (savedFlights.back ? [savedFlights.back] : []), loading: false });
       setFlightQuery(""); setDirectOnly(false);
       setAccommodationSource(restored[0]?.provider === "airbnb" ? "airbnb" : restored[0]?.provider === "trivago" ? "trivago" : "hotel");
       setHotelPage(1); setQ("");
@@ -218,9 +221,9 @@ function Index() {
   const pricingSearch: Search = { ...s, roomOccupancies: roomGuests, rooms, adults, childAges: kids, hospedes: `${rooms} quarto · ${adults + kids.length} hóspedes` };
   const effectiveTransport = transport.mode === "bus" && isCaldasNovas(s.destino) ? { ...transport, price: transportCost(pricingSearch) } : transport;
   const savedLegReady = (leg: typeof transport.outbound) => Boolean(editingCode && leg.company && leg.departure && leg.arrival);
-  const freshFlights = Boolean(pickF.out || pickF.back);
-  const outboundReady = Boolean(pickF.out || (!freshFlights && savedLegReady(transport.outbound)));
-  const inboundReady = Boolean(pickF.back || (!freshFlights && savedLegReady(transport.inbound)));
+  const freshFlights = Boolean(flightOptions.out.length || flightOptions.back.length || pickF.out || pickF.back);
+  const outboundReady = Boolean(flightOptions.out.length || pickF.out || (!freshFlights && savedLegReady(transport.outbound)));
+  const inboundReady = Boolean(flightOptions.back.length || pickF.back || (!freshFlights && savedLegReady(transport.inbound)));
   const flightsReady = outboundReady && inboundReady;
   const requestedStep = etapa ?? (editingCode && hasSearched ? "resumo" : "pesquisa");
   const step = availablePackageStep(requestedStep, { hasSearch: hasSearched, hotelCount: sel.length, mode: transport.mode, flightsReady });
@@ -238,7 +241,7 @@ function Index() {
     searchEpoch.current += 1; flightSearchKey.current = "";
     setHasSearched(false); setSearchedKey(""); setLoading(false); setAirbnbLoading(false); setTrivagoLoading(false);
     setHotels([]); setAirbnbListings([]); setTrivagoListings([]); setSelectedOffers({}); setSel([]);
-    setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({});
+    setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({}); setFlightOptions({ out: [], back: [] });
     setS(previous => previous.transport?.mode === "air" ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
     setDestIata(""); setFlightQuery("");
     setLink(""); setErr("");
@@ -275,7 +278,7 @@ function Index() {
     setRoomGuests(next);
     // Existing supplier prices were for the old room allocation.
     setHotels([]); setAirbnbListings([]); setTrivagoListings([]);
-    setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({});
+    setOutF({ list: [], loading: false }); setBackF({ list: [], loading: false }); setPickF({}); setFlightOptions({ out: [], back: [] });
     // A selected flight fare may belong to a different number of passengers.
     setS(previous => previous.transport?.mode === "air"
       ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
@@ -485,8 +488,12 @@ function Index() {
       return;
     }
 
-    const next = { ...pickF };
-    for (const item of assignments) next[item.direction] = item.flight;
+    let nextOptions = { ...flightOptions, out: [...flightOptions.out], back: [...flightOptions.back] };
+    for (const item of assignments) {
+      if (!nextOptions[item.direction].some(f => f.id === item.flight.id)) nextOptions[item.direction].push(item.flight);
+    }
+    const next = primaryFlightsFromOptions(nextOptions);
+    setFlightOptions(nextOptions);
     setPickF(next);
     setLink("");
     setErr("");
@@ -502,7 +509,8 @@ function Index() {
       const primary = assignments[0]?.flight;
       return {
         ...prev,
-        selectedFlights: undefined,
+        selectedFlights: savedFlightSnapshot(next),
+        selectedFlightOptions: savedFlightOptionsSnapshot(nextOptions),
         transport: {
           ...t,
           mode: "air",
@@ -586,7 +594,7 @@ function Index() {
       if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF) }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF), selectedFlightOptions: savedFlightOptionsSnapshot(flightOptions) }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url);
       const destinationName = (s.destino.split(",")[0] || s.destino).trim();
@@ -611,23 +619,30 @@ function Index() {
     } finally { setSaving(false); }
   };
   const choose = (k: "out" | "back", f: Flight) => {
-    if (pickF[k]?.id === f.id) return;
-    const next = replaceProposalFlight(pickF, k, f);
-    setPickF(next); setLink("");
-    if (!mobile || k === "out") setAdvanceTo(nextFlightSelectionStep(k));
+    const nextOptions = toggleFlightOption(flightOptions, k, f);
+    const next = primaryFlightsFromOptions(nextOptions);
+    setFlightOptions(nextOptions);
+    setPickF(next);
+    setLink("");
     setS(prev => {
       const t = prev.transport ?? makeTransport("air", prev.destino);
       const cleared = { company: "", departure: "", arrival: "" };
-      return { ...prev, selectedFlights: savedFlightSnapshot(next), transport: {
-        ...t,
-        outbound: next.out ? flightToTransportLeg(next.out) : cleared,
-        inbound: next.back ? flightToTransportLeg(next.back) : cleared,
-        price: fullFlightPrice(next), travelClass: f.travelClass, bags: f.bags,
-      } };
+      const primary = next[k] ?? next.out ?? next.back;
+      return {
+        ...prev,
+        selectedFlights: savedFlightSnapshot(next),
+        selectedFlightOptions: savedFlightOptionsSnapshot(nextOptions),
+        transport: {
+          ...t,
+          outbound: next.out ? flightToTransportLeg(next.out) : cleared,
+          inbound: next.back ? flightToTransportLeg(next.back) : cleared,
+          price: fullFlightPrice(next),
+          travelClass: primary?.travelClass || t.travelClass,
+          bags: primary?.bags || t.bags,
+        },
+      };
     });
-    if ((!next.out || !next.back) && editingCode) {
-      setErr("Para recalcular o transporte da proposta antiga, escolha também o outro voo. O valor original não foi dividido artificialmente.");
-    } else setErr("");
+    setErr("");
   };
   const field = "package-search-control flex h-10 items-center gap-2 rounded-xl border border-border bg-card px-3 text-sm";
 
@@ -653,7 +668,7 @@ function Index() {
 {accommodationSource === "trivago" && !!trivagoListings.length && <p className="mb-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">A consulta busca o menor total de estadia anunciado por fornecedor (PDP), não o valor previsto da listagem. O preço do pacote inclui transporte e comissão. Taxas obrigatórias, disponibilidade e condições finais devem ser conferidas no fornecedor antes do envio.</p>}
 {accommodationSource === "hotel" && !loading && !hotels.length && !err && <div className="rounded-2xl border border-border bg-card p-6 text-sm text-muted-foreground">Nenhum hotel disponível para esta busca.</div>}{mobile && !accommodationLoading && displayedAccommodations.length > 0 && !list.length && <p role="status" className="rounded-xl border border-border bg-card p-4 text-sm">Nenhuma hospedagem corresponde aos filtros. Altere o nome ou a categoria.</p>}<div className="space-y-3">{hotelResults.items.map(h => { const on = sel.includes(h.id); return mobile ? <MobilePackageHotelCard key={h.id} hotel={h} selected={on} nights={nights} guests={adults + kids.length} commission={packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).commission} sourceLink={h.provider === "airbnb" ? sellerAirbnbUrl(h, { checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length }) ?? undefined : h.provider === "trivago" ? h.sourceUrl : undefined} quoteBusy={trivagoQuoteBusy !== null} onSelect={() => toggle(h.id)} onDetails={() => setGallery(h)} onQuote={() => void retryTrivagoHotel(h)} /> : <article key={h.id} aria-label={h.name} className={`flex overflow-hidden rounded-lg border bg-card transition ${on ? "border-primary ring-2 ring-primary/30" : "border-border"}`}><button type="button" onClick={() => setGallery(h)} className="w-20 shrink-0 sm:w-28 [&_img]:h-full [&_img]:min-h-32 [&_img]:w-full [&>div]:h-full [&>div]:min-h-32 [&>div]:w-full" aria-label="Ver fotos"><HotelPhoto hotel={h} /></button><div className="flex min-w-0 flex-1 flex-col p-2.5"><div className="flex items-start justify-between gap-2"><button type="button" onClick={() => setGallery(h)} className="text-left font-semibold hover:underline">{h.name}</button><div className="flex items-center gap-2"><div className="flex">{Array.from({ length: h.stars }).map((_, i) => <Star key={i} className="h-3.5 w-3.5 fill-star text-star" />)}</div><button aria-label="Selecionar" onClick={() => toggle(h.id)} className={`grid h-6 w-6 place-items-center rounded-full border-2 ${on ? "border-primary" : "border-border"}`}>{on && <span className="h-3 w-3 rounded-full bg-primary" />}</button></div></div><div className="mt-1 flex items-center gap-1 truncate text-xs text-muted-foreground"><MapPin className="h-3 w-3 shrink-0" /><span className="truncate">{h.address}</span></div>{h.room && <div className="mt-1 truncate text-xs text-muted-foreground">{h.room}</div>}<div className="mt-2 flex items-baseline gap-1"><span className="text-xl font-bold">{h.provider === "trivago" && h.total <= 0 ? "Tarifa indisponível" : brl(h.provider === "trivago" ? packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).total : h.nightly)}</span><span className="text-xs text-muted-foreground">{h.provider === "trivago" ? h.total > 0 ? "preço do pacote" : "consulte o hotel" : "/ noite"}</span><CreditCard className="ml-2 h-4 w-4 text-muted-foreground" /></div><div className="text-[11px] text-muted-foreground">{h.provider === "trivago" && h.total <= 0 ? <span className="text-amber-800">A API não retornou preço total de estadia. {h.quoteError}</span> :
       <>{h.provider === "trivago" ? `Menor hospedagem anunciada (${h.supplierName || "fornecedor"}): ` : h.totalEstimated ? "Total estimado, taxas a confirmar: " : "Total de "}{brl(h.total)}</>}</div><div className="mt-auto flex flex-wrap items-end justify-between gap-2 pt-2">{(h.provider !== "trivago" || h.total > 0) && <span className="rounded-md bg-success px-2 py-1 text-xs text-success-foreground">Comissão: {brl(packagePricing(h.total, { ...pricingSearch, extras: h.extras ?? [] }, commissions.data ?? emptyCommissions).commission)}</span>}<div className="flex flex-wrap items-center gap-2">{h.provider === "trivago" && h.total <= 0 && <Button size="sm" variant="outline" disabled={trivagoQuoteBusy !== null} onClick={() => void retryTrivagoHotel(h)}>{trivagoQuoteBusy === h.id ? "Consultando..." : "Consultar tarifa"}</Button>}{h.provider === "trivago" && h.sourceUrl && <a href={h.sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center justify-center rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary">Ver fornecedores no Trivago ↗</a>}{h.provider === "airbnb" && sellerAirbnbUrl(h, { checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length }) && <a href={sellerAirbnbUrl(h, { checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length })!} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-8 items-center justify-center rounded-lg border border-primary px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/5">Abrir anúncio no Airbnb ↗</a>}<Button size="sm" variant="secondary" disabled={h.provider === "trivago" && h.total <= 0} onClick={() => toggle(h.id)}>{h.provider === "trivago" && h.total <= 0 ? "Sem tarifa" : on ? "Remover" : "Adicionar"}</Button></div></div></div></article>; })}</div>{!loading && list.length > 0 && <nav aria-label="Paginação dos hotéis" className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-t border-border pt-4"><div className="text-xs text-muted-foreground">{hotelResults.start}–{hotelResults.end} de {list.length} hotéis <span className="block mt-1">Página {hotelResults.page} de {list.length ? hotelResults.pages : 1}</span></div><div className="flex gap-2"><Button variant="outline" size="sm" disabled={hotelResults.page === 1} onClick={() => setHotelPage(hotelResults.page - 1)}>Anterior</Button><Button variant="outline" size="sm" disabled={hotelResults.page === hotelResults.pages} onClick={() => setHotelPage(hotelResults.page + 1)}>Próxima</Button></div></nav>}{accommodationSource === "trivago" && !!trivagoNextPage && <button type="button" onClick={() => void fetchTrivagoListings(trivagoNextPage)} disabled={trivagoLoading} className="mt-3 w-full rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary disabled:opacity-50">{trivagoLoading ? "Carregando..." : "Carregar mais hotéis Trivago"}</button>}{accommodationSource === "airbnb" && !!airbnbNextPage && <button type="button" onClick={() => void fetchAirbnbListings(airbnbNextPage)} disabled={airbnbLoading} className="mt-3 w-full rounded-xl border border-primary px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/5 disabled:opacity-50">{airbnbLoading ? "Carregando..." : `Carregar mais Airbnb (${airbnbTotal} encontrados)`}</button>}</section>
-      <div className="package-flight-column min-w-0 space-y-4">{transport.mode === "air" && <div className="package-flight-results">{mobile && <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">Escolha os voos</h2><Button variant="outline" disabled={outF.loading || backF.loading} onClick={() => startFlightSearch(true)}>Atualizar voos</Button></div>}<div><div className="mb-4 space-y-3"><h2 className="text-2xl font-semibold">Voos encontrados {(outF.list.length + backF.list.length) > 0 && <span className="text-base font-normal text-muted-foreground">({outF.list.length + backF.list.length})</span>}</h2>{editingCode && <Button type="button" size="sm" variant="outline" className="ml-2" disabled={outF.loading || backF.loading} onClick={() => startFlightSearch(true)}>Buscar voos atuais na API</Button>}<div className="flex flex-wrap gap-2"><Popover><PopoverTrigger asChild><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground"><Filter />Filtros{directOnly && <span className="text-primary">· 1</span>}</Button></PopoverTrigger><PopoverContent align="start" className="w-72 space-y-4"><label className="flex items-center gap-2 text-sm"><Checkbox checked={directOnly} onCheckedChange={value => setDirectOnly(value === true)} />Somente voos diretos</label><label className="block space-y-2 text-sm"><span>Aeroporto de destino</span><Input aria-label="Aeroporto de destino" placeholder="Ex.: Maceió ou MCZ" value={destIata} onChange={e => setDestIata(e.target.value)} /></label><Button variant="ghost" size="sm" onClick={() => { setDirectOnly(false); setDestIata(""); setFlightQuery(""); }}>Limpar filtros</Button></PopoverContent></Popover><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground" onClick={() => setFlightSort(previous => previous === "asc" ? "desc" : "asc")}>{flightSort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown /></Button></div></div><div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Aeroporto, cidade, companhia ou voo (ex.: G3 1682)" className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>{(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}<div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{flightImageField("out")}<FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selected={pickF.out?.id} onSelect={f => choose("out", f)} /></div></div><div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{flightImageField("back")}<FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selected={pickF.back?.id} onSelect={f => choose("back", f)} /></div></div>}
+      <div className="package-flight-column min-w-0 space-y-4">{transport.mode === "air" && <div className="package-flight-results">{mobile && <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h2 className="text-xl font-bold">Escolha os voos</h2><Button variant="outline" disabled={outF.loading || backF.loading} onClick={() => startFlightSearch(true)}>Atualizar voos</Button></div>}<div><div className="mb-4 space-y-3"><h2 className="text-2xl font-semibold">Voos encontrados {(outF.list.length + backF.list.length) > 0 && <span className="text-base font-normal text-muted-foreground">({outF.list.length + backF.list.length})</span>}</h2>{editingCode && <Button type="button" size="sm" variant="outline" className="ml-2" disabled={outF.loading || backF.loading} onClick={() => startFlightSearch(true)}>Buscar voos atuais na API</Button>}<div className="flex flex-wrap gap-2"><Popover><PopoverTrigger asChild><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground"><Filter />Filtros{directOnly && <span className="text-primary">· 1</span>}</Button></PopoverTrigger><PopoverContent align="start" className="w-72 space-y-4"><label className="flex items-center gap-2 text-sm"><Checkbox checked={directOnly} onCheckedChange={value => setDirectOnly(value === true)} />Somente voos diretos</label><label className="block space-y-2 text-sm"><span>Aeroporto de destino</span><Input aria-label="Aeroporto de destino" placeholder="Ex.: Maceió ou MCZ" value={destIata} onChange={e => setDestIata(e.target.value)} /></label><Button variant="ghost" size="sm" onClick={() => { setDirectOnly(false); setDestIata(""); setFlightQuery(""); }}>Limpar filtros</Button></PopoverContent></Popover><Button variant="outline" className="h-10 rounded-xl bg-card px-4 text-muted-foreground" onClick={() => setFlightSort(previous => previous === "asc" ? "desc" : "asc")}>{flightSort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown /></Button></div></div><div className="mb-4 flex h-11 items-center gap-2 rounded-xl border border-border bg-card px-4"><SearchIcon className="h-4 w-4 shrink-0 text-muted-foreground" /><input aria-label="Buscar nos voos" placeholder="Aeroporto, cidade, companhia ou voo (ex.: G3 1682)" className="min-w-0 w-full bg-transparent text-sm outline-none" value={flightQuery} onChange={e => setFlightQuery(e.target.value)} /></div>{(flightQuery || directOnly) && !outF.loading && !backF.loading && <p role="status" className="mb-3 text-xs text-muted-foreground">{outboundResults.length + returnResults.length} de {outF.list.length + backF.list.length} voos</p>}<p className="mb-2 text-xs font-medium text-primary">Você pode selecionar quantos voos quiser. O primeiro selecionado de cada trecho define o valor de referência do pacote.</p><div ref={outboundRef} tabIndex={-1} aria-label="Escolher voo de ida" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{flightImageField("out")}<FlightPicker title="Voos de ida" leg={{ ...outF, list: outboundResults }} emptyMessage={outF.list.length ? "Nenhum voo de ida corresponde aos filtros." : undefined} selectedIds={flightOptions.out.map(f => f.id)} onSelect={f => choose("out", f)} /></div></div><div ref={returnRef} tabIndex={-1} aria-label="Escolher voo de volta" className="scroll-mt-6 outline-none focus-visible:ring-2 focus-visible:ring-ring">{flightImageField("back")}<FlightPicker title="Voos de volta" leg={{ ...backF, list: returnResults }} emptyMessage={backF.list.length ? "Nenhum voo de volta corresponde aos filtros." : undefined} selectedIds={flightOptions.back.map(f => f.id)} onSelect={f => choose("back", f)} /></div></div>}
         {transport.mode === "bus" ? <div className="package-bus-section"><TransportPanel s={pricingSearch} value={effectiveTransport} onBusyChange={setUploading} onChange={value => setS(previous => ({ ...previous, transport: value }))} /></div> : transport.mode === "none" ? <div className="package-hotel-map relative h-[380px] overflow-hidden rounded-2xl border border-border bg-secondary">{list.slice(0, 40).map(h => <button key={h.id} onClick={() => toggle(h.id)} style={{ left: `${h.x}%`, top: `${h.y}%` }} className={`absolute -translate-x-1/2 rounded-full border px-2 py-1 text-xs font-bold shadow ${sel.includes(h.id) ? "z-10 border-primary bg-primary text-primary-foreground" : "border-border bg-card"}`}>{brl(Math.round(h.total)).replace(",00", "")}</button>)}{!hotels.length && <span className="absolute inset-0 grid place-items-center text-sm text-muted-foreground">O mapa aparece depois da busca</span>}</div> : null}
         <div ref={summaryRef} tabIndex={-1} aria-label="Resumo da proposta" className="package-summary-section scroll-mt-6 rounded-2xl border border-border bg-card p-4 outline-none focus-visible:ring-2 focus-visible:ring-ring"><div className="mb-3 flex justify-between"><h2 className="font-semibold">Seu resumo</h2><span className="text-sm text-muted-foreground">{sel.length} {sel.length === 1 ? "hospedagem" : "hospedagens"}</span></div>
         <div className="mb-4 rounded-xl border border-primary/20 bg-primary/5 p-3">
@@ -675,6 +690,10 @@ function Index() {
           <div className="mt-1 flex justify-between text-[10px] text-muted-foreground"><span>1x</span><span>6x</span><span>12x</span></div>
           <p className="mt-2 text-[11px] text-muted-foreground">A taxa da máquina correspondente é embutida no preço final. Para o cliente, até {(s.interestFreeInstallments ?? 6)}x aparece como sem juros.</p>
         </div>{sel.length === 0 && <p className="text-sm text-muted-foreground">Nenhuma hospedagem selecionada.</p>}<div className="space-y-2">{sel.map(id => { const h = selectedOffers[id]; if (!h) return null; const hotelSearch = { ...pricingSearch, extras: h.extras ?? [] }; const price = packagePricing(h.total, hotelSearch, commissions.data ?? emptyCommissions); const paymentRules = normalizePaymentRules(s.paymentRules ?? paymentRulesQuery.data ?? DEFAULT_PAYMENT_RULES); const freeInstallments = Math.max(1, Math.min(12, s.interestFreeInstallments ?? 6)); const embeddedFee = paymentRules.card.visaMaster[freeInstallments - 1] ?? paymentRules.card.embeddedFeePercent; const customerTotal = customerPackageTotal(price.total, embeddedFee) ?? price.total; const installment = installmentQuoteFromCustomerTotal(customerTotal, freeInstallments, embeddedFee, embeddedFee, freeInstallments); return <div key={id} className="rounded-xl border border-border p-3"><button type="button" className="summary-hotel-photo" aria-label={`Ver fotos de ${h.name}`} onClick={() => setGallery(h)}><HotelPhoto hotel={h} /></button><div className="flex justify-between"><span className="text-sm font-semibold">{h.provider === "airbnb" ? "Airbnb · " : h.provider === "trivago" ? "Trivago · " : "Hotel · "}{h.name}</span><button aria-label="Remover" onClick={() => toggle(id)}><Trash2 className="h-4 w-4 text-muted-foreground" /></button></div><div className="text-[11px] text-muted-foreground">{h.address}</div>{h.provider === "trivago" ? <p className="mt-2 text-[11px] text-amber-700">Menor oferta de estadia anunciada pelo fornecedor: confira impostos, taxas, disponibilidade e valor no checkout antes de confirmar.</p> : h.totalEstimated && <p className="mt-2 text-[11px] text-amber-700">Valor estimado: confirme taxas e disponibilidade antes de enviar a proposta.</p>}<label className="mt-2 block text-xs text-muted-foreground">Custo da hospedagem (R$)<Input aria-label={`Custo de ${h.name}`} type="number" min={0} step="0.01" value={h.total} onChange={e => { const total = Math.max(0, Number(e.target.value)); updateSelectedOffer(id, item => ({ ...item, total, nightly: total / nights, ...(item.provider === "trivago" ? { priceConfirmed: false, totalEstimated: true } : {}) })); setLink(""); }} /></label>{h.provider === "trivago" && <div className="mt-2"><button type="button" aria-pressed={!!h.priceConfirmed} onClick={() => { updateSelectedOffer(id, item => ({ ...item, priceConfirmed: !item.priceConfirmed, totalEstimated: item.priceConfirmed })); setLink(""); }} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${h.priceConfirmed ? "border-green-500 bg-green-50 text-green-900" : "border-amber-500 bg-amber-50 text-amber-900"}`}>{h.priceConfirmed ? "✓ Total confirmado com o fornecedor" : "Confirmar que conferi o valor total no fornecedor"}</button></div>}<div className="mt-3 space-y-2 border-t border-border pt-3"><h3 className="text-xs font-semibold">Serviços adicionais desta hospedagem</h3>{(h.extras ?? []).map((item, i) => <div key={i} className="grid grid-cols-[minmax(0,1fr)_100px_auto] gap-2"><Input aria-label={`Serviço adicional ${i + 1} de ${h.name}`} placeholder="Ex.: Almoço" value={item.name} onChange={e => { setLink(""); updateSelectedOffer(id, hotel => ({ ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, name: e.target.value } : v) })); }} /><Input aria-label={`Valor do serviço adicional ${i + 1} de ${h.name}`} type="number" min={0} step="0.01" value={item.cost} onChange={e => { setLink(""); updateSelectedOffer(id, hotel => ({ ...hotel, extras: (hotel.extras ?? []).map((v, j) => j === i ? { ...v, cost: Math.max(0, Number(e.target.value)) } : v) })); }} /><Button aria-label={`Remover serviço adicional ${i + 1} de ${h.name}`} variant="ghost" size="icon" onClick={() => { setLink(""); updateSelectedOffer(id, hotel => ({ ...hotel, extras: (hotel.extras ?? []).filter((_, j) => j !== i) })); }}><Trash2 className="h-4 w-4" /></Button></div>)}<div className="flex flex-wrap gap-2">{["Almoço", "Passeio"].map(n => <Button key={n} variant="outline" size="sm" onClick={() => { setLink(""); updateSelectedOffer(id, hotel => ({ ...hotel, extras: [...(hotel.extras ?? []), { name: n, cost: 0 }] })); }}>+ {n}</Button>)}<Button variant="outline" size="sm" onClick={() => { setLink(""); updateSelectedOffer(id, hotel => ({ ...hotel, extras: [...(hotel.extras ?? []), { name: "", cost: 0 }] })); }}>+ Adicionar serviço</Button></div></div><dl className="mt-3 space-y-1 text-xs"><div className="flex justify-between"><dt>Custo dos serviços</dt><dd>{brl(price.cost)}</dd></div><div className="flex justify-between"><dt>Comissão ({commissionLabel(commissionForSearch(pricingSearch, commissions.data ?? emptyCommissions))})</dt><dd>{brl(price.commission)}</dd></div><div className="flex justify-between pt-1 text-sm font-bold"><dt>Valor do pacote para o cliente</dt><dd>{brl(customerTotal)}</dd></div>{installment && <div className="col-span-full mt-2 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-2 text-primary"><dt>Até {freeInstallments}x sem juros</dt><dd className="font-semibold">{freeInstallments}x de {brl(installment.installment)}</dd></div>}</dl></div>; })}</div>
+        <div className="mt-4 rounded-xl border border-primary/20 bg-primary/5 p-3 text-sm">
+          <strong>Voos selecionados:</strong> {flightOptions.out.length} de ida · {flightOptions.back.length} de volta
+          <p className="mt-1 text-xs text-muted-foreground">Todos serão exibidos na proposta do cliente. O primeiro de cada trecho é a referência de preço do pacote.</p>
+        </div>
         <SelectedFlightsSummary
           outbound={pickF.out}
           inbound={pickF.back}
