@@ -91,6 +91,9 @@ export function TransportPanel({ s, value, onChange, onBusyChange }: { s: Search
 
 const longDate = (d: string) => d ? new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : "";
 
+const customerCompanyLabel = (value: string) =>
+  value.replace(/\s*\(ilustrativa\)\s*/gi, " ").replace(/\s{2,}/g, " ").trim();
+
 function CustomerBagIcon({ label, included, kind }: { label: string; included?: boolean; kind: "personal" | "carry" | "checked" }) {
   const Icon = kind === "personal" ? BriefcaseBusiness : Luggage;
   return <span role="img" aria-label={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} title={`${label}: ${included === true ? "incluída" : included === false ? "não incluída" : "consulte a franquia"}`} className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border bg-secondary/70 text-muted-foreground">
@@ -172,7 +175,7 @@ export function TransportItinerary({ s, value }: { s: Search; value: Transport }
       return <div key={key} className={`px-4 py-4 sm:px-5 sm:py-5 ${i ? "border-t border-dashed border-card/40" : ""}`}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="rounded-md bg-card px-3 py-0.5 text-xs font-black text-navy">{out ? "IDA" : "VOLTA"}</span>
-          <span className="min-w-0 flex-1 truncate text-xs font-bold">{leg.company || "—"}</span>
+          <span className="min-w-0 flex-1 truncate text-xs font-bold">{customerCompanyLabel(leg.company || "") || "—"}</span>
           <span className="text-xs opacity-80">{date}</span>
         </div>
         <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-3">
