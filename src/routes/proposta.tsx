@@ -177,7 +177,6 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                     </button>
                     <div className="flex min-w-0 flex-1 flex-col px-1 pt-2 sm:px-2 sm:pt-3">
                       <h3 className="text-base font-extrabold leading-tight text-navy sm:text-lg">{h.name}</h3>
-                      {h.provider === "airbnb" && <span className="mt-1 inline-flex w-fit rounded-full bg-primary/10 px-2 py-0.5 text-[11px] font-semibold text-primary">Airbnb</span>}
                       <div className="mt-1 flex min-w-0 items-center gap-1 text-xs text-muted-foreground sm:gap-1.5 sm:text-sm">
                         <MapPin className="h-3.5 w-3.5 shrink-0 text-primary sm:h-4 sm:w-4" /><span className="min-w-0 flex-1 truncate">{h.address || destino}</span>
                         <a href={`https://www.google.com/maps/search/${encodeURIComponent(`${h.name} ${h.address}`)}`} target="_blank" rel="noreferrer" className="shrink-0 font-semibold text-primary">· Ver mapa</a>
