@@ -2,6 +2,7 @@ import type { Flight, Search, TransportLeg } from "./hotels";
 
 type Direction = "out" | "back";
 export type SelectedProposalFlights = { out?: Flight; back?: Flight };
+export type SelectedProposalFlightOptions = { out: Flight[]; back: Flight[] };
 
 /**
  * Older proposals saved flight timetable and baggage inside transport legs,
@@ -65,3 +66,45 @@ export function replaceProposalFlight(
 
 export const fullFlightPrice = (flights: SelectedProposalFlights): number =>
   (flights.out?.price ?? 0) + (flights.back?.price ?? 0);
+
+
+export function restoreProposalFlightOptions(s: Search): SelectedProposalFlightOptions {
+  if (s.transport?.mode !== "air") return { out: [], back: [] };
+  if (s.selectedFlightOptions) {
+    return {
+      out: Array.isArray(s.selectedFlightOptions.out) ? s.selectedFlightOptions.out : [],
+      back: Array.isArray(s.selectedFlightOptions.back) ? s.selectedFlightOptions.back : [],
+    };
+  }
+  const legacy = restoreProposalFlights(s);
+  return {
+    out: legacy.out ? [legacy.out] : [],
+    back: legacy.back ? [legacy.back] : [],
+  };
+}
+
+export function primaryFlightsFromOptions(options: SelectedProposalFlightOptions): SelectedProposalFlights {
+  return {
+    ...(options.out[0] ? { out: options.out[0] } : {}),
+    ...(options.back[0] ? { back: options.back[0] } : {}),
+  };
+}
+
+export function savedFlightOptionsSnapshot(options: SelectedProposalFlightOptions): SelectedProposalFlightOptions | undefined {
+  const out = options.out.filter(f => !f.savedPriceUnavailable).map(f => ({ ...f }));
+  const back = options.back.filter(f => !f.savedPriceUnavailable).map(f => ({ ...f }));
+  return out.length || back.length ? { out, back } : undefined;
+}
+
+export function toggleFlightOption(
+  options: SelectedProposalFlightOptions,
+  direction: Direction,
+  flight: Flight,
+): SelectedProposalFlightOptions {
+  const list = options[direction];
+  const exists = list.some(item => item.id === flight.id);
+  return {
+    ...options,
+    [direction]: exists ? list.filter(item => item.id !== flight.id) : [...list, flight],
+  };
+}
