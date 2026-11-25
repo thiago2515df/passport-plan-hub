@@ -58,6 +58,8 @@ export const searchAirbnb = createServerFn({ method: "POST" })
           room: highlights.join(" · "),
           image: item.thumbnail || images[0] || "",
           images,
+          ...(typeof item.latitude === "number" ? { latitude: item.latitude } : {}),
+          ...(typeof item.longitude === "number" ? { longitude: item.longitude } : {}),
           x: pos(item.longitude, minLng, maxLng),
           y: pos(item.latitude, minLat, maxLat, true),
         }];
