@@ -101,6 +101,8 @@ export const searchHotels = createServerFn({ method: "POST" })
           total: o.totalPrice,
           room: [o.roomName, o.mealPlan].filter(Boolean).join(" · "),
           image: o.hotel.thumbUrl ?? "",
+          ...(typeof o.hotel.latitude === "number" ? { latitude: o.hotel.latitude } : {}),
+          ...(typeof o.hotel.longitude === "number" ? { longitude: o.hotel.longitude } : {}),
           x: pos(o.hotel.longitude, minLo, maxLo),
           y: pos(o.hotel.latitude, minLa, maxLa, true),
         })),
