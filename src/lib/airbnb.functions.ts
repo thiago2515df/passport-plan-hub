@@ -89,20 +89,14 @@ export const getAirbnbDetails = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<AirbnbPropertyDetails & { error?: string }> => {
     const { authorizeServerToken } = await import("./server-auth");
     await authorizeServerToken(data.accessToken, "search_hotels");
-    try {
-      const { geckoAirbnbDetails } = await import("./gecko-airbnb.server");
-      const response = await geckoAirbnbDetails(data);
-      const { normalizeAirbnbPdp } = await import("./airbnb-pdp-details");
-      const details = normalizeAirbnbPdp(response);
-      if (!details) {
-        return { photos: [], description: "", amenities: [], highlights: [],
-          propertyType: "", cancellationPolicy: "", hostName: "",
-          error: "Detalhes deste imóvel não disponíveis na GeckoAPI." };
-      }
-      return details;
-    } catch (error) {
-      return { photos: [], description: "", amenities: [], highlights: [],
-        propertyType: "", cancellationPolicy: "", hostName: "",
-        error: error instanceof Error ? error.message : "Não foi possível consultar os detalhes Airbnb." };
-    }
+    return {
+      photos: [],
+      description: "",
+      amenities: [],
+      highlights: [],
+      propertyType: "",
+      cancellationPolicy: "",
+      hostName: "",
+      error: "Detalhes extras do Airbnb estão desativados. O sistema usa apenas os dados da busca principal.",
+    };
   });
