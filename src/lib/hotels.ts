@@ -44,7 +44,10 @@ export type Hotel = {
   total: number; // total da estadia, incluindo taxas quando a origem informar
   room?: string;
   image: string;
-  x: number; // posição no mapa (%)
+  /** Coordenadas reais usadas pelo mapa interativo interno. */
+  latitude?: number;
+  longitude?: number;
+  x: number; // posição no mapa legado (%)
   y: number;
   extras?: ExtraService[];
 };
