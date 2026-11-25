@@ -13,6 +13,9 @@ declare global {
 
 const LEAFLET_CSS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
 const LEAFLET_JS = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+const CLUSTER_CSS = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css";
+const CLUSTER_DEFAULT_CSS = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css";
+const CLUSTER_JS = "https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js";
 
 function ensureLeaflet() {
   if (typeof window === "undefined") return Promise.reject(new Error("Mapa indisponível no servidor."));
@@ -44,6 +47,35 @@ function ensureLeaflet() {
     script.onload = () => window.L ? resolve(window.L) : reject(new Error("Mapa não inicializado."));
     script.onerror = () => reject(new Error("Não foi possível carregar o mapa."));
     document.head.appendChild(script);
+  }).then(async (L) => {
+    if (L.markerClusterGroup) return L;
+
+    for (const href of [CLUSTER_CSS, CLUSTER_DEFAULT_CSS]) {
+      if (!document.querySelector(`link[href="${href}"]`)) {
+        const link = document.createElement("link");
+        link.rel = "stylesheet";
+        link.href = href;
+        document.head.appendChild(link);
+      }
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      const existing = document.querySelector<HTMLScriptElement>(`script[src="${CLUSTER_JS}"]`);
+      if (existing) {
+        if (L.markerClusterGroup) return resolve();
+        existing.addEventListener("load", () => resolve(), { once: true });
+        existing.addEventListener("error", () => reject(new Error("Não foi possível carregar o agrupamento do mapa.")), { once: true });
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = CLUSTER_JS;
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => reject(new Error("Não foi possível carregar o agrupamento do mapa."));
+      document.head.appendChild(script);
+    });
+
+    return L;
   });
 
   return window.__leafletLoading;
@@ -90,6 +122,33 @@ export function HotelMapPicker({
       }).addTo(map);
 
       const bounds: [number, number][] = [];
+      const cluster = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        spiderfyOnMaxZoom: true,
+        zoomToBoundsOnClick: true,
+        removeOutsideVisibleBounds: true,
+        maxClusterRadius: 52,
+        disableClusteringAtZoom: 16,
+        spiderfyDistanceMultiplier: 1.35,
+        iconCreateFunction: (group: any) => {
+          const count = group.getChildCount();
+          const size = count >= 50 ? 46 : count >= 20 ? 42 : count >= 10 ? 38 : 34;
+          return L.divIcon({
+            className: "",
+            html: `<div style="
+              width:${size}px;height:${size}px;border-radius:999px;
+              display:grid;place-items:center;
+              background:#0b63ce;color:white;
+              border:3px solid rgba(255,255,255,.95);
+              box-shadow:0 3px 12px rgba(15,23,42,.30);
+              font:800 12px/1 system-ui,-apple-system,sans-serif;
+            ">${count}</div>`,
+            iconSize: [size, size],
+            iconAnchor: [size / 2, size / 2],
+          });
+        },
+      });
+
       for (const hotel of mappable) {
         const lat = hotel.latitude as number;
         const lng = hotel.longitude as number;
@@ -99,29 +158,34 @@ export function HotelMapPicker({
         const price = hotel.nightly > 0
           ? brl(Math.round(hotel.nightly)).replace(",00", "")
           : "Ver";
+        const width = Math.max(52, Math.min(78, 18 + price.length * 7));
         const icon = L.divIcon({
           className: "",
           html: `<div style="
+            width:${width}px;height:28px;
+            display:flex;align-items:center;justify-content:center;
             white-space:nowrap;
-            border-radius:9px;
-            padding:6px 9px;
-            font:700 12px/1 system-ui,-apple-system,sans-serif;
-            box-shadow:0 2px 8px rgba(15,23,42,.25);
-            border:2px solid ${selected ? "#0b63ce" : "#fff"};
+            border-radius:10px;
+            padding:0 7px;
+            font:800 11px/1 system-ui,-apple-system,sans-serif;
+            box-shadow:0 2px 8px rgba(15,23,42,.24);
+            border:2px solid ${selected ? "#083b81" : "#fff"};
             background:${selected ? "#0b63ce" : "#fff"};
             color:${selected ? "#fff" : "#0b3b82"};
-            transform:translate(-50%,-50%);
           ">${price}</div>`,
-          iconSize: [1, 1],
-          iconAnchor: [0, 0],
+          iconSize: [width, 28],
+          iconAnchor: [width / 2, 14],
         });
 
-        const marker = L.marker([lat, lng], { icon }).addTo(map);
+        const marker = L.marker([lat, lng], { icon });
         marker.on("click", () => setActiveId(hotel.id));
+        cluster.addLayer(marker);
       }
 
+      map.addLayer(cluster);
+
       if (bounds.length === 1) map.setView(bounds[0], 14);
-      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [70, 70], maxZoom: 15 });
+      else if (bounds.length > 1) map.fitBounds(bounds, { padding: [70, 70], maxZoom: 14 });
       else map.setView([-15.7797, -47.9297], 4);
 
       window.setTimeout(() => map?.invalidateSize(), 50);
