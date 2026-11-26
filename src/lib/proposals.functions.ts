@@ -55,7 +55,31 @@ const payloadForPublicView = (payload: string) => {
     const extras = marker.names.length ? marker.names.map(name => ({ name, cost: 0 })) : (hotel.extras ?? []);
     return { ...hotel, room: marker.room, extras };
   });
-  return encodeProposal({ s: proposal.s, hotels });
+  const multiHotelStays = proposal.s.multiHotelStays?.map((stay, index) => ({
+    checkin: stay.checkin,
+    checkout: stay.checkout,
+    ...(stay.hotel ? { hotel: {
+      id: `multi-public-${index}`,
+      name: stay.hotel.name,
+      address: stay.hotel.address,
+      stars: stay.hotel.stars,
+      room: stay.hotel.room ?? "",
+      image: stay.hotel.image,
+      images: stay.hotel.images ?? [],
+      ...(stay.hotel.provider ? { provider: stay.hotel.provider } : {}),
+      ...(stay.hotel.rating !== undefined ? { rating: stay.hotel.rating } : {}),
+      ...(stay.hotel.reviewCount !== undefined ? { reviewCount: stay.hotel.reviewCount } : {}),
+      ...(stay.hotel.publicDetails ? { publicDetails: stay.hotel.publicDetails } : {}),
+      nightly: 0,
+      total: 0,
+      x: 50,
+      y: 50,
+    } } : {}),
+  }));
+  return encodeProposal({
+    s: { ...proposal.s, ...(multiHotelStays ? { multiHotelStays } : {}) },
+    hotels,
+  });
 };
 
 export const acceptProposalPackage = createServerFn({ method: "POST" })
@@ -172,9 +196,8 @@ export const saveProposal = createServerFn({ method: "POST" })
       }
     }
     if (proposal.s.transport?.mode && proposal.s.transport.mode !== "none") await assertPermission(context.supabase, "manage_transport");
-    // Preload public Airbnb details while the authenticated seller generates the
-    // proposal. This costs at most one GeckoAPI PDP request per selected listing
-    // (up to eight); viewers of the public proposal need no API token or auth.
+    // Keep proposal enrichment behind one function. Airbnb PDP network extraction
+    // is intentionally disabled there; selected PLP data is reused without extra charge.
     const { addAirbnbDetailsToProposal } = await import("./airbnb-proposal-snapshot.server");
     const detailsHotels = await addAirbnbDetailsToProposal(proposal.hotels, proposal.s);
     // The database checks this version under a lock before storing the payload.
