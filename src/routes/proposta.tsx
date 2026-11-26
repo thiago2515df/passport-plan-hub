@@ -4,6 +4,7 @@ import { MapPin, Star, Calendar, Users, Moon, Building2, Sparkles, ArrowRight, M
 import { AGENCY_WHATSAPP, brl, decodeProposal, hasBreakfast, nightsBetween, type Hotel } from "@/lib/hotels";
 import { HotelGallery, HotelPhoto } from "@/components/HotelGallery";
 import { CustomerFlightOptions, TransportPanel, TransportItinerary } from "@/components/TransportPanel";
+import { CustomerMultiHotelItinerary } from "@/components/CustomerMultiHotelItinerary";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
@@ -52,6 +53,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   }, staleTime: 60000 });
   const acceptPackage = useServerFn(acceptProposalPackage);
   const [active, setActive] = useState<Hotel | null>(null);
+  const [activeStay, setActiveStay] = useState<{ checkin: string; checkout: string } | null>(null);
   const [paymentHotel, setPaymentHotel] = useState<Hotel | null>(null);
   const [tab, setTab] = useState(0);
   const [chosen, setChosen] = useState<number | null>(acceptance?.hotelIndex ?? null);
@@ -77,6 +79,8 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const travelers = proposalTravelerCount(p.s);
   const fmt = (d: string) => new Date(d + "T12:00").toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
   const hotels = p.hotels as Hotel[];
+  const multiHotelStays = p.s.multiHotelStays ?? [];
+  const isMultiHotel = multiHotelStays.length >= 2;
   const pricedHotels = hotels
     .map((hotel, originalIndex) => ({ hotel, originalIndex }))
     .sort((a, b) => a.hotel.total - b.hotel.total || a.originalIndex - b.originalIndex);
@@ -156,6 +160,19 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         {tab === 0 && (
           <>
             {p.s.transport && hasTransport && <div className="mt-5 sm:mt-8"><h2 className="mb-2 text-xl font-extrabold text-navy sm:mb-3 sm:text-2xl md:text-3xl">{p.s.transport.mode === "bus" ? "Seu ônibus" : "Seus voos disponíveis"}</h2>{p.s.transport.mode === "air" && p.s.selectedFlightOptions && (p.s.selectedFlightOptions.out.length || p.s.selectedFlightOptions.back.length) ? <CustomerFlightOptions outbound={p.s.selectedFlightOptions.out} inbound={p.s.selectedFlightOptions.back} outboundDate={p.s.checkin} inboundDate={p.s.checkout} /> : <TransportItinerary s={p.s} value={p.s.transport} />}</div>}
+            {isMultiHotel ? <CustomerMultiHotelItinerary
+              stays={multiHotelStays}
+              total={hotels[0]?.total ?? 0}
+              travelers={travelers}
+              guestSummary={p.s.hospedes}
+              transportMode={p.s.transport?.mode ?? "none"}
+              selected={chosenIndex === 0}
+              confirmed={isConfirmed}
+              confirming={confirming}
+              onGallery={(hotel, stay) => { setActive(hotel); setActiveStay({ checkin: stay.checkin, checkout: stay.checkout }); }}
+              onPayment={() => { if (hotels[0]) setPaymentHotel(hotels[0]); }}
+              onSelect={() => { setChosen(chosenIndex === 0 ? null : 0); setConfirmError(""); }}
+            /> : <>
             <h2 className="mt-6 text-xl font-extrabold text-navy sm:mt-8 sm:text-2xl md:text-3xl">Selecione o seu pacote</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
             <div className="mt-3 grid gap-3 sm:mt-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -204,6 +221,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
                 );
               })}
             </div>
+            </>}
           </>
         )}
         {tab === 1 && p.s.transport && p.s.transport.mode !== "none" && <div className="mx-auto mt-5 max-w-3xl sm:mt-8">{p.s.transport.mode === "air" && p.s.selectedFlightOptions && (p.s.selectedFlightOptions.out.length || p.s.selectedFlightOptions.back.length) ? <CustomerFlightOptions outbound={p.s.selectedFlightOptions.out} inbound={p.s.selectedFlightOptions.back} outboundDate={p.s.checkin} inboundDate={p.s.checkout} /> : <TransportPanel s={p.s} value={p.s.transport} />}</div>}
@@ -234,7 +252,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         </div>
       )}
 
-      {active && <HotelGallery hotel={active} stay={{ checkin: p.s.checkin, checkout: p.s.checkout, adults: p.s.adults ?? 2 }} allowRemoteDetails={false} onClose={() => setActive(null)} />}
+      {active && <HotelGallery hotel={active} stay={{ checkin: activeStay?.checkin ?? p.s.checkin, checkout: activeStay?.checkout ?? p.s.checkout, adults: p.s.adults ?? 2 }} allowRemoteDetails={false} onClose={() => { setActive(null); setActiveStay(null); }} />}
       {paymentHotel && <PaymentOptionsDialog open={true} onOpenChange={open => { if (!open) setPaymentHotel(null); }} total={paymentHotel.total} rules={p.s.paymentRules} hotelName={paymentHotel.name} travelers={travelers ?? undefined} interestFreeInstallments={p.s.interestFreeInstallments} />}
     </div>
   );
