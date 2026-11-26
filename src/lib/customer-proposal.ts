@@ -24,7 +24,22 @@ export function customerProposal(p: NonNullable<ReturnType<typeof decodeProposal
     connectionDetails: v.connectionDetails,
     baggage: v.baggage,
   });
-  return { s: { destino: s.destino, checkin: s.checkin, checkout: s.checkout, hospedes: s.hospedes, cliente: s.cliente ?? "", origem: s.origem ?? "", paymentRules: s.paymentRules, ...(s.interestFreeInstallments ? { interestFreeInstallments: s.interestFreeInstallments } : {}), rooms: s.rooms ?? 1, adults: s.adults ?? 2, childAges: s.childAges ?? [], ...(s.roomOccupancies ? { roomOccupancies: s.roomOccupancies } : {}), rav: 0, extras: (s.extras ?? []).map(item => ({ name: item.name, cost: 0 })), ...(s.transport ? { transport: { mode: s.transport.mode, outbound: leg(s.transport.outbound), inbound: leg(s.transport.inbound), travelClass: s.transport.travelClass ?? "", bags: s.transport.bags ?? "" } } : {}), ...(s.selectedFlightOptions ? { selectedFlightOptions: { out: (s.selectedFlightOptions.out ?? []).map(flight), back: (s.selectedFlightOptions.back ?? []).map(flight) } } : {}) }, hotels: p.hotels.map(h => {
+  return { s: { destino: s.destino, checkin: s.checkin, checkout: s.checkout, hospedes: s.hospedes, cliente: s.cliente ?? "", origem: s.origem ?? "", paymentRules: s.paymentRules, ...(s.interestFreeInstallments ? { interestFreeInstallments: s.interestFreeInstallments } : {}), rooms: s.rooms ?? 1, adults: s.adults ?? 2, childAges: s.childAges ?? [], ...(s.roomOccupancies ? { roomOccupancies: s.roomOccupancies } : {}), rav: 0, extras: (s.extras ?? []).map(item => ({ name: item.name, cost: 0 })), ...(s.transport ? { transport: { mode: s.transport.mode, outbound: leg(s.transport.outbound), inbound: leg(s.transport.inbound), travelClass: s.transport.travelClass ?? "", bags: s.transport.bags ?? "" } } : {}), ...(s.selectedFlightOptions ? { selectedFlightOptions: { out: (s.selectedFlightOptions.out ?? []).map(flight), back: (s.selectedFlightOptions.back ?? []).map(flight) } } : {}),
+    ...(s.multiHotelStays?.length ? { multiHotelStays: s.multiHotelStays.map((stay, index) => ({
+      checkin: stay.checkin, checkout: stay.checkout,
+      ...(stay.hotel ? { hotel: {
+        id: `multi-public-${index}`,
+        name: stay.hotel.name, address: stay.hotel.address, stars: stay.hotel.stars,
+        room: stay.hotel.room ?? "", image: stay.hotel.image,
+        images: stay.hotel.images ?? [],
+        ...(stay.hotel.provider ? { provider: stay.hotel.provider } : {}),
+        ...(stay.hotel.hotelId !== undefined ? { hotelId: stay.hotel.hotelId } : {}),
+        ...(stay.hotel.rating !== undefined ? { rating: stay.hotel.rating } : {}),
+        ...(stay.hotel.reviewCount !== undefined ? { reviewCount: stay.hotel.reviewCount } : {}),
+        ...(stay.hotel.publicDetails ? { publicDetails: stay.hotel.publicDetails } : {}),
+        nightly: 0, total: 0, x: 50, y: 50,
+      } } : {}),
+    })) } : {}) }, hotels: p.hotels.map(h => {
     const extras = h.extras ?? s.extras ?? [];
     return {
       name: h.name, address: h.address, stars: h.stars, room: h.room ?? "", image: h.image,
