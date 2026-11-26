@@ -236,7 +236,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
       {pick && (
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/98 shadow-2xl backdrop-blur">
           <div className="mx-auto flex max-w-6xl flex-col gap-2 px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:px-4 sm:py-3">
-            <div className="min-w-0"><CustomerPackagePrice total={acceptance?.total ?? pick.total} travelers={travelers} compact subtitle={pick.name} />{confirmError && <p role="alert" className="text-[11px] text-destructive sm:text-xs">{confirmError}</p>}</div>
+            <div className="min-w-0">{!isMultiHotel && <CustomerPackagePrice total={acceptance?.total ?? pick.total} travelers={travelers} compact subtitle={pick.name} />}{isMultiHotel && <p className="text-xs font-semibold text-navy sm:text-sm">Roteiro Multi-hotel completo</p>}{confirmError && <p role="alert" className="text-[11px] text-destructive sm:text-xs">{confirmError}</p>}</div>
             <div className="grid grid-cols-[minmax(0,1fr)_42px] gap-2 sm:flex sm:items-center">
               <Button disabled={confirming || isConfirmed} onClick={handleConfirmPackage} className="flex min-w-0 items-center justify-center gap-1.5 rounded-xl bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground sm:shrink-0 sm:gap-2 sm:px-4 sm:py-3 sm:text-sm">
                 <Check className="h-4 w-4" /> {confirming ? "Confirmando…" : isConfirmed ? "Pacote confirmado!" : "Confirmar pacote"}
