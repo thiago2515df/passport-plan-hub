@@ -1,4 +1,4 @@
-import { CalendarDays, MapPin, Moon, Coffee, BedDouble, ArrowRight, CheckCircle2 } from "lucide-react";
+import { CalendarDays, MapPin, Moon, Coffee, BedDouble, ArrowRight, CheckCircle2, Plane, Bus, Hotel, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HotelPhoto } from "@/components/HotelGallery";
 import { CustomerPackagePrice } from "@/components/CustomerPackagePrice";
@@ -27,6 +27,17 @@ export function CustomerMultiHotelItinerary({
   onGallery: (hotel: Hotel, stay: MultiHotelStay) => void;
   onPayment: () => void;
 }) {
+  const breakfastStatus = stays
+    .map((stay, index) => {
+      const hotel = stay.hotel;
+      if (!hotel) return null;
+      const mealText = (hotel.room ?? "").split(" · ").slice(1).join(" · ");
+      return { index, name: hotel.name, hasBreakfast: hasBreakfast(mealText) };
+    })
+    .filter((item): item is { index: number; name: string; hasBreakfast: boolean } => Boolean(item));
+  const hotelsWithoutBreakfast = breakfastStatus.filter(item => !item.hasBreakfast);
+  const allHotelsIncludeBreakfast = breakfastStatus.length === stays.length && hotelsWithoutBreakfast.length === 0;
+
   return (
     <section className="mt-6 sm:mt-8" aria-label="Roteiro de hospedagens">
       <div className="rounded-3xl border border-primary/15 bg-gradient-to-br from-primary/[0.07] via-card to-card p-4 shadow-sm sm:p-6">
@@ -143,6 +154,40 @@ export function CustomerMultiHotelItinerary({
         </div>
 
         <div className="p-4 sm:p-6">
+          <div className="mb-5 rounded-2xl border border-primary/15 bg-primary/[0.04] p-4">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">O que está incluso</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                {transportMode === "air" ? <Plane className="h-4 w-4 text-primary" /> : transportMode === "bus" ? <Bus className="h-4 w-4 text-primary" /> : <Hotel className="h-4 w-4 text-primary" />}
+                {transportMode === "air" ? "Passagem aérea ida e volta" : transportMode === "bus" ? "Transporte rodoviário ida e volta" : "Hospedagem"}
+              </div>
+              <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+                <Hotel className="h-4 w-4 text-primary" />
+                {stays.length} hospedagens incluídas
+              </div>
+              {allHotelsIncludeBreakfast && (
+                <div className="flex items-center gap-2 text-sm font-semibold text-foreground sm:col-span-2">
+                  <Coffee className="h-4 w-4 text-primary" />
+                  Café da manhã incluído em todos os hotéis
+                </div>
+              )}
+            </div>
+
+            {!allHotelsIncludeBreakfast && hotelsWithoutBreakfast.length > 0 && (
+              <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-900">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <div>
+                    <strong>Café da manhã:</strong>{" "}
+                    {hotelsWithoutBreakfast.length === stays.length
+                      ? "não está incluído nas hospedagens."
+                      : <>incluído nos demais hotéis. Sem café da manhã em {hotelsWithoutBreakfast.map(item => `Hotel ${item.index + 1} — ${item.name}`).join("; ")}.</>}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
           <CustomerPackagePrice
             total={total}
             travelers={travelers}
