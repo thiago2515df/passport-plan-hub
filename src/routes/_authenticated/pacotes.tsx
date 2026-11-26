@@ -710,16 +710,16 @@ function Index() {
       <RoomOccupancyPicker value={roomGuests} onChange={changeRoomGuests} summary={hosp} />
       <label className="col-span-2 text-sm md:col-span-1">Transporte<div className={field + " mt-2"}><select aria-label="Transporte" disabled={uploading} className="min-w-0 w-full bg-transparent outline-none" value={transport.mode} onChange={e => setS(previous => ({ ...previous, transport: makeTransport(e.target.value as TransportMode, previous.destino) }))}><option value="none">Sem transporte</option><option value="air">Aéreo</option><option value="bus">Ônibus</option></select></div></label>
       <button onClick={buscar} disabled={!commissions.ready || packageSearching || editLoading} className="col-span-2 flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-bold text-primary-foreground hover:opacity-90 disabled:opacity-60 md:col-span-1"><SearchIcon className="h-4 w-4" /> {packageSearching ? "BUSCANDO..." : "BUSCAR PACOTES"}</button>
-      <label className="col-span-full flex cursor-pointer items-center gap-3 rounded-xl border border-primary/20 bg-primary/5 px-3 py-3 text-sm">
-        <input type="checkbox" checked={multiMode} disabled={editLoading} onChange={event => {
-          const enabled = event.target.checked;
-          if (enabled && nightsBetween(s.checkin, s.checkout) < 2) { setErr("O Multi-hotel precisa de pelo menos duas noites."); return; }
-          setMultiMode(enabled);
-          setMultiStays(enabled ? initialMultiHotelStays(s.checkin, s.checkout) : []);
-          setSel([]); setSelectedOffers({}); setHasSearched(false); setSearchedKey(""); setLink(""); setErr("");
-        }} className="h-4 w-4 accent-primary" />
-        <span><strong>Multi-hotel</strong> · dividir a mesma viagem entre dois ou mais hotéis, cada um com datas e tarifas próprias</span>
-      </label>
+      <button type="button" aria-pressed={multiMode} disabled={editLoading} onClick={() => {
+        const enabled = !multiMode;
+        if (enabled && nightsBetween(s.checkin, s.checkout) < 2) { setErr("O Multi-hotel precisa de pelo menos duas noites."); return; }
+        setMultiMode(enabled);
+        setMultiStays(enabled ? initialMultiHotelStays(s.checkin, s.checkout) : []);
+        setSel([]); setSelectedOffers({}); setHasSearched(false); setSearchedKey(""); setLink(""); setErr("");
+      }} className={`col-span-full flex items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left text-sm transition ${multiMode ? "border-primary bg-primary/5 ring-1 ring-primary/20" : "border-border bg-card hover:border-primary/40"}`}>
+        <span className="flex min-w-0 items-center gap-3"><span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${multiMode ? "bg-primary text-primary-foreground" : "bg-secondary text-primary"}`}><Building2 className="h-4 w-4" /></span><span><strong className="block">Multi-hotel</strong><span className="text-xs text-muted-foreground">Dividir a viagem entre dois ou mais hotéis com datas e tarifas próprias</span></span></span>
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${multiMode ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}>{multiMode ? "ATIVADO" : "ATIVAR"}</span>
+      </button>
     </div></section>
     {err && <div role="alert" className="mt-3 rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{err}{flowActive && step === "hoteis" && <button type="button" onClick={() => void buscar()} disabled={accommodationLoading} className="mt-2 block min-h-11 font-semibold underline">Tentar novamente</button>}</div>}
     {packageSearching && commissions.ready && !flowActive && <PackageSearchLoader air={transport.mode === "air"} />}
