@@ -342,7 +342,7 @@ export function MultiHotelBuilder({
       </div>
     </div>
 
-    {mapOpen && <HotelMapPicker hotels={filtered} selectedIds={selected ? [selected.id] : []} onToggle={id => { const hotel = filtered.find(h => h.id === id); if (hotel) choose(hotel); }} onClose={() => setMapOpen(false)} />}
+    {mapOpen && <HotelMapPicker hotels={filtered} selectedIds={selected ? [selected.id] : []} onToggle={id => { const hotel = filtered.find(h => h.id === id); if (hotel) { choose(hotel); setMapOpen(false); } }} onClose={() => setMapOpen(false)} />}
     {gallery && active && <HotelGallery hotel={gallery} stay={{ checkin: active.checkin, checkout: active.checkout, adults: adults + childAges.length }} allowRemoteDetails={false} onClose={() => setGallery(null)} />}
   </section>;
 }
