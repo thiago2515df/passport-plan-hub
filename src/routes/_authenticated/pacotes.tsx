@@ -290,11 +290,15 @@ function Index() {
     setAdvanceTo(null);
   }, [advanceTo, mobile, step]);
 
-  const changeDestination = (destination: string) => setS(previous => {
-    const current = previous.transport;
-    const changedCity = previous.destino.split(",")[0] !== destination.split(",")[0];
-    return { ...previous, destino: destination, transport: current && changedCity && (isCaldasNovas(destination) !== isCaldasNovas(previous.destino) || current.standard) ? makeTransport(current.mode, destination) : current ?? makeTransport("none", destination) };
-  });
+  const changeDestination = (destination: string) => {
+    // Supplier prices belong to a destination: never reuse an old city's hotel quotation.
+    setMultiStays(previous => previous.map(stay => ({ checkin: stay.checkin, checkout: stay.checkout })));
+    setS(previous => {
+      const current = previous.transport;
+      const changedCity = previous.destino.split(",")[0] !== destination.split(",")[0];
+      return { ...previous, destino: destination, transport: current && changedCity && (isCaldasNovas(destination) !== isCaldasNovas(previous.destino) || current.standard) ? makeTransport(current.mode, destination) : current ?? makeTransport("none", destination) };
+    });
+  };
   useEffect(() => { setLink(""); }, [s, roomGuests, commissions.data?.updatedAt]);
   const nights = nightsBetween(s.checkin, s.checkout);
   const hosp = `${rooms} quarto${rooms > 1 ? "s" : ""} · ${adults + kids.length} hóspede${adults + kids.length > 1 ? "s" : ""}`;
@@ -310,6 +314,7 @@ function Index() {
     setS(previous => previous.transport?.mode === "air"
       ? { ...previous, transport: makeTransport("air", previous.destino) } : previous);
     setSel([]); setSelectedOffers({}); setGallery(null);
+    setMultiStays(previous => previous.map(stay => ({ checkin: stay.checkin, checkout: stay.checkout })));
     setHasSearched(false); setLink(""); setHotelPage(1); setErr("");
   };
 
