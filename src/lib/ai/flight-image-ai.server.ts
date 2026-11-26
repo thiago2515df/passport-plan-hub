@@ -2,9 +2,8 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Output, generateText } from "ai";
 import { z } from "zod";
 
-const configuredModel = process.env["FLATKEY_MODEL"]?.trim();
-const AI_MODEL = !configuredModel || /^MiniMax-H3$/i.test(configuredModel) ? "gpt-5.6-luna" : configuredModel;
-const AI_BASE_URL = process.env["FLATKEY_BASE_URL"]?.trim() || "https://router.flatkey.ai/v1";
+const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "gemini-3.8-flash";
+const AI_BASE_URL = process.env["FREELLMAPI_BASE_URL"]?.trim() || "http://freellmapi:3001/v1";
 
 const baggageSchema = z.strictObject({
   personal: z.boolean().nullable(),
@@ -55,20 +54,13 @@ const safeDetail = (error: unknown): string | undefined => {
 
 const toUserError = (error: unknown, status: number | undefined): Error => {
   const detail = safeDetail(error);
-  if (/no credits remaining|credit_balance_exhausted|insufficient_quota/i.test(detail ?? "")) {
-    return new Error("Sua conta da Flatkey está sem créditos ou sem saldo disponível. Adicione saldo no painel da Flatkey e tente novamente.");
-  }
-  if (status === 401) return new Error("A chave da Flatkey não foi aceita. Confira o segredo FLATKEY_API_KEY.");
-  if (status === 403) return new Error(detail || "A chave da Flatkey não tem permissão para usar este modelo.");
-  if (status === 404) return new Error("O modelo configurado para leitura não está disponível na Flatkey.");
-  if (status === 429) return new Error("A Flatkey atingiu um limite de uso agora. Verifique créditos/limites e tente novamente.");
-  if (status != null && status >= 500) return new Error("A Flatkey ou o modelo selecionado está indisponível no momento. Tente novamente em instantes.");
-  if (status === 400) {
-    if (/url error|check url/i.test(detail ?? "")) {
-      return new Error("O modelo configurado na Flatkey não aceita este tipo de entrada. O sistema usa automaticamente gpt-5.6-luna para leitura de passagem.");
-    }
-    return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
-  }
+  if (status === 401) return new Error("A chave unificada do FreeLLMAPI não foi aceita. Confira FREELLMAPI_API_KEY.");
+  if (status === 403) return new Error(detail || "O FreeLLMAPI recusou o acesso ao modelo configurado.");
+  if (status === 404) return new Error("O modelo configurado não está disponível no catálogo do FreeLLMAPI.");
+  if (status === 422 && /no_vision_model/i.test(detail ?? "")) return new Error("Nenhum modelo com visão está ativo no FreeLLMAPI. Ative um modelo Vision no painel.");
+  if (status === 429) return new Error("O provedor selecionado pelo FreeLLMAPI atingiu o limite agora. O roteador tentará os provedores disponíveis.");
+  if (status != null && status >= 500) return new Error("O FreeLLMAPI ou o provedor de IA está indisponível no momento. Tente novamente em instantes.");
+  if (status === 400) return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
   return new Error(detail || "A IA não conseguiu ler o conteúdo agora.");
 };
 
@@ -103,9 +95,9 @@ async function runExtraction({
 }: {
   content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }>;
 }): Promise<FlightImageAiExtraction> {
-  const apiKey = process.env["FLATKEY_API_KEY"]?.trim();
+  const apiKey = process.env["FREELLMAPI_API_KEY"]?.trim();
   if (!apiKey) {
-    throw new Error("A leitura com IA ainda não está configurada. Cadastre o segredo FLATKEY_API_KEY.");
+    throw new Error("A leitura com IA ainda não está configurada. Cadastre FREELLMAPI_API_KEY no servidor.");
   }
 
   const provider = createOpenAI({ apiKey, baseURL: AI_BASE_URL });
