@@ -13,6 +13,8 @@ import { sellerAirbnbUrl } from "@/lib/seller-airbnb-url";
 import logoAsset from "@/assets/excursao-brasilia.png.asset.json";
 import { HotelPhoto, HotelGallery } from "@/components/HotelGallery";
 import { HotelMapPicker } from "@/components/HotelMapPicker";
+import { MultiHotelBuilder } from "@/components/MultiHotelBuilder";
+import { initialMultiHotelStays, multiHotelStayCost, multiHotelBundle, validateMultiHotelStays, type MultiHotelStay } from "@/lib/multi-hotel";
 import { TransportPanel } from "@/components/TransportPanel";
 import { FlightPicker } from "@/components/FlightPicker";
 import { SelectedFlightsSummary } from "@/components/SelectedFlightsSummary";
@@ -170,6 +172,8 @@ function Index() {
   const [sort, setSort] = useState<"asc" | "desc">("asc");
   const [hotelPage, setHotelPage] = useState(1);
   const [sel, setSel] = useState<string[]>([]);
+  const [multiMode, setMultiMode] = useState(false);
+  const [multiStays, setMultiStays] = useState<MultiHotelStay[]>([]);
   const outboundRef = useRef<HTMLDivElement>(null);
   const returnRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLDivElement>(null);
@@ -191,6 +195,14 @@ function Index() {
   const [flightOptions, setFlightOptions] = useState<{ out: Flight[]; back: Flight[] }>({ out: [], back: [] });
   const [editLoading, setEditLoading] = useState(false);
   useEffect(() => {
+    if (!multiMode) return;
+    setMultiStays(previous =>
+      previous.length && previous[0]?.checkin === s.checkin && previous[previous.length - 1]?.checkout === s.checkout
+        ? previous
+        : initialMultiHotelStays(s.checkin, s.checkout)
+    );
+  }, [multiMode, s.checkin, s.checkout]);
+  useEffect(() => {
     if (!mode) return;
     setS(previous => ({ ...previous, transport: makeTransport(mode, previous.destino) }));
   }, [mode]);
@@ -203,6 +215,16 @@ function Index() {
       setOwnerId(row.ownerId ?? undefined);
       if (!proposal) throw new Error("Proposta inválida.");
       const restored = proposal.hotels.map((hotel, index) => ({ ...hotel, id: `saved-${index}`, x: 50, y: 50 }));
+      if (proposal.s.multiHotelStays?.length) {
+        setMultiMode(true);
+        setMultiStays(proposal.s.multiHotelStays.map(stay => ({
+          ...stay,
+          ...(stay.hotel ? { hotel: { ...stay.hotel, x: 50, y: 50 } } : {}),
+        })));
+      } else {
+        setMultiMode(false);
+        setMultiStays([]);
+      }
       const savedFlights = restoreProposalFlights(proposal.s);
       const savedOptions = restoreProposalFlightOptions(proposal.s);
       setPickF(savedFlights);
@@ -212,7 +234,7 @@ function Index() {
       setFlightQuery(""); setDirectOnly(false);
       setAccommodationSource(restored[0]?.provider === "airbnb" ? "airbnb" : restored[0]?.provider === "trivago" ? "trivago" : "hotel");
       setHotelPage(1); setQ("");
-      setS(proposal.s); setHotels(restored.filter(h => !h.provider || h.provider === "hotel")); setAirbnbListings(restored.filter(h => h.provider === "airbnb")); setTrivagoListings(restored.filter(h => h.provider === "trivago")); setSelectedOffers(Object.fromEntries(restored.map(h => [h.id, h]))); setSel(restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
+      setS(proposal.s); setHotels(restored.filter(h => !h.provider || h.provider === "hotel")); setAirbnbListings(restored.filter(h => h.provider === "airbnb")); setTrivagoListings(restored.filter(h => h.provider === "trivago")); setSelectedOffers(Object.fromEntries(restored.map(h => [h.id, h]))); setSel(proposal.s.multiHotelStays?.length ? [] : restored.map(h => h.id)); setChosenOrigin(proposal.s.origem ?? "");
       setHasSearched(true);
       setSearchedKey(packageSearchKey(proposal.s, proposal.s.destinationId ?? "", restoreRoomOccupancies(proposal.s.roomOccupancies, proposal.s.rooms ?? 1, proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2), proposal.s.childAges ?? [])));
       setDestId(proposal.s.destinationId ?? ""); setRoomGuests(restoreRoomOccupancies(proposal.s.roomOccupancies, proposal.s.rooms ?? 1, proposal.s.adults ?? Number(proposal.s.hospedes.match(/(\d+) hóspede/)?.[1] ?? 2), proposal.s.childAges ?? [])); setCalMonth(calendarOpenMonth(new Date(), proposal.s.checkin));
@@ -227,8 +249,10 @@ function Index() {
   const outboundReady = Boolean(flightOptions.out.length || pickF.out || (!freshFlights && savedLegReady(transport.outbound)));
   const inboundReady = Boolean(flightOptions.back.length || pickF.back || (!freshFlights && savedLegReady(transport.inbound)));
   const flightsReady = outboundReady && inboundReady;
+  const multiReady = multiMode && !validateMultiHotelStays(multiStays, s);
+  const selectionCount = multiMode ? (multiReady ? 1 : 0) : sel.length;
   const requestedStep = etapa ?? (editingCode && hasSearched ? "resumo" : "pesquisa");
-  const step = availablePackageStep(requestedStep, { hasSearch: hasSearched, hotelCount: sel.length, mode: transport.mode, flightsReady });
+  const step = availablePackageStep(requestedStep, { hasSearch: hasSearched, hotelCount: selectionCount, mode: transport.mode, flightsReady });
   const flowActive = mobile && step !== "pesquisa";
   const accommodationLoading = accommodationSource === "hotel" ? loading : accommodationSource === "airbnb" ? airbnbLoading : trivagoLoading;
   const flowLoading = (step === "hoteis" && accommodationLoading) || (step === "voos" && transport.mode === "air" && (outF.loading || backF.loading));
@@ -412,6 +436,19 @@ function Index() {
   };
 
   const buscar = async () => {
+    if (multiMode) {
+      if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
+      if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
+      if (s.checkout <= s.checkin || !multiStays.length) { setErr("O modo Multi-hotel precisa de pelo menos duas noites e datas válidas."); return; }
+      if (!s.destino.trim()) { setErr("Escolha um destino antes de buscar os hotéis."); return; }
+      if (rooms < 1 || roomGuests.some(r => r.adults < 1)) { setErr("Cada quarto precisa de pelo menos um adulto."); return; }
+      searchEpoch.current += 1;
+      setHasSearched(true); setSearchedKey(searchKey);
+      setErr(""); setLink("");
+      if (mobile) goStep("hoteis");
+      if (transport.mode === "air") startFlightSearch(true);
+      return;
+    }
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     if (!access.allowed) { setErr("Seu acesso precisa ser liberado pelo administrador."); return; }
     if (s.checkout <= s.checkin) { setErr("A data de volta precisa ser posterior à de ida."); return; }
@@ -446,7 +483,7 @@ function Index() {
   };
   const nextStep = () => {
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
-    if (!sel.length) return;
+    if (!selectionCount) { if (multiMode) setErr(validateMultiHotelStays(multiStays, s) || "Complete todas as hospedagens."); return; }
     if (step === "hoteis") {
       if (transport.mode === "air") startFlightSearch();
       goStep(transport.mode === "none" ? "resumo" : "voos");
@@ -569,6 +606,10 @@ function Index() {
   };
 
   const gerar = async () => {
+    if (multiMode) {
+      const multiError = validateMultiHotelStays(multiStays, s);
+      if (multiError) { setErr(multiError); return; }
+    }
     if (!commissions.ready) { setErr(COMMISSION_REQUIRED); return; }
     if (transport.mode === "air" && !flightsReady) {
       setErr("Selecione os voos de ida e volta antes de salvar a proposta.");
@@ -583,7 +624,7 @@ function Index() {
     }
     setClientNameError("");
     setErr("");
-    const pendingTrivago = sel.map(id => selectedOffers[id]).find(h => h?.provider === "trivago" && !h.priceConfirmed);
+    const pendingTrivago = (multiMode ? multiStays.map(stay => stay.hotel) : sel.map(id => selectedOffers[id])).find(h => h?.provider === "trivago" && !h.priceConfirmed);
     if (pendingTrivago) {
       setErr(`Confirme o custo total de ${pendingTrivago.name} com o fornecedor antes de gerar a proposta. O preço do Trivago é apenas uma previsão.`);
       summaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -591,12 +632,14 @@ function Index() {
     }
     setSaving(true);
     try {
-      const chosen = sel.map(id => selectedOffers[id]).filter((h): h is Hotel => Boolean(h)).map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120), extras: normalizeExtraServices(h.extras, h.name) }));
+      const chosen = (multiMode ? [multiHotelBundle(multiStays)] : sel.map(id => selectedOffers[id]).filter((h): h is Hotel => Boolean(h)))
+        .map(({ id: _i, x: _x, y: _y, ...h }) => ({ ...h, name: h.name.slice(0, 120), extras: normalizeExtraServices(h.extras, h.name) }));
       const fresh = await commissions.refetch();
       if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF), selectedFlightOptions: savedFlightOptionsSnapshot(flightOptions) }, hotels: chosen }) } });
+      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF), selectedFlightOptions: savedFlightOptionsSnapshot(flightOptions),
+        multiHotelStays: multiMode ? multiStays.map(stay => ({ checkin: stay.checkin, checkout: stay.checkout, ...(stay.hotel ? { hotel: { ...stay.hotel } } : {}) })) : undefined }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url);
       const destinationName = (s.destino.split(",")[0] || s.destino).trim();
