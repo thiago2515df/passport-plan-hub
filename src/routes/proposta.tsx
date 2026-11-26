@@ -91,7 +91,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
   const hasTransport = !!p.s.transport && p.s.transport.mode !== "none";
-  const chosenIndex = acceptance?.hotelIndex ?? chosen;
+  const chosenIndex = acceptance?.hotelIndex ?? (isMultiHotel ? 0 : chosen);
   const pick = chosenIndex != null ? hotels[chosenIndex] : null;
   const handleConfirmPackage = async () => {
     if (!pick || chosenIndex === null || confirming || isConfirmed) return;
@@ -166,12 +166,9 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
               travelers={travelers}
               guestSummary={p.s.hospedes}
               transportMode={p.s.transport?.mode ?? "none"}
-              selected={chosenIndex === 0}
               confirmed={isConfirmed}
-              confirming={confirming}
               onGallery={(hotel, stay) => { setActive(hotel); setActiveStay({ checkin: stay.checkin, checkout: stay.checkout }); }}
               onPayment={() => { if (hotels[0]) setPaymentHotel(hotels[0]); }}
-              onSelect={() => { setChosen(chosenIndex === 0 ? null : 0); setConfirmError(""); }}
             /> : <>
             <h2 className="mt-6 text-xl font-extrabold text-navy sm:mt-8 sm:text-2xl md:text-3xl">Selecione o seu pacote</h2>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">Toque no hotel para ver fotos e detalhes.{hasTransport && " Os valores já incluem a passagem."}</p>
