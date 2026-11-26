@@ -81,3 +81,23 @@ export function validateMultiHotelStays(
   }
   return null;
 }
+
+/** One bookable package containing multiple consecutive supplier stays. */
+export function multiHotelBundle(stays: MultiHotelStay[]): Hotel {
+  const first = stays[0]?.hotel;
+  const total = multiHotelStayCost(stays);
+  const nights = stays.reduce((sum, stay) => sum + nightsBetween(stay.checkin, stay.checkout), 0);
+  return {
+    id: "multi-hotel-package",
+    name: `Roteiro Multi-hotel · ${stays.length} hospedagens`,
+    address: stays.map(stay => stay.hotel?.name).filter(Boolean).join(" + "),
+    stars: 0,
+    nightly: nights ? total / nights : total,
+    total,
+    room: `${stays.length} hospedagens consecutivas`,
+    image: first?.image ?? "",
+    x: 50,
+    y: 50,
+    extras: [],
+  };
+}
