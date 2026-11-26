@@ -42,7 +42,7 @@ export function MultiHotelBuilder({
   const [mapOpen, setMapOpen] = useState(false);
 
   const active = stays[Math.min(activeIndex, stays.length - 1)];
-  const key = active ? [destinationId, destination, rooms, adults, childAges.join(","), active.checkin, active.checkout, source].join("|") : "";
+  const key = active ? [destinationId, destination, rooms, adults, JSON.stringify(roomOccupancies), active.checkin, active.checkout, source].join("|") : "";
   const results = cache[key] ?? [];
   const hasResults = Object.prototype.hasOwnProperty.call(cache, key);
   const filtered = useMemo(() => results.filter(h => h.name.toLocaleLowerCase("pt-BR").includes(query.toLocaleLowerCase("pt-BR"))), [results, query]);
@@ -65,6 +65,10 @@ export function MultiHotelBuilder({
 
   const search = async () => {
     if (!active || !enabled || pending) return;
+    if (source === "hotel" && nightsBetween(active.checkin, active.checkout) > 30) {
+      setError("A PassHub permite no máximo 30 noites por consulta. Divida esse período em mais hotéis.");
+      return;
+    }
     if (source === "hotel" && !destinationId) {
       setError("Escolha o destino na lista de sugestões para pesquisar as tarifas da PassHub.");
       return;
