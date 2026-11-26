@@ -30,7 +30,7 @@ export function MultiHotelPriceSummary({
     </div>
     <div className="mt-3 space-y-1 text-xs">
       <p className="flex justify-between"><span>Hospedagens</span><strong>{brl(hotelCost)}</strong></p>
-      {search.transport?.mode !== "none" && <p className="flex justify-between"><span className="flex items-center gap-1"><Plane className="h-3 w-3" />Transporte (uma vez)</span><strong>{brl(transport)}</strong></p>}
+      {search.transport && search.transport.mode !== "none" && <p className="flex justify-between"><span className="flex items-center gap-1"><Plane className="h-3 w-3" />Transporte (uma vez)</span><strong>{brl(transport)}</strong></p>}
       {breakdown.commission > 0 && <p className="flex justify-between"><span>Comissão</span><strong>{brl(breakdown.commission)}</strong></p>}
       {(search.extras ?? []).length > 0 && <p className="flex justify-between"><span>Adicionais</span><strong>{brl((search.extras ?? []).reduce((sum, item) => sum + item.cost, 0))}</strong></p>}
     </div>
