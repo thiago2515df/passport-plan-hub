@@ -132,6 +132,16 @@ export const saveProposal = createServerFn({ method: "POST" })
         ...hotel, extras: normalizeExtraServices(hotel.extras, hotel.name || "o hotel"),
       })),
     };
+    if (proposal.s.multiHotelStays?.length) {
+      const { validateMultiHotelStays, multiHotelStayCost } = await import("./multi-hotel");
+      const problem = validateMultiHotelStays(proposal.s.multiHotelStays, proposal.s);
+      if (problem) throw new Error(problem);
+      if (proposal.hotels.length !== 1 ||
+          !Number.isFinite(proposal.hotels[0]?.total) ||
+          Math.abs(proposal.hotels[0]!.total - multiHotelStayCost(proposal.s.multiHotelStays)) > 0.02) {
+        throw new Error("O total das hospedagens não confere com o pacote Multi-hotel. Revise as estadias.");
+      }
+    }
     const cost = z.number().finite().nonnegative();
     const extraSchema = z.array(z.object({ name: z.string().trim().min(1).max(120), cost }));
     for (const hotel of proposal.hotels) {
