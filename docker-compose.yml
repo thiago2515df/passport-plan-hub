@@ -1,4 +1,19 @@
 services:
+  freellmapi:
+    image: ghcr.io/tashfeenahmed/freellmapi:latest
+    container_name: passport-plan-hub-freellmapi
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      ENCRYPTION_KEY: ${FREELLMAPI_ENCRYPTION_KEY}
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - freellmapi-data:/app/server/data
+
   app:
     build:
       context: .
@@ -13,6 +28,8 @@ services:
       PORT: 3000
     ports:
       - "127.0.0.1:3000:3000"
+    depends_on:
+      - freellmapi
     networks:
       - default
       - caddy-sites
@@ -21,3 +38,6 @@ networks:
   caddy-sites:
     external: true
     name: deskcommcrm_caddy-sites
+
+volumes:
+  freellmapi-data:
