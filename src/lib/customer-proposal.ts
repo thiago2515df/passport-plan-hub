@@ -40,7 +40,7 @@ export function customerProposal(p: NonNullable<ReturnType<typeof decodeProposal
         nightly: 0, total: 0, x: 50, y: 50,
       } } : {}),
     })) } : {}) }, hotels: p.hotels.map(h => {
-    const extras = h.extras ?? s.extras ?? [];
+    const extras = s.multiHotelStays?.length ? (s.extras ?? []) : (h.extras ?? s.extras ?? []);
     return {
       name: h.name, address: h.address, stars: h.stars, room: h.room ?? "", image: h.image,
       ...(h.hotelId !== undefined ? { hotelId: h.hotelId } : {}),
