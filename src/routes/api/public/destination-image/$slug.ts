@@ -1,30 +1,23 @@
 import { createFileRoute } from "@tanstack/react-router";
 
+const DESTINATION_IMAGE_COUNT = 3;
+
 const toHex = (bytes: Uint8Array) => "\\x" + Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
 const fromHex = (hex: string) => Uint8Array.from(hex.slice(2).match(/.{2}/g)!.map((h) => parseInt(h, 16)));
 
-const cleanBaseUrl = (value: string) => value.replace(/\/+$/, "");
+const imageCacheKey = (slug: string, variant: number) =>
+  variant === 1 ? slug : `${slug}--${variant}`;
 
-async function logAvailableImageModels(baseUrl: string, apiKey: string) {
-  try {
-    const response = await fetch(`${baseUrl}/models`, {
-      headers: { Authorization: `Bearer ${apiKey}` },
-      signal: AbortSignal.timeout(15_000),
-    });
-    if (!response.ok) {
-      console.error(`[destination-image] Could not list AI STAR models: HTTP ${response.status}`);
-      return;
-    }
-    const json = await response.json() as { data?: Array<{ id?: string }> };
-    const ids = (json.data ?? []).map(item => item.id).filter((id): id is string => Boolean(id));
-    const candidates = ids.filter(id => /image|imagen|gemini|flash|nano|banana/i.test(id));
-    console.error("[destination-image] Available image/Gemini model candidates:", candidates.slice(0, 80).join(", ") || "(none)");
-  } catch (error) {
-    console.error("[destination-image] Model discovery failed:", error instanceof Error ? error.message : String(error));
-  }
-}
+const promptVariation = (variant: number) => {
+  const variations = [
+    "Iconic wide city panorama, balanced skyline and destination landmarks, premium tourism editorial photography.",
+    "Distinct street-level or waterfront perspective with recognizable local scenery, sophisticated travel magazine photography.",
+    "Elevated scenic viewpoint at golden hour, broad sense of place, polished luxury travel campaign photography.",
+  ];
+  return variations[(variant - 1) % variations.length];
+};
 
-async function generateDestinationImage(city: string): Promise<Uint8Array | null> {
+async function generateDestinationImage(city: string, variant: number): Promise<Uint8Array | null> {
   const apiKey = (
     process.env["FLATKEY_IMAGE_API_KEY"] ??
     process.env["FLATKEY_API_KEY"]
@@ -38,9 +31,11 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
 
   const prompt = [
     `Photorealistic premium travel photograph of ${city}, Brazil.`,
+    promptVariation(variant),
     "Show a recognizable authentic city landscape or landmark associated with the destination.",
-    "Natural daylight or golden hour, elegant tourism campaign photography, realistic architecture and scenery.",
+    "Natural light, realistic architecture and scenery, inviting but believable colors.",
     "Wide cinematic 16:9 composition designed as a website hero banner, with useful negative space for white title text on the left.",
+    `Create a composition clearly different from the other cached variants. This is variant ${variant} of ${DESTINATION_IMAGE_COUNT}.`,
     "No text, no logos, no watermark, no fictional landmarks, no collage."
   ].join(" ");
 
@@ -100,6 +95,51 @@ async function generateDestinationImage(city: string): Promise<Uint8Array | null
   return null;
 }
 
+async function ensureDestinationImages(slug: string, city: string) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const keys = Array.from({ length: DESTINATION_IMAGE_COUNT }, (_, index) => imageCacheKey(slug, index + 1));
+
+  const { data, error } = await supabaseAdmin
+    .from("destination_images")
+    .select("slug")
+    .in("slug", keys);
+
+  if (error) {
+    console.error("[destination-image] Cache index read failed", error.message);
+  }
+
+  const available = new Set((data ?? []).map((row) => row.slug));
+  const missing = keys
+    .map((key, index) => ({ key, variant: index + 1 }))
+    .filter(({ key }) => !available.has(key));
+
+  if (missing.length) {
+    const generated = await Promise.all(
+      missing.map(async ({ key, variant }) => {
+        const bytes = await generateDestinationImage(city, variant);
+        if (!bytes) return null;
+
+        const { error: saveError } = await supabaseAdmin
+          .from("destination_images")
+          .upsert({ slug: key, content: toHex(bytes) }, { onConflict: "slug" });
+
+        if (saveError) {
+          console.error(`[destination-image] Cache save failed for variant ${variant}`, saveError.message);
+          return null;
+        }
+
+        return key;
+      }),
+    );
+
+    for (const key of generated) {
+      if (key) available.add(key);
+    }
+  }
+
+  return keys.filter((key) => available.has(key));
+}
+
 export const Route = createFileRoute("/api/public/destination-image/$slug")({
   server: {
     handlers: {
@@ -113,46 +153,38 @@ export const Route = createFileRoute("/api/public/destination-image/$slug")({
           .slice(0, 60);
         if (!slug) return new Response("Not found", { status: 404 });
 
+        const city = slug
+          .split("-")
+          .filter(Boolean)
+          .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+          .join(" ");
+
+        const availableKeys = await ensureDestinationImages(slug, city);
+        if (!availableKeys.length) return new Response("Not found", { status: 404 });
+
+        const selectedKey = availableKeys[Math.floor(Math.random() * availableKeys.length)]!;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        const { data, error: readError } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
           .from("destination_images")
           .select("content")
-          .eq("slug", slug)
+          .eq("slug", selectedKey)
           .maybeSingle();
 
-        if (readError) {
-          console.error("[destination-image] Cache read failed", readError.message);
+        if (error || !data?.content) {
+          console.error("[destination-image] Cached image read failed", error?.message ?? selectedKey);
+          return new Response("Not found", { status: 404 });
         }
 
-        let bytes: Uint8Array | null = null;
-        if (data?.content) {
-          const hex = String(data.content);
-          if (hex.startsWith("\\x")) bytes = fromHex(hex);
-        }
-
-        if (!bytes) {
-          const city = slug
-            .split("-")
-            .filter(Boolean)
-            .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-            .join(" ");
-
-          bytes = await generateDestinationImage(city);
-          if (!bytes) return new Response("Not found", { status: 404 });
-
-          const { error: saveError } = await supabaseAdmin
-            .from("destination_images")
-            .upsert({ slug, content: toHex(bytes) }, { onConflict: "slug" });
-
-          if (saveError) {
-            console.error("[destination-image] Cache save failed", saveError.message);
-          }
-        }
+        const hex = String(data.content);
+        if (!hex.startsWith("\\x")) return new Response("Not found", { status: 404 });
+        const bytes = fromHex(hex);
 
         return new Response(bytes.buffer as ArrayBuffer, {
           headers: {
             "Content-Type": "image/png",
-            "Cache-Control": "public, max-age=604800, stale-while-revalidate=86400",
+            // The endpoint is intentionally not cached because it randomly selects
+            // one of the three permanent cached variants for each proposal load.
+            "Cache-Control": "no-store, max-age=0",
           },
         });
       },
