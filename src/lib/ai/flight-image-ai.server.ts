@@ -3,7 +3,7 @@ import { Output, generateText } from "ai";
 import { z } from "zod";
 
 const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "auto";
-const AI_IMAGE_MODEL = process.env["FREELLMAPI_IMAGE_MODEL"]?.trim() || "gpt-4.1";
+const AI_IMAGE_MODEL = process.env["FREELLMAPI_IMAGE_MODEL"]?.trim() || "gemini-3.6-flash";
 const AI_BASE_URL = process.env["FREELLMAPI_BASE_URL"]?.trim() || "http://freellmapi:3001/v1";
 
 const baggageSchema = z.strictObject({
