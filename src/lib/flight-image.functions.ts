@@ -57,22 +57,60 @@ const normalizeFlightNumber = (value: string) => value
   .toUpperCase()
   .replace(/^([A-Z0-9]{2,3})\s*[-–—]\s*(\d{1,5})$/, "$1 $2");
 
+const AIRLINE_BY_PREFIX: Record<string, string> = {
+  LA: "LATAM Airlines",
+  JJ: "LATAM Airlines",
+  G3: "GOL Linhas Aéreas",
+  AD: "Azul Linhas Aéreas",
+  "2Z": "Voepass",
+  TP: "TAP Air Portugal",
+  AR: "Aerolíneas Argentinas",
+  AV: "Avianca",
+  CM: "Copa Airlines",
+  AA: "American Airlines",
+  DL: "Delta Air Lines",
+  UA: "United Airlines",
+  AC: "Air Canada",
+  AF: "Air France",
+  KL: "KLM",
+  IB: "Iberia",
+  UX: "Air Europa",
+  EK: "Emirates",
+  QR: "Qatar Airways",
+  AZ: "ITA Airways",
+  LH: "Lufthansa",
+  LX: "SWISS",
+};
+
+const airlineFromFlightNumber = (flightNumberRaw: string) => {
+  const flightNumber = normalizeFlightNumber(flightNumberRaw);
+  const match = flightNumber.match(/^([A-Z0-9]{2})\s*\d{1,5}$/);
+  return match ? AIRLINE_BY_PREFIX[match[1]] ?? "" : "";
+};
+
 const normalizeAirline = (airlineRaw: string, flightNumberRaw: string) => {
   const airline = airlineRaw.trim();
   const flightNumber = normalizeFlightNumber(flightNumberRaw);
-  const combined = `${airline} ${flightNumber}`;
+  const fromPrefix = airlineFromFlightNumber(flightNumber);
+  if (fromPrefix) return fromPrefix;
 
-  if (/\b(?:LA|JJ)\s*\d/i.test(flightNumber) || /\blatam\b/i.test(combined)) return "LATAM Airlines";
-  if (/\bG3\s*\d/i.test(flightNumber) || /\bgol\b/i.test(combined)) return "GOL Linhas Aéreas";
-  if (/\bAD\s*\d/i.test(flightNumber) || /\bazul\b/i.test(combined)) return "Azul Linhas Aéreas";
-  if (/\b2Z\s*\d/i.test(flightNumber) || /\bvoepass\b/i.test(combined)) return "Voepass";
-  if (/\bTP\s*\d/i.test(flightNumber) || /\btap\b/i.test(combined)) return "TAP Air Portugal";
-  if (/\bAR\s*\d/i.test(flightNumber) || /aerol[ií]neas argentinas/i.test(combined)) return "Aerolíneas Argentinas";
-  if (/\bAV\s*\d/i.test(flightNumber) || /\bavianca\b/i.test(combined)) return "Avianca";
-  if (/\bCM\s*\d/i.test(flightNumber) || /\bcopa\b/i.test(combined)) return "Copa Airlines";
+  const combined = `${airline} ${flightNumber}`;
+  if (/\blatam\b/i.test(combined)) return "LATAM Airlines";
+  if (/\bgol\b/i.test(combined)) return "GOL Linhas Aéreas";
+  if (/\bazul\b/i.test(combined)) return "Azul Linhas Aéreas";
+  if (/\bvoepass\b/i.test(combined)) return "Voepass";
+  if (/\btap\b/i.test(combined)) return "TAP Air Portugal";
+  if (/aerol[ií]neas argentinas/i.test(combined)) return "Aerolíneas Argentinas";
+  if (/\bavianca\b/i.test(combined)) return "Avianca";
+  if (/\bcopa\b/i.test(combined)) return "Copa Airlines";
 
   if (!airline || /^(companhia a[eé]rea|operadora|light\s*-?\s*operadora)$/i.test(airline)) return "";
   return airline;
+};
+
+const sanitizeRoute = (from: string, to: string) => {
+  if (from && to && from === to) return { from, to: "" };
+  return { from, to };
 };
 
 export const analyzeFlightImage = createServerFn({ method: "POST" })
@@ -98,12 +136,13 @@ export const analyzeFlightImage = createServerFn({ method: "POST" })
         const flightNumber = normalizeFlightNumber(toText(leg.flightNumber, 30));
         const airlineRaw = toText(leg.airline, 80);
         const airline = normalizeAirline(airlineRaw, flightNumber);
+        const route = sanitizeRoute(toText(leg.from, 8), toText(leg.to, 8));
         return {
         direction: leg.direction === "out" || leg.direction === "back" ? leg.direction : "unknown",
         airline,
         flightNumber,
-        from: toText(leg.from, 8),
-        to: toText(leg.to, 8),
+        from: route.from,
+        to: route.to,
         departureDate: toDate(leg.departureDate),
         arrivalDate: toDate(leg.arrivalDate),
         departure: toTime(leg.departure),
