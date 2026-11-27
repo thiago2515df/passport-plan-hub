@@ -10,7 +10,7 @@ async function request(path, body, token) {
 }
 const {accessToken} = await request("/auth/token",{email,password});
 const d = await request("/hotel/destinations?q=Macei%C3%B3",null,accessToken);
-const city = d.destinations?.find(x => x.type?.toLowerCase() === "city" && /^macei[oó]\b/i.test(x.name));
+const city = d.destinations?.find(x => x.type?.toLowerCase() === "city" && /^macei[oó](?:\s|,|$)/i.test(x.name));
 if(!city) throw new Error("Destino Maceió não encontrado na API.");
 const room1={adults:2,childAges:[7],quantity:1},room2={adults:2,childAges:[10],quantity:1};
 const results={};
