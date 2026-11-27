@@ -141,13 +141,13 @@ export const saveProposal = createServerFn({ method: "POST" })
     const { normalizePaymentRules, DEFAULT_PAYMENT_RULES, rateForInterestFreeInstallments } = await import("./payment-rules");
     const { data: paymentSettings } = await context.supabase.from("system_settings").select("*").eq("id", 1).maybeSingle();
     const basePaymentRules = normalizePaymentRules(paymentSettings?.payment_rules ?? DEFAULT_PAYMENT_RULES);
-    const interestFreeInstallments = z.number().int().min(1).max(12).parse(parsed.s.interestFreeInstallments ?? 6);
+    const interestFreeInstallments = z.number().int().min(0).max(12).parse(parsed.s.interestFreeInstallments ?? 6);
     const embeddedFeePercent = rateForInterestFreeInstallments(basePaymentRules, interestFreeInstallments);
     const paymentRules = {
       ...basePaymentRules,
       card: { ...basePaymentRules.card, embeddedFeePercent },
       // O Pix usa a mesma taxa escolhida na barra de parcelas sem juros.
-      pix: { ...basePaymentRules.pix, discountPercent: embeddedFeePercent, note: "Pix à vista com desconto." },
+      pix: { ...basePaymentRules.pix, discountPercent: embeddedFeePercent, note: interestFreeInstallments === 0 ? "Pagamento à vista via Pix." : "Pix à vista com desconto." },
     };
     const proposal = {
       ...parsed,

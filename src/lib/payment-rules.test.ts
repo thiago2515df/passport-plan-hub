@@ -140,3 +140,16 @@ describe("parcelamento mostrado ao cliente", () => {
     expect(normalizePaymentRules(invalid)).toEqual(DEFAULT_PAYMENT_RULES);
   });
 });
+
+describe("parcelamento sem juros desativado", () => {
+  it("preserva o total Pix e cobra a taxa real em todas as parcelas do cartão", () => {
+    const rules = DEFAULT_PAYMENT_RULES;
+    expect(resolveInterestFreeSelection(rules, 0)).toEqual({ installments: 0, rate: 0 });
+    expect(customerPackageTotal(3000, rateForInterestFreeInstallments(rules, 0))).toBe(3000);
+    expect(pixTotal(3000, 0)).toBe(3000);
+    for (let n = 1; n <= 12; n++) {
+      const fee = rules.card.visaMaster[n - 1]!;
+      expect(installmentQuoteFromCustomerTotal(3000, n, fee, 0, 0)?.total).toBe(customerPackageTotal(3000, fee));
+    }
+  });
+});

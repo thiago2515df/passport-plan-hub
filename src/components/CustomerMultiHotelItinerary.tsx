@@ -10,6 +10,7 @@ const date = (iso: string) =>
 
 export function CustomerMultiHotelItinerary({
   stays,
+  pixOnly = false,
   total,
   travelers,
   guestSummary,
@@ -19,6 +20,7 @@ export function CustomerMultiHotelItinerary({
   onPayment,
 }: {
   stays: MultiHotelStay[];
+  pixOnly?: boolean;
   total: number;
   travelers: number | null;
   guestSummary: string;
@@ -190,6 +192,7 @@ export function CustomerMultiHotelItinerary({
 
           <CustomerPackagePrice
             total={total}
+            pixOnly={pixOnly}
             travelers={travelers}
             subtitle={`Pacote completo · ${guestSummary}`}
           />

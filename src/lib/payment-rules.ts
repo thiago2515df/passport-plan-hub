@@ -51,6 +51,7 @@ export const pixTotal = (net: number, discountPercent: number) =>
   Math.round((net * (1 - discountPercent / 100) + Number.EPSILON) * 100) / 100;
 
 export const rateForInterestFreeInstallments = (rules: PaymentRules, installments: number) => {
+  if (installments === 0) return 0;
   const count = Math.max(1, Math.min(12, Math.floor(installments || 6)));
   return rules.card.visaMaster[count - 1] ?? rules.card.embeddedFeePercent;
 };
@@ -59,7 +60,7 @@ export const rateForInterestFreeInstallments = (rules: PaymentRules, installment
  * New proposals carry interestFreeInstallments. Older/public projections may
  * only carry embeddedFeePercent, so recover the count from the official table. */
 export const resolveInterestFreeSelection = (rules: PaymentRules, installments?: number) => {
-  const explicit = Number.isInteger(installments) && Number(installments) >= 1 && Number(installments) <= 12
+  const explicit = Number.isInteger(installments) && Number(installments) >= 0 && Number(installments) <= 12
     ? Number(installments)
     : null;
   if (explicit !== null) return { installments: explicit, rate: rateForInterestFreeInstallments(rules, explicit) };
@@ -88,7 +89,7 @@ export const installmentQuoteFromCustomerTotal = (
   if (!Number.isFinite(customerTotal) || customerTotal < 0 ||
       !Number.isInteger(installments) || installments < 1 || installments > 12 ||
       !Number.isFinite(embeddedFeePercent) || embeddedFeePercent < 0 || embeddedFeePercent >= 100) return null;
-  const freeThrough = Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
+  const freeThrough = interestFreeInstallments === 0 ? 0 : Math.max(1, Math.min(12, Math.floor(interestFreeInstallments || 6)));
   if (installments <= freeThrough) {
     return {
       total: Math.round((customerTotal + Number.EPSILON) * 100) / 100,

@@ -44,7 +44,7 @@ export function PaymentOptionsDialog({
               <div>
                 <h3 className="font-bold text-navy">Cartão de crédito</h3>
                 <span className="mt-1 inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-extrabold text-emerald-700">
-                  Até {freeThrough}x sem juros
+                  {freeThrough === 0 ? "Parcelamento com juros" : `Até ${freeThrough}x sem juros`}
                 </span>
               </div>
             </div>
@@ -85,18 +85,18 @@ export function PaymentOptionsDialog({
               <div className="flex items-center gap-3">
                 <span className="grid h-11 w-11 place-items-center rounded-xl bg-[#32b8ad]/15"><QrCode className="h-5 w-5 text-[#249f96]"/></span>
                 <div>
-                  <h3 className="font-bold text-navy">Pix à vista com desconto</h3>
+                  <h3 className="font-bold text-navy">{freeThrough === 0 ? "Pix à vista" : "Pix à vista com desconto"}</h3>
                   <p className="text-xs text-muted-foreground">Pagamento à vista com valor especial</p>
                 </div>
               </div>
-              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
+              {freeThrough > 0 && <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-[11px] font-bold text-emerald-700">
                 {selectedRate.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% OFF
-              </span>
+              </span>}
             </div>
             <img src={PAYMENT_PIX_IMAGE} alt="Pix" className="my-3 h-9 max-w-[150px] object-contain object-left"/>
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Valor no Pix</p>
             <p className="mt-1 text-2xl font-black text-navy sm:text-3xl">{brl(pixValue)}</p>
-            <p className="mt-2 text-xs text-emerald-700">Economize pagando à vista pelo Pix.</p>
+            <p className="mt-2 text-xs text-emerald-700">{freeThrough === 0 ? "Valor à vista anunciado na proposta." : "Economize pagando à vista pelo Pix."}</p>
           </section>}
 
           {payment.boleto.enabled && <section className="rounded-2xl border border-border bg-card p-4">
