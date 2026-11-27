@@ -37,3 +37,7 @@ describe("quartos por ocupação", () => {
     expect(r).toEqual([{ adults: 2, childAges: [8] }, { adults: 2, childAges: [] }]);
   });
 });
+
+it("sends two separate triple-room occupancies with children aged 7 and 10", () => {
+  expect(passhubRoomGroups([{ adults: 2, childAges: [7] }, { adults: 2, childAges: [10] }])).toEqual([{ adults: 2, childAges: [7], quantity: 1 }, { adults: 2, childAges: [10], quantity: 1 }]);
+});

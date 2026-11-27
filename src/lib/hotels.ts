@@ -30,6 +30,8 @@ export type Hotel = {
   totalEstimated?: boolean;
   /** External advertised stay totals still require supplier tax/availability confirmation. */
   priceConfirmed?: boolean;
+  /** Internal seller confirmation of the combined supplier stay total for this many rooms. */
+  confirmedRoomCount?: number;
   supplierName?: string;
   /** Internal diagnostic when an external listing has no dated supplier quote. */
   quoteError?: string;

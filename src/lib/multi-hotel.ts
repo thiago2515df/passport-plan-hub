@@ -1,4 +1,5 @@
 import type { Hotel, Search } from "./hotels";
+import { needsRoomTotalConfirmation } from "./hotel-room-total";
 import { nightsBetween } from "./hotels";
 
 export type MultiHotelStay = {
@@ -57,7 +58,7 @@ export const multiHotelStayCost = (stays: MultiHotelStay[]) =>
 
 export function validateMultiHotelStays(
   stays: MultiHotelStay[],
-  trip: Pick<Search, "checkin" | "checkout">,
+  trip: Pick<Search, "checkin" | "checkout" | "rooms">,
 ): string | null {
   if (!Array.isArray(stays) || stays.length < 2) return "Adicione pelo menos dois períodos de hospedagem.";
   if (!dateIso(trip.checkin) || !dateIso(trip.checkout) || stays[0]?.checkin !== trip.checkin ||
@@ -75,6 +76,7 @@ export function validateMultiHotelStays(
     if (!stay.hotel || !stay.hotel.name?.trim() || !Number.isFinite(stay.hotel.total) || stay.hotel.total <= 0) {
       return `Selecione uma hospedagem com tarifa válida para o período ${i + 1}.`;
     }
+    if (needsRoomTotalConfirmation(stay.hotel, trip.rooms ?? 1)) return `Confirme o total dos ${trip.rooms} quartos da hospedagem ${i + 1}.`;
     if ((stay.hotel.provider === "trivago" || stay.hotel.provider === "booking") && !stay.hotel.priceConfirmed) {
       return `Confirme a tarifa da hospedagem para o período ${i + 1} antes de gerar a proposta.`;
     }

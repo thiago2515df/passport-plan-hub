@@ -174,6 +174,10 @@ export const saveProposal = createServerFn({ method: "POST" })
     const extraSchema = z.array(z.object({ name: z.string().trim().min(1).max(120), cost }));
     for (const hotel of proposal.hotels) {
       cost.parse(hotel.total);
+      if (!proposal.s.multiHotelStays?.length) {
+        const { needsRoomTotalConfirmation } = await import("./hotel-room-total");
+        if (needsRoomTotalConfirmation(hotel, proposal.s.rooms ?? 1)) throw new Error(`Confirme o total de todos os quartos de ${hotel.name} antes de gerar a proposta.`);
+      }
       extraSchema.parse(hotel.extras ?? []);
       // A PLP forecast is never a quote. A Trivago PDP price needs
       // confirmation of mandatory taxes/availability at the supplier.

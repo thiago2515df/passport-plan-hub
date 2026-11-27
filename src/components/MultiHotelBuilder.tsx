@@ -6,6 +6,7 @@ import { getValidAccessToken } from "@/integrations/supabase/session";
 import { searchHotels } from "@/lib/passhub.functions";
 import { searchBooking } from "@/lib/booking.functions";
 import { searchAirbnb } from "@/lib/airbnb.functions";
+import { needsRoomTotalConfirmation, parseConfirmedRoomTotal } from "@/lib/hotel-room-total";
 import type { Hotel } from "@/lib/hotels";
 import { brl, nightsBetween } from "@/lib/hotels";
 import type { RoomOccupancy } from "@/lib/room-occupancy";
@@ -153,6 +154,13 @@ export function MultiHotelBuilder({
   const choose = (hotel: Hotel) => {
     if (!active || !Number.isFinite(hotel.total) || hotel.total <= 0) return;
     const alreadySelected = active.hotel?.id === hotel.id;
+    if (!alreadySelected && needsRoomTotalConfirmation(hotel, rooms)) {
+      const entered = window.prompt(`Confira no fornecedor e informe o total em reais dos ${rooms} quartos para todo este período (sem comissão).`);
+      if (entered === null) return;
+      const total = parseConfirmedRoomTotal(entered);
+      if (total === null) { setError("Informe um valor total válido para todos os quartos."); return; }
+      hotel = { ...hotel, total, nightly: total / nightsBetween(active.checkin, active.checkout), confirmedRoomCount: rooms, totalEstimated: false };
+    }
     if (!alreadySelected && hotel.provider === "booking" && !hotel.priceConfirmed) {
       if (!window.confirm("Confirme que você conferiu o preço total, impostos e disponibilidade desta hospedagem no Booking.com.")) return;
       hotel = { ...hotel, priceConfirmed: true, totalEstimated: false };
@@ -331,7 +339,7 @@ export function MultiHotelBuilder({
               <div className="mt-2 flex flex-wrap items-end justify-between gap-2">
                 <div>
                   <p><strong className="text-xl text-foreground">{brl(h.nightly)}</strong><span className="text-xs text-muted-foreground"> / noite</span></p>
-                  <p className="text-[11px] text-muted-foreground">Total de {brl(h.total)} para este período</p>
+                  <p className="text-[11px] text-muted-foreground">{needsRoomTotalConfirmation(h, rooms) ? `Valor da API a conferir (${rooms} quartos)` : "Total"}: {brl(h.total)} para este período</p>
                 </div>
                 <Button type="button" size="sm" variant={on ? "outline" : "secondary"} onClick={() => choose(h)} className={on ? "border-primary text-primary" : ""}>
                   {on ? <><Check className="h-4 w-4" />Selecionado</> : "Adicionar"}

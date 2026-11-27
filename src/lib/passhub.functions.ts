@@ -48,7 +48,10 @@ export const searchHotels = createServerFn({ method: "POST" })
       })
       .superRefine((value, context) => {
         const rooms = value.roomOccupancies;
-        if (!rooms) return;
+        if (!rooms) {
+          if (value.rooms > 1) context.addIssue({ code: "custom", message: "Informe a ocupação de cada quarto para cotar múltiplos quartos." });
+          return;
+        }
         if (rooms.length !== value.rooms ||
             rooms.reduce((sum, room) => sum + room.adults, 0) !== value.adults ||
             JSON.stringify(rooms.flatMap(r => r.childAges).sort((a, b) => a - b)) !== JSON.stringify([...value.childAges].sort((a, b) => a - b))) {
@@ -91,7 +94,7 @@ export const searchHotels = createServerFn({ method: "POST" })
         return 8 + (inv ? 1 - t : t) * 84;
       };
       return {
-        hotels: offers.map((o) => ({
+        hotels: offers.filter(o => Number.isFinite(o.totalPrice) && o.totalPrice > 0).map((o) => ({
           id: o.offerId,
           hotelId: o.hotel.hotelId,
           name: o.hotel?.hotelName ?? "Hotel",
@@ -99,6 +102,7 @@ export const searchHotels = createServerFn({ method: "POST" })
           stars: Math.round(o.hotel.starRating ?? 0),
           nightly: o.totalPrice / data.nights,
           total: o.totalPrice,
+          ...(data.rooms > 1 ? { totalEstimated: true } : {}),
           room: [o.roomName, o.mealPlan].filter(Boolean).join(" · "),
           image: o.hotel.thumbUrl ?? "",
           ...(typeof o.hotel.latitude === "number" ? { latitude: o.hotel.latitude } : {}),

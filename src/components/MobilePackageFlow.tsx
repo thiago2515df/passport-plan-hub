@@ -299,7 +299,7 @@ export function MobilePackageHotelCard({
           {unavailable
             ? "Consulte a disponibilidade da tarifa."
             : h.provider === "booking" || h.totalEstimated
-              ? "Hospedagem estimada. Confirme taxas e disponibilidade."
+              ? "Valor a conferir com o fornecedor. Confirme a tarifa de todos os quartos, taxas e disponibilidade."
               : "Total da hospedagem"}
         </p>
         {h.address && (
