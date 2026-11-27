@@ -3,6 +3,7 @@ import { Output, generateText } from "ai";
 import { z } from "zod";
 
 const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "auto";
+const AI_IMAGE_MODEL = process.env["FREELLMAPI_IMAGE_MODEL"]?.trim() || "qwen/qwen3.8-27b";
 const AI_BASE_URL = process.env["FREELLMAPI_BASE_URL"]?.trim() || "http://freellmapi:3001/v1";
 
 const baggageSchema = z.strictObject({
@@ -92,8 +93,10 @@ function extractionPrompt(directionHint: "out" | "back" | "auto", source: "image
 
 async function runExtraction({
   content,
+  model = AI_MODEL,
 }: {
   content: Array<{ type: "text"; text: string } | { type: "image"; image: URL }>;
+  model?: string;
 }): Promise<FlightImageAiExtraction> {
   const apiKey = process.env["FREELLMAPI_API_KEY"]?.trim();
   if (!apiKey) {
@@ -108,7 +111,7 @@ async function runExtraction({
     if (attempt > 1) await sleep(Math.min(5_000, 700 * 2 ** (attempt - 2)));
     try {
       const result = await generateText({
-        model: provider.chat(AI_MODEL),
+        model: provider.chat(model),
         messages: [{ role: "user", content }],
         output: Output.object({ schema: extractionSchema }),
         providerOptions: { openai: { store: false } },
@@ -147,6 +150,7 @@ export async function extractFlightFromImage({
   directionHint: "out" | "back" | "auto";
 }): Promise<FlightImageAiExtraction> {
   return runExtraction({
+    model: AI_IMAGE_MODEL,
     content: [
       { type: "text", text: extractionPrompt(directionHint, "imagem") },
       { type: "image", image: new URL(imageDataUrl) },
