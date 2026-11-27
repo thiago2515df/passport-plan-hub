@@ -86,7 +86,8 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
     .sort((a, b) => a.hotel.total - b.hotel.total || a.originalIndex - b.originalIndex);
   const shortCity = (name: string) => (name.split(",")[0] ?? "").replace(/\s*\([A-Z]{3}\)\s*/gi, "").trim();
   const destino = shortCity(p.s.destino ?? "");
-  const cliente = p.s.cliente?.trim();
+  const blackFriday = p.s.blackFriday === true;
+  const cliente = blackFriday ? undefined : p.s.cliente?.trim();
   const hero = hotels.find((h) => h.image)?.image;
   const destSlug = destino.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   const aiHero = `/api/public/destination-image/${destSlug}`;
@@ -106,10 +107,11 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
   const wa = `https://wa.me/${agency.data?.whatsapp ?? AGENCY_WHATSAPP}?text=${encodeURIComponent(waText)}`;
 
   return (
-    <div className="proposta min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background pb-40 text-foreground sm:pb-28">
+    <div className={`proposta min-h-screen w-full max-w-[100vw] overflow-x-hidden bg-background pb-40 text-foreground sm:pb-28 ${blackFriday ? "black-friday-proposal" : ""}`}>
       <header className="sticky top-0 z-30 border-b border-border bg-card/95 backdrop-blur">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-2 px-3 py-2 sm:gap-4 sm:px-4 sm:py-3">
           <AgencyLogo logoUrl={agency.data?.logo_url} className="h-11 w-11 sm:h-14 sm:w-14" />
+          {blackFriday && <span className="text-center text-xs font-black uppercase tracking-widest text-primary sm:text-base">Black Friday</span>}
           <a href={wa} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-xl border-2 border-primary px-3 py-2 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground sm:gap-2 sm:px-4 sm:text-sm">
             <MessageCircle className="h-4 w-4" /> Fale conosco
           </a>
@@ -124,6 +126,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-navy/90 via-navy/60 to-navy/10" />
         <div className="relative mx-auto max-w-6xl px-4 pb-8 pt-6 text-card sm:px-5 sm:pb-16 sm:pt-10 md:pb-24 md:pt-16">
+          {blackFriday && <div className="mb-4"><p className="text-xs font-bold uppercase tracking-[.25em] text-yellow-300">Excursão Brasília · Ofertas especiais</p><p className="mt-2 text-4xl font-black leading-none text-white sm:text-6xl">BLACK <span className="text-yellow-400">FRIDAY</span></p></div>}
           <h1 className="text-3xl font-extrabold leading-tight break-words sm:mt-2 sm:text-4xl md:text-6xl">
             <span>{destino}</span>
           </h1>
@@ -137,6 +140,7 @@ export function ProposalView({ p, code, acceptance }: { p: ReturnType<typeof dec
               return <span key={k} className="flex items-center gap-1.5 rounded-full border border-card/40 bg-card/15 px-3 py-1.5 text-xs backdrop-blur sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />{txt as string}</span>;
             })}
           </div>
+          {blackFriday && <p className="mt-4 text-sm font-semibold text-white sm:text-lg">Sua próxima viagem começa aqui. Confira as condições especiais do pacote.</p>}
           {cliente && (
             <div className="mt-4 flex max-w-full items-start gap-2 border-l-2 border-turquoise pl-3 sm:mt-6 sm:gap-3 sm:pl-4">
               <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-turquoise sm:mt-1 sm:h-5 sm:w-5" aria-hidden="true" />

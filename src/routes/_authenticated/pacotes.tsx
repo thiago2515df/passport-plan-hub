@@ -608,6 +608,8 @@ function Index() {
     }
   };
 
+  const blackCampaignOpen = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date()) === "2026-11-27";
+  const blackFriday = !!s.blackFriday && (blackCampaignOpen || !!editingCode);
   const gerar = async () => {
     if (multiMode) {
       const multiError = validateMultiHotelStays(multiStays, s);
@@ -620,7 +622,7 @@ function Index() {
       else outboundRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       return;
     }
-    const clientName = s.cliente?.trim();
+    const clientName = blackFriday ? "Black Friday" : s.cliente?.trim();
     if (!clientName) {
       setClientNameError("Preencha o nome do cliente para gerar a proposta.");
       return;
@@ -641,12 +643,22 @@ function Index() {
       if (fresh.error || !fresh.data) throw new Error("Não foi possível verificar as comissões. Tente novamente.");
       const confirmed = requireConfiguredCommissions(fresh.data, commissions.data?.updatedAt ?? "");
       const { extras: _extras, telefone: _telefone, email: _email, ...proposalSearch } = s;
-      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, ...(multiMode ? { extras: normalizeExtraServices(s.extras, "a proposta") } : {}), rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF), selectedFlightOptions: savedFlightOptionsSnapshot(flightOptions),
+      const { code } = await saveProp({ data: { commissionUpdatedAt: confirmed.updatedAt!, ...(editingCode ? { code: editingCode } : {}), payload: encodeProposal({ s: { ...proposalSearch, blackFriday, ...(multiMode ? { extras: normalizeExtraServices(s.extras, "a proposta") } : {}), rav: 0, cliente: clientName, hospedes: hosp, destinationId: destId, rooms, adults, childAges: kids, roomOccupancies: roomGuests, selectedFlights: savedFlightSnapshot(pickF), selectedFlightOptions: savedFlightOptionsSnapshot(flightOptions),
         multiHotelStays: multiMode ? multiStays.map(stay => ({ checkin: stay.checkin, checkout: stay.checkout, ...(stay.hotel ? { hotel: { ...stay.hotel } } : {}) })) : undefined }, hotels: chosen }) } });
       const url = `${window.location.origin}/p/${code}`;
       setLink(url);
       const destinationName = (s.destino.split(",")[0] || s.destino).trim();
-      const message = [
+      const message = blackFriday ? [
+        "🖤 *BLACK FRIDAY | EXCURSÃO BRASÍLIA*",
+        `✈️ *${destinationName}*`,
+        `📅 ${fmtD(s.checkin)} a ${fmtD(s.checkout)} · ${nights} noites`,
+        `👥 ${hosp}`,
+        ...(s.origem ? [`📍 Saída: ${s.origem.split(",")[0]}`] : []),
+        ...(transport.mode === "air" ? ["✅ Passagem aérea incluída"] : transport.mode === "bus" ? ["✅ Transporte rodoviário incluído"] : []),
+        "✅ Hospedagem incluída",
+        ...(multiMode ? multiStays.flatMap(stay => stay.hotel ? [`🏨 ${stay.hotel.name} (${fmtD(stay.checkin)} a ${fmtD(stay.checkout)})`] : []) : chosen.map(h => `🏨 ${h.name}`)),
+        "", "Confira as ofertas, valores e formas de pagamento:", url, "", "Valores sujeitos à disponibilidade e confirmação.", "Excursão Brasília 💙",
+      ].join("\n") : [
         `Olá, ${clientName}! ✈️`,
         "",
         `Preparamos sua proposta de viagem para *${destinationName}*.`,
@@ -787,7 +799,8 @@ function Index() {
         />
         {mobile && (transport.mode === "bus" || (transport.mode === "air" && !pickF.out && !pickF.back && flightsReady)) && <TransportPanel s={pricingSearch} value={effectiveTransport} />}
         {transport.mode === "air" && <label className="mt-4 block text-xs text-muted-foreground">Custo total das passagens (R$)<Input aria-label="Custo das passagens" type="number" min={0} step="0.01" value={transport.price ?? 0} onChange={e => setS(previous => ({ ...previous, transport: { ...transport, price: Math.max(0, Number(e.target.value)) } }))} /></label>}
-        <div className="mt-4">
+        {(blackCampaignOpen || blackFriday) && <label className="mt-4 flex cursor-pointer items-center gap-3 rounded-xl border border-yellow-500 bg-zinc-950 p-4 text-white"><input type="checkbox" className="h-5 w-5 accent-yellow-400" checked={blackFriday} onChange={e => { setS(previous => ({ ...previous, blackFriday: e.target.checked })); setLink(""); setClientNameError(""); }} /><span><strong className="block text-yellow-400">Black Friday · oferta especial</strong><span className="text-xs text-zinc-300">Tema preto e mensagem promocional, sem nome do cliente.</span></span></label>}
+        {!blackFriday && <div className="mt-4">
           <label htmlFor="client-name" className="mb-1 flex items-center justify-between text-sm font-semibold text-foreground">
             <span>Nome do cliente</span>
             <span className="text-xs font-bold text-destructive">* obrigatório</span>
@@ -808,7 +821,7 @@ function Index() {
               ⚠️ {clientNameError}
             </div>
           )}
-        </div><Button disabled={!access.allowed || !commissions.ready || !selectionCount || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : mobile ? "Gerar proposta" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success px-3 py-3 text-sm font-semibold text-success-foreground"><Check className="mr-1.5 inline h-4 w-4" />Proposta copiada com sucesso. Encaminhar para o cliente.</div>}</div></div></div>}
+        </div>}<Button disabled={!access.allowed || !commissions.ready || !selectionCount || uploading || saving || editLoading} onClick={gerar} className="mt-4 h-11 w-full"><Link2 className="h-4 w-4" />{uploading ? "Enviando passagem…" : saving ? "Salvando…" : editingCode ? "Salvar alterações" : mobile ? "Gerar proposta" : "Gerar link"}</Button>{!access.loading && !access.allowed && <p className="mt-2 text-xs text-muted-foreground">Geração de propostas disponível após a liberação do seu acesso.</p>}{link && <div className="mt-3 rounded-lg bg-success px-3 py-3 text-sm font-semibold text-success-foreground"><Check className="mr-1.5 inline h-4 w-4" />Proposta copiada com sucesso. Encaminhar para o cliente.</div>}</div></div></div>}
     {hotelMapOpen && !multiMode && <HotelMapPicker hotels={list} selectedIds={sel} onToggle={toggle} onClose={() => setHotelMapOpen(false)} />}
         {flowActive && commissions.ready && !flowLoading && (step === "hoteis" || step === "voos") && <MobilePackageFooter label={step === "hoteis" ? transport.mode === "air" ? "Próximo: voos" : transport.mode === "bus" ? "Próximo: transporte" : "Próximo: resumo" : "Próximo: resumo"} detail={step === "hoteis" ? (multiMode ? `${multiStays.filter(stay => Boolean(stay.hotel)).length} de ${multiStays.length} hospedagens` : `${sel.length} ${sel.length === 1 ? "hotel selecionado" : "hotéis selecionados"}`) : transport.mode === "air" ? `${Number(outboundReady) + Number(inboundReady)}/2 voos selecionados` : "Confira os dados do transporte"} disabled={flowLoading || !selectionCount || uploading || (step === "voos" && transport.mode === "air" && !flightsReady)} onNext={nextStep} />}
   </main>{gallery && <HotelGallery hotel={gallery} stay={{ checkin: s.checkin, checkout: s.checkout, adults: adults + kids.length }} onClose={() => setGallery(null)} />}</div>;

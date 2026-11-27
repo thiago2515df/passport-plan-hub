@@ -270,6 +270,17 @@ export const getProposal = createServerFn({ method: "GET" })
     if (error) throw new Error(error.message);
     const { data: acceptance } = await client.rpc("proposal_acceptance_status", { _code: data });
     const parsed = z.object({ hotelIndex: z.number().int(), acceptedAt: z.string(), total: z.number() }).safeParse(acceptance);
-    const publicPayload = typeof payload === "string" ? payloadForPublicView(payload) : null;
+    let publicPayload = typeof payload === "string" ? payloadForPublicView(payload) : null;
+    // Recover only the campaign flag from private storage; never expose private pricing or payload.
+    if (publicPayload) {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: stored, error: storedError } = await supabaseAdmin.from("proposals").select("payload").eq("code", data).maybeSingle();
+      if (storedError) throw new Error("Não foi possível carregar a proposta.");
+      const privateProposal = stored?.payload ? decodeProposal(stored.payload) : null;
+      const publicProposal = decodeProposal(publicPayload);
+      if (publicProposal && privateProposal?.s.blackFriday === true) {
+        publicPayload = encodeProposal({ ...publicProposal, s: { ...publicProposal.s, blackFriday: true, cliente: "" } });
+      }
+    }
     return { payload: publicPayload, acceptance: parsed.success ? parsed.data : null, state: lifecycle.state, expiresAt: lifecycle.expiresAt };
   });

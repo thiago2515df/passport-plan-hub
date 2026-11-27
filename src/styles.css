@@ -651,3 +651,16 @@
   .package-search-fields > div > button { font-size: 12px; }
   .package-search-fields > button { margin-top: 2px; height: 42px; }
 }
+
+/* Temporary campaign theme, scoped to public Black Friday proposals only. */
+.black-friday-proposal {
+  --background: #09090b; --foreground: #fafafa; --card: #18181b; --card-foreground: #fafafa;
+  --popover: #18181b; --popover-foreground: #fafafa; --primary: #facc15; --primary-foreground: #171717;
+  --secondary: #27272a; --secondary-foreground: #fafafa; --muted: #27272a; --muted-foreground: #c4c4cc;
+  --accent: #27272a; --accent-foreground: #fafafa; --border: #3f3f46; --input: #3f3f46; --ring: #facc15;
+}
+.black-friday-proposal .text-navy { color: #fafafa; }
+.black-friday-proposal .bg-navy { background-color: #141414; }
+.black-friday-proposal section.relative.overflow-hidden > .absolute.inset-0:not(img) { background: linear-gradient(90deg, rgba(0,0,0,.95), rgba(0,0,0,.65), rgba(0,0,0,.35)); }
+.black-friday-proposal section.relative.overflow-hidden .text-card { color: #fff; }
+.black-friday-proposal .text-turquoise { color: #facc15; }
