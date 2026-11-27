@@ -2,7 +2,7 @@ import { createOpenAI } from "@ai-sdk/openai";
 import { Output, generateText } from "ai";
 import { z } from "zod";
 
-const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "gemini-3.8-flash";
+const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "auto";
 const AI_BASE_URL = process.env["FREELLMAPI_BASE_URL"]?.trim() || "http://freellmapi:3001/v1";
 
 const baggageSchema = z.strictObject({
@@ -58,7 +58,7 @@ const toUserError = (error: unknown, status: number | undefined): Error => {
   if (status === 403) return new Error(detail || "O FreeLLMAPI recusou o acesso ao modelo configurado.");
   if (status === 404) return new Error("O modelo configurado não está disponível no catálogo do FreeLLMAPI.");
   if (status === 422 && /no_vision_model/i.test(detail ?? "")) return new Error("Nenhum modelo com visão está ativo no FreeLLMAPI. Ative um modelo Vision no painel.");
-  if (status === 429) return new Error("O provedor selecionado pelo FreeLLMAPI atingiu o limite agora. O roteador tentará os provedores disponíveis.");
+  if (status === 429) return new Error("Os modelos disponíveis no FreeLLMAPI estão temporariamente em limite/cooldown. Tente novamente em instantes ou adicione mais chaves de provedores.");
   if (status != null && status >= 500) return new Error("O FreeLLMAPI ou o provedor de IA está indisponível no momento. Tente novamente em instantes.");
   if (status === 400) return new Error(detail || "A IA não conseguiu processar este conteúdo. Tente uma captura mais nítida.");
   return new Error(detail || "A IA não conseguiu ler o conteúdo agora.");
