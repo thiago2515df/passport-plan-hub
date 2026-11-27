@@ -572,11 +572,8 @@ function Index() {
     window.setTimeout(() => target?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   };
 
-  const flightImageField = (which: "out" | "back") => <div className="mb-3 flex flex-wrap items-start justify-between gap-2">
+  const flightImageField = (which: "out" | "back") => <div className="mb-3 flex flex-wrap items-start gap-2">
     <FlightImageImporter direction={which} onImported={data => applyFlightImage(which, data)} />
-    <p className="mt-2 max-w-sm text-[11px] leading-relaxed text-muted-foreground">
-      Envie uma captura da cotação. A IA lê companhia, voo, rota, datas, horários e o total quando estiver visível.
-    </p>
   </div>;
 
   const toggle = (id: string) => { const offer = selectedOffers[id] ?? [...hotels, ...airbnbListings, ...trivagoListings].find(h => h.id === id); if (!offer || (offer.provider === "trivago" && offer.total <= 0)) return; setLink(""); setSelectedOffers(previous => { const next = { ...previous }; if (next[id]) delete next[id]; else next[id] = { ...offer, provider: offer.provider ?? "hotel" }; return next; }); setSel(previous => toggleHotelSelection(previous, id)); if (!mobile && sel.length === 0 && transport.mode === "air") setAdvanceTo("out"); };
