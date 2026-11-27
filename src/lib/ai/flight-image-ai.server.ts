@@ -3,7 +3,7 @@ import { Output, generateText } from "ai";
 import { z } from "zod";
 
 const AI_MODEL = process.env["FREELLMAPI_MODEL"]?.trim() || "auto";
-const AI_IMAGE_MODEL = process.env["FREELLMAPI_IMAGE_MODEL"]?.trim() || "qwen/qwen3.8-27b";
+const AI_IMAGE_MODEL = process.env["FREELLMAPI_IMAGE_MODEL"]?.trim() || "gpt-4.1";
 const AI_BASE_URL = process.env["FREELLMAPI_BASE_URL"]?.trim() || "http://freellmapi:3001/v1";
 
 const baggageSchema = z.strictObject({
@@ -41,64 +41,6 @@ const extractionSchema = z.strictObject({
 export type FlightImageAiExtraction = z.infer<typeof extractionSchema>;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-const isLegIncomplete = (leg: FlightImageAiExtraction["legs"][number]) =>
-  !leg.from ||
-  !leg.to ||
-  !leg.departureDate ||
-  !leg.departure ||
-  !leg.arrival ||
-  !leg.flightNumber ||
-  !leg.airline;
-
-const needsImageSecondPass = (result: FlightImageAiExtraction) =>
-  result.legs.length === 0 ||
-  result.legs.some(isLegIncomplete);
-
-const mergeValue = <T>(primary: T | null | undefined, secondary: T | null | undefined): T | null =>
-  primary != null && primary !== "" ? primary : secondary != null ? secondary : null;
-
-const mergeExtractions = (
-  first: FlightImageAiExtraction,
-  second: FlightImageAiExtraction,
-): FlightImageAiExtraction => {
-  const maxLegs = Math.max(first.legs.length, second.legs.length);
-  const legs = Array.from({ length: maxLegs }, (_, index) => {
-    const a = first.legs[index];
-    const b = second.legs[index];
-    if (!a) return b!;
-    if (!b) return a;
-    return {
-      direction: a.direction !== "unknown" ? a.direction : b.direction,
-      airline: mergeValue(a.airline, b.airline),
-      flightNumber: mergeValue(a.flightNumber, b.flightNumber),
-      from: mergeValue(a.from, b.from),
-      to: mergeValue(a.to, b.to),
-      departureDate: mergeValue(a.departureDate, b.departureDate),
-      arrivalDate: mergeValue(a.arrivalDate, b.arrivalDate),
-      departure: mergeValue(a.departure, b.departure),
-      arrival: mergeValue(a.arrival, b.arrival),
-      duration: mergeValue(a.duration, b.duration),
-      stops: mergeValue(a.stops, b.stops),
-      travelClass: mergeValue(a.travelClass, b.travelClass),
-      fareCategory: mergeValue(a.fareCategory, b.fareCategory),
-      baggage: {
-        personal: a.baggage.personal ?? b.baggage.personal,
-        carryOn: a.baggage.carryOn ?? b.baggage.carryOn,
-        checked: a.baggage.checked ?? b.baggage.checked,
-      },
-    };
-  });
-
-  return {
-    legs,
-    totalPrice: first.totalPrice ?? second.totalPrice,
-    perPersonPrice: first.perPersonPrice ?? second.perPersonPrice,
-    currency: first.currency ?? second.currency,
-    confidence: Math.max(first.confidence ?? 0, second.confidence ?? 0),
-    notes: Array.from(new Set([...(first.notes ?? []), ...(second.notes ?? [])])).slice(0, 8),
-  };
-};
 
 const statusOf = (error: unknown): number | undefined => {
   const candidate = error as { statusCode?: unknown; status?: unknown };
@@ -207,60 +149,20 @@ export async function extractFlightFromImage({
   imageDataUrl: string;
   directionHint: "out" | "back" | "auto";
 }): Promise<FlightImageAiExtraction> {
-  const image = new URL(imageDataUrl);
-  const first = await runExtraction({
+  return runExtraction({
     model: AI_IMAGE_MODEL,
     content: [
       {
         type: "text",
         text: [
           extractionPrompt(directionHint, "imagem"),
-          "LEIA A IMAGEM INTEIRA, inclusive colunas laterais e linhas pequenas.",
-          "Antes de finalizar, confira especificamente: origem, destino, data de saída, data de chegada, horário de saída, horário de chegada, duração, número do voo, companhia, classe/tarifa, bagagens e valores.",
-          "Não deixe um campo vazio se ele estiver legível na imagem.",
+          "Leia apenas o que estiver claramente visível na imagem.",
+          "Não deduza, não complete e não corrija dados por conta própria.",
+          "Se um horário, aeroporto, duração, preço ou outra informação não estiver legível, retorne null nesse campo.",
+          "Revise visualmente cada campo antes de responder: companhia, número do voo, origem, destino, datas, horários, duração, escalas, classe, bagagem e valores.",
         ].join("\n"),
       },
-      { type: "image", image },
+      { type: "image", image: new URL(imageDataUrl) },
     ],
   });
-
-  if (!needsImageSecondPass(first)) return first;
-
-  const missingSummary = first.legs.map((leg, index) => {
-    const missing = [
-      ["from", leg.from],
-      ["to", leg.to],
-      ["departureDate", leg.departureDate],
-      ["arrivalDate", leg.arrivalDate],
-      ["departure", leg.departure],
-      ["arrival", leg.arrival],
-      ["duration", leg.duration],
-      ["flightNumber", leg.flightNumber],
-      ["airline", leg.airline],
-      ["travelClass", leg.travelClass],
-      ["fareCategory", leg.fareCategory],
-    ].filter(([, value]) => !value).map(([key]) => key);
-    return `Trecho ${index + 1}: faltando ${missing.join(", ") || "nenhum campo essencial"}`;
-  }).join("\n");
-
-  const second = await runExtraction({
-    model: AI_IMAGE_MODEL,
-    content: [
-      {
-        type: "text",
-        text: [
-          extractionPrompt(directionHint, "imagem"),
-          "Esta é uma SEGUNDA CONFERÊNCIA da mesma imagem.",
-          "A primeira leitura ficou incompleta. Procure visualmente, com atenção especial, os campos faltantes abaixo:",
-          missingSummary,
-          "Leia também textos pequenos, cabeçalhos, rodapés e colunas da cotação.",
-          "Não altere informações já identificadas a menos que a imagem mostre claramente outro valor.",
-          "Retorne todos os campos que conseguir confirmar na imagem.",
-        ].join("\n"),
-      },
-      { type: "image", image },
-    ],
-  });
-
-  return mergeExtractions(first, second);
 }
