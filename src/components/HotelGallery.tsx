@@ -147,13 +147,13 @@ export function HotelGallery({
   useEffect(() => {
     if (!isBooking || !allowRemoteDetails || !hotel.providerListingId || hotel.publicDetails) return;
     let active = true;
-    setBookingLoading(true);
+    setBookingDetails(null); setBookingError(""); setBookingLoading(true);
     loadBooking({ data: { listingId: hotel.providerListingId } }).then(value => { if (active) setBookingDetails(value); }).catch(() => { if (active) setBookingError("Não foi possível carregar fotos adicionais."); }).finally(() => { if (active) setBookingLoading(false); });
     return () => { active = false; };
   }, [isBooking, allowRemoteDetails, hotel.providerListingId, hotel.publicDetails, loadBooking]);
   const isAirbnb = hotel.provider === "airbnb";
-  const isTrivago = (hotel.provider === "trivago" || hotel.provider === "booking");
-  const d = useDetails(hotel.hotelId, !isAirbnb && !isTrivago);
+  const isExternalListing = (hotel.provider === "trivago" || hotel.provider === "booking");
+  const d = useDetails(hotel.hotelId, !isAirbnb && !isExternalListing);
   const airbnbId = airbnbListingId(hotel);
   const savedDetails = isAirbnb ? hotel.publicDetails : undefined;
   const { details: airbnbDetails, loading: detailsLoading, error: detailsError, retry } =
@@ -162,7 +162,7 @@ export function HotelGallery({
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(propertyDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
-    : isTrivago ? [...(bookingDetails?.images ?? hotel.publicDetails?.photos ?? []), hotel.image, ...(hotel.images ?? [])].filter(Boolean)
+    : isExternalListing ? [...(bookingDetails?.images ?? hotel.publicDetails?.photos ?? []), hotel.image, ...(hotel.images ?? [])].filter(Boolean)
     : (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []);
   const photos = Array.from(new Set(sourcePhotos)).filter((p) => !bad.has(p));
   const [i, setI] = useState(0);
@@ -203,7 +203,7 @@ export function HotelGallery({
         </div>
 
         <div className="relative flex h-[52dvh] min-h-[240px] max-h-[560px] w-full items-center justify-center overflow-hidden rounded-xl bg-secondary/60 sm:h-[58vh] sm:min-h-[360px] sm:max-h-[640px]">
-          {!isAirbnb && !isTrivago && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="block h-full w-full object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
+          {!isAirbnb && !isExternalListing && !d && !cur ? <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /> : cur ? <img src={cur} alt={hotel.name} onError={() => setBad((b) => new Set(b).add(cur))} className="block h-full w-full object-contain" /> : <span className="text-sm text-muted-foreground">Nenhuma foto disponível</span>}
           {photos.length > 1 && <>
             <button aria-label="Anterior" onClick={() => setI((x) => (x - 1 + photos.length) % photos.length)} className="absolute left-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronLeft className="h-5 w-5" /></button>
             <button aria-label="Próxima" onClick={() => setI((x) => (x + 1) % photos.length)} className="absolute right-2 grid h-9 w-9 place-items-center rounded-full bg-card/90 shadow"><ChevronRight className="h-5 w-5" /></button>
@@ -253,6 +253,7 @@ export function HotelGallery({
         )}
 
         {isBooking && bookingLoading && <p className="py-2 text-sm text-muted-foreground">Carregando fotos da hospedagem...</p>}
+        {isBooking && (bookingDetails?.amenities ?? hotel.publicDetails?.amenities ?? []).length > 0 && <div className="mt-3"><h3 className="font-bold">Comodidades</h3><div className="mt-2 flex flex-wrap gap-2">{(bookingDetails?.amenities ?? hotel.publicDetails?.amenities ?? []).map(a => <span key={a} className="rounded-full bg-secondary px-3 py-1 text-xs">{a}</span>)}</div></div>}
         {isBooking && bookingError && <p className="py-2 text-sm text-muted-foreground">{bookingError}</p>}
         {isBooking && typeof rating === "number" && <p className="py-2 text-sm">Avaliação: {rating.toLocaleString("pt-BR")} / 10 {hotel.reviewCount != null ? `(${hotel.reviewCount} avaliações)` : ""}</p>}
         {isAirbnb && detailsLoading && (

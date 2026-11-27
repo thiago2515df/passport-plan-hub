@@ -53,6 +53,10 @@ const payloadForPublicView = (payload: string) => {
   const hotels = proposal.hotels.map(hotel => {
     const marker = splitExtraMarker(hotel.room);
     const extras = marker.names.length ? marker.names.map(name => ({ name, cost: 0 })) : (hotel.extras ?? []);
+    if (hotel.provider === "booking") {
+      const { sourceUrl: _sourceUrl, providerListingId: _providerListingId, ...publicHotel } = hotel;
+      return { ...publicHotel, room: marker.room, extras };
+    }
     return { ...hotel, room: marker.room, extras };
   });
   const multiHotelStays = proposal.s.multiHotelStays?.map((stay, index) => ({
