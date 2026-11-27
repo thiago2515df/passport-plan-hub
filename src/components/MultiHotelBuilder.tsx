@@ -4,6 +4,7 @@ import { Building2, CalendarDays, Check, ChevronDown, Loader2, MapPin, Plus, Sea
 import { ptBR } from "react-day-picker/locale";
 import { getValidAccessToken } from "@/integrations/supabase/session";
 import { searchHotels } from "@/lib/passhub.functions";
+import { searchBooking } from "@/lib/booking.functions";
 import { searchAirbnb } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
 import { brl, nightsBetween } from "@/lib/hotels";
@@ -16,13 +17,13 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { localCalendarDay } from "@/lib/travel-calendar-dates";
 
-type Source = "hotel" | "airbnb";
+type Source = "hotel" | "airbnb" | "booking";
 type Sort = "asc" | "desc";
 
 const toDate = (iso: string) => new Date(iso + "T12:00");
 const iso = (date: Date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 const dateLabel = (value: string) => toDate(value).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "2-digit" });
-const sourceName = (source: Source) => source === "hotel" ? "Hotéis" : "Airbnb";
+const sourceName = (source: Source) => source === "hotel" ? "Hotéis" : source === "booking" ? "Booking.com" : "Airbnb";
 
 function PeriodCalendar({
   stays,
@@ -116,6 +117,7 @@ export function MultiHotelBuilder({
 }) {
   const findHotels = useServerFn(searchHotels);
   const findAirbnb = useServerFn(searchAirbnb);
+  const findBooking = useServerFn(searchBooking);
   const [activeIndex, setActiveIndex] = useState(0);
   const [source, setSource] = useState<Source>("hotel");
   const [cache, setCache] = useState<Record<string, Hotel[]>>({});
@@ -151,6 +153,10 @@ export function MultiHotelBuilder({
   const choose = (hotel: Hotel) => {
     if (!active || !Number.isFinite(hotel.total) || hotel.total <= 0) return;
     const alreadySelected = active.hotel?.id === hotel.id;
+    if (!alreadySelected && hotel.provider === "booking" && !hotel.priceConfirmed) {
+      if (!window.confirm("Confirme que você conferiu o preço total, impostos e disponibilidade desta hospedagem no Booking.com.")) return;
+      hotel = { ...hotel, priceConfirmed: true, totalEstimated: false };
+    }
     const next = stays.map((stay, i) => i === safeIndex
       ? { ...stay, hotel: alreadySelected ? undefined : { ...hotel, provider: hotel.provider ?? "hotel" } }
       : stay);
@@ -199,6 +205,11 @@ export function MultiHotelBuilder({
         } });
         if (response.error) throw new Error(response.error);
         hotels = response.hotels;
+      } else if (source === "booking") {
+        if (rooms !== 1) throw new Error("Para múltiplos quartos, use a aba Hotéis.");
+        const response = await findBooking({ data: { location: destination, checkinDate: active.checkin, checkoutDate: active.checkout, numAdults: adults, numChildren: childAges.length, childAges, numRooms: 1 } });
+        if (response.error) throw new Error(response.error);
+        hotels = response.listings;
       } else {
         const accessToken = await getValidAccessToken();
         const response = await findAirbnb({ data: {
@@ -276,7 +287,7 @@ export function MultiHotelBuilder({
 
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <div role="group" aria-label="Fornecedor" className="flex items-center gap-1 rounded-xl border border-border bg-card p-1">
-            {(["hotel", "airbnb"] as const).map(item => <button type="button" key={item} aria-pressed={source === item} onClick={() => { setSource(item); setQuery(""); setError(""); }} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${source === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{sourceName(item)}</button>)}
+            {(["hotel", "airbnb", "booking"] as const).map(item => <button type="button" key={item} aria-pressed={source === item} onClick={() => { setSource(item); setQuery(""); setError(""); }} className={`rounded-lg px-3 py-1.5 text-sm font-semibold transition ${source === item ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted"}`}>{sourceName(item)}</button>)}
           </div>
           <Button type="button" variant="outline" size="sm" onClick={() => setMapOpen(true)} disabled={!filtered.some(h => h.latitude != null && h.longitude != null)} className="gap-1.5"><MapPin className="h-4 w-4" />Ver no mapa</Button>
           <Button type="button" variant="outline" size="sm" onClick={() => setSort(value => value === "asc" ? "desc" : "asc")}>{sort === "asc" ? "Mais barato" : "Mais caro"}<ChevronDown className="h-4 w-4" /></Button>

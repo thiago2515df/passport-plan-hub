@@ -46,10 +46,10 @@ export function customerProposal(p: NonNullable<ReturnType<typeof decodeProposal
       ...(h.hotelId !== undefined ? { hotelId: h.hotelId } : {}),
       // Keep only public Airbnb identity, photos and review metadata. Without
       // providerListingId and the saved PDP snapshot keep client details available.
-      ...((h.provider === "airbnb" || h.provider === "trivago") ? {
+      ...((h.provider === "airbnb" || h.provider === "trivago" || h.provider === "booking") ? {
         provider: h.provider,
-        ...(h.providerListingId ? { providerListingId: h.providerListingId } : {}),
-        ...(h.sourceUrl ? { sourceUrl: h.sourceUrl } : {}),
+        ...(h.providerListingId && h.provider !== "booking" ? { providerListingId: h.providerListingId } : {}),
+        ...(h.sourceUrl && h.provider !== "booking" ? { sourceUrl: h.sourceUrl } : {}),
         ...(h.rating != null ? { rating: h.rating } : {}),
         ...(h.reviewCount != null ? { reviewCount: h.reviewCount } : {}),
         images: h.images ?? [],

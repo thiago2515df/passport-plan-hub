@@ -75,8 +75,8 @@ export function validateMultiHotelStays(
     if (!stay.hotel || !stay.hotel.name?.trim() || !Number.isFinite(stay.hotel.total) || stay.hotel.total <= 0) {
       return `Selecione uma hospedagem com tarifa válida para o período ${i + 1}.`;
     }
-    if (stay.hotel.provider === "trivago" && !stay.hotel.priceConfirmed) {
-      return `Confirme a tarifa do Trivago para o período ${i + 1} antes de gerar a proposta.`;
+    if ((stay.hotel.provider === "trivago" || stay.hotel.provider === "booking") && !stay.hotel.priceConfirmed) {
+      return `Confirme a tarifa da hospedagem para o período ${i + 1} antes de gerar a proposta.`;
     }
   }
   return null;

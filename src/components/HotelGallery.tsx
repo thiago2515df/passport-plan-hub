@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { Building2, CalendarDays, ChevronLeft, ChevronRight, Loader2, Star, Users, X } from "lucide-react";
 import { getHotelDetails } from "@/lib/passhub.functions";
+import { getBookingDetails } from "@/lib/booking.functions";
 import { getAirbnbDetails } from "@/lib/airbnb.functions";
 import type { Hotel } from "@/lib/hotels";
 import { airbnbListingId } from "@/lib/hotel-listing-id";
@@ -120,13 +121,13 @@ function formatDescription(raw: string) {
 export function HotelPhoto({ hotel }: { hotel: Hotel }) {
   const [broken, setBroken] = useState(false);
   const apiImages = hotel.images ?? [];
-  const needPasshub = hotel.provider !== "airbnb" && hotel.provider !== "trivago" && (!hotel.image || broken);
+  const needPasshub = hotel.provider !== "airbnb" && hotel.provider !== "trivago" && hotel.provider !== "booking" && (!hotel.image || broken);
   const d = useDetails(hotel.hotelId, needPasshub);
   const [idx, setIdx] = useState(0);
-  const candidates = hotel.provider === "airbnb" || hotel.provider === "trivago" ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
+  const candidates = hotel.provider === "airbnb" || (hotel.provider === "trivago" || hotel.provider === "booking") ? [hotel.image, ...apiImages].filter(Boolean) : (needPasshub ? d?.photos ?? [] : [hotel.image]);
   const src = candidates[idx];
   if (!src) return <div className="grid h-36 w-44 place-items-center bg-secondary"><Building2 className="h-8 w-8 text-muted-foreground" /></div>;
-  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && hotel.provider !== "trivago" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
+  return <img src={src} alt={hotel.name} loading="lazy" onError={() => { if (hotel.provider !== "airbnb" && hotel.provider !== "trivago" && hotel.provider !== "booking" && !needPasshub) { setBroken(true); setIdx(0); } else { setIdx((i) => i + 1); } }} className="h-36 w-44 object-cover" />;
 }
 
 export function HotelGallery({
@@ -138,8 +139,20 @@ export function HotelGallery({
   /** Public proposal viewers must never invoke an unauthenticated paid API. */
   allowRemoteDetails?: boolean;
 }) {
+  const isBooking = hotel.provider === "booking";
+  const loadBooking = useServerFn(getBookingDetails);
+  const [bookingDetails, setBookingDetails] = useState<{ images: string[]; description: string; amenities: string[] } | null>(null);
+  const [bookingLoading, setBookingLoading] = useState(false);
+  const [bookingError, setBookingError] = useState("");
+  useEffect(() => {
+    if (!isBooking || !allowRemoteDetails || !hotel.providerListingId || hotel.publicDetails) return;
+    let active = true;
+    setBookingLoading(true);
+    loadBooking({ data: { listingId: hotel.providerListingId } }).then(value => { if (active) setBookingDetails(value); }).catch(() => { if (active) setBookingError("Não foi possível carregar fotos adicionais."); }).finally(() => { if (active) setBookingLoading(false); });
+    return () => { active = false; };
+  }, [isBooking, allowRemoteDetails, hotel.providerListingId, hotel.publicDetails, loadBooking]);
   const isAirbnb = hotel.provider === "airbnb";
-  const isTrivago = hotel.provider === "trivago";
+  const isTrivago = (hotel.provider === "trivago" || hotel.provider === "booking");
   const d = useDetails(hotel.hotelId, !isAirbnb && !isTrivago);
   const airbnbId = airbnbListingId(hotel);
   const savedDetails = isAirbnb ? hotel.publicDetails : undefined;
@@ -149,15 +162,15 @@ export function HotelGallery({
   const [bad, setBad] = useState<Set<string>>(new Set());
   const sourcePhotos = isAirbnb
     ? [...(propertyDetails?.photos ?? []), ...(hotel.images ?? []), hotel.image].filter(Boolean)
-    : isTrivago ? [hotel.image, ...(hotel.images ?? [])].filter(Boolean)
+    : isTrivago ? [...(bookingDetails?.images ?? hotel.publicDetails?.photos ?? []), hotel.image, ...(hotel.images ?? [])].filter(Boolean)
     : (d?.photos.length ? d.photos : hotel.image ? [hotel.image] : []);
   const photos = Array.from(new Set(sourcePhotos)).filter((p) => !bad.has(p));
   const [i, setI] = useState(0);
   const cur = photos[Math.min(i, photos.length - 1)];
   const description = isAirbnb
     ? formatDescription(propertyDetails?.description ?? "")
-    : d?.description ? formatDescription(d.description) : [];
-  const rating = isAirbnb ? propertyDetails?.rating ?? hotel.rating : undefined;
+    : isBooking ? formatDescription(bookingDetails?.description ?? hotel.publicDetails?.description ?? "") : d?.description ? formatDescription(d.description) : [];
+  const rating = isAirbnb ? propertyDetails?.rating ?? hotel.rating : isBooking ? hotel.rating : undefined;
   const reviews = isAirbnb ? propertyDetails?.reviewCount ?? hotel.reviewCount : undefined;
   const hasRating = typeof rating === "number" && Number.isFinite(rating) && rating >= 0 && rating <= 5;
   const ratingText = hasRating ? rating.toLocaleString("pt-BR", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) : "";
@@ -239,6 +252,9 @@ export function HotelGallery({
           </section>
         )}
 
+        {isBooking && bookingLoading && <p className="py-2 text-sm text-muted-foreground">Carregando fotos da hospedagem...</p>}
+        {isBooking && bookingError && <p className="py-2 text-sm text-muted-foreground">{bookingError}</p>}
+        {isBooking && typeof rating === "number" && <p className="py-2 text-sm">Avaliação: {rating.toLocaleString("pt-BR")} / 10 {hotel.reviewCount != null ? `(${hotel.reviewCount} avaliações)` : ""}</p>}
         {isAirbnb && detailsLoading && (
           <div role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-secondary p-3 text-sm text-muted-foreground">
             <Loader2 className="h-4 w-4 animate-spin" />

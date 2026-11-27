@@ -173,7 +173,7 @@ export const saveProposal = createServerFn({ method: "POST" })
       extraSchema.parse(hotel.extras ?? []);
       // A PLP forecast is never a quote. A Trivago PDP price needs
       // confirmation of mandatory taxes/availability at the supplier.
-      if (hotel.provider === "trivago" && (!hotel.priceConfirmed || hotel.total <= 0)) {
+      if ((hotel.provider === "trivago" || hotel.provider === "booking") && (!hotel.priceConfirmed || hotel.total <= 0)) {
         throw new Error(`Confirme o valor final e a disponibilidade de ${hotel.name} com o fornecedor antes de gerar a proposta.`);
       }
     }
@@ -199,7 +199,10 @@ export const saveProposal = createServerFn({ method: "POST" })
     // Keep proposal enrichment behind one function. Airbnb PDP network extraction
     // is intentionally disabled there; selected PLP data is reused without extra charge.
     const { addAirbnbDetailsToProposal } = await import("./airbnb-proposal-snapshot.server");
+    const { snapshotBooking } = await import("./staying-booking.server");
     const detailsHotels = await addAirbnbDetailsToProposal(proposal.hotels, proposal.s);
+    for (let i = 0; i < detailsHotels.length; i++) detailsHotels[i] = await snapshotBooking(detailsHotels[i]!);
+    if (proposal.s.multiHotelStays) for (const stay of proposal.s.multiHotelStays) if (stay.hotel) stay.hotel = await snapshotBooking(stay.hotel);
     // The database checks this version under a lock before storing the payload.
     const versionedProposal = { ...proposal, s: { ...proposal.s, commissionUpdatedAt: data.commissionUpdatedAt } };
     const enrichedPayload = encodeProposal({ ...versionedProposal, hotels: detailsHotels });

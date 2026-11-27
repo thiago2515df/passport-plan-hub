@@ -17,7 +17,7 @@ import { packageFlowSteps, type PackageStep } from "@/lib/package-flow";
 import { HotelPhoto } from "@/components/HotelGallery";
 import "@/package-flow.css";
 
-type Source = "hotel" | "airbnb" | "trivago";
+type Source = "hotel" | "airbnb" | "booking";
 
 export function MobilePackageHeader({
   step,
@@ -157,7 +157,7 @@ export function MobileHotelTools({
           [
             ["hotel", "Hotéis"],
             ["airbnb", "Airbnb"],
-            ["trivago", "Trivago"],
+            ["booking", "Booking.com"],
           ] as const
         ).map(([id, label]) => (
           <button key={id} type="button" aria-pressed={source === id} onClick={() => onSource(id)}>
@@ -250,7 +250,7 @@ export function MobilePackageHotelCard({
   onDetails: () => void;
   onQuote: () => void;
 }) {
-  const unavailable = h.provider === "trivago" && h.total <= 0;
+  const unavailable = h.provider === "booking" && h.total <= 0;
   return (
     <article aria-label={h.name} className={`package-hotel-card ${selected ? "is-selected" : ""}`}>
       <div className="package-hotel-photo">
@@ -298,7 +298,7 @@ export function MobilePackageHotelCard({
         <p className="package-hotel-price-note">
           {unavailable
             ? "Consulte a disponibilidade da tarifa."
-            : h.provider === "trivago" || h.totalEstimated
+            : h.provider === "booking" || h.totalEstimated
               ? "Hospedagem estimada. Confirme taxas e disponibilidade."
               : "Total da hospedagem"}
         </p>
@@ -331,7 +331,7 @@ export function MobilePackageHotelCard({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {h.provider === "airbnb" ? "Abrir anúncio no Airbnb" : "Ver fornecedores no Trivago"} ↗
+            {h.provider === "airbnb" ? "Abrir anúncio no Airbnb" : "Abrir anúncio no Booking.com"} ↗
           </a>
         )}
       </div>
