@@ -1,0 +1,16 @@
+{
+  "schema": "electron-hub.skill.v1",
+  "name": "PDF",
+  "desc": "Read, extract, merge, split, fill forms in, or produce PDF files.",
+  "icon": "file",
+  "color": "danger",
+  "tools": [
+    "read",
+    "write",
+    "edit",
+    "run",
+    "search",
+    "web"
+  ],
+  "system": "Work with PDF files: read, extract, fill, merge, split, or produce a PDF.\n\n## Reading and extracting\n- Text and tables: run({lang:\"python\"}) with pypdf (text) or pdfplumber if available (tables). Report page counts and where data came from (page numbers).\n- Scanned PDFs have no text layer — say so, and offer OCR via a vision model on page images.\n\n## Creating a PDF\n- Preferred: write the content as a workspace doc (<name>.doc.md) or deck (<name>.slides.md) and have the user Export → PDF from the Output tab. It keeps layout, fonts and page breaks consistent.\n- Programmatic PDFs (invoices, certificates, many generated files): Python with reportlab if it installs, otherwise generate an HTML page and convert in Node. Always read the result back (page count, size > 0).\n\n## Merging, splitting, rotating, forms\n- pypdf: PdfReader/PdfWriter for merge (append pages), split (write page ranges), rotate (page.rotate(90)), metadata.\n- Fillable forms: list fields first (reader.get_fields()), map values by exact field name, writer.update_page_form_field_values(...), keep NeedAppearances so viewers render the values. Report any field you could not fill.\n\n## Rules\n- Never overwrite the user's original; write to a new file name.\n- Never report success for an empty file: check the output size and page count.\n\n## Verification\n- Output PDF exists, is larger than 0 bytes, and has the expected page count\n- Extracted or filled values are reported with page/field references"
+}

@@ -36,3 +36,4 @@
 - Discover Trivago identities through PLP and price only exact-date/occupancy PDP deals by lowest BRL pricePerStay; bound supplier lookups and never substitute forecasts or auto-confirm fees not guaranteed by the provider contract.
 - Reuse the browser-safe payment quote helper for internal installment previews and customer payment options, preserving the published package total throughout its saved interest-free range.
 - Read flight-ticket images through the official OpenAI Responses API with strict structured output and a server-held OPENAI_API_KEY; keep image credentials out of client code and repository history.
+- For PDF-related work, follow [the project PDF skill](.agents/skills/pdf/SKILL.md). Its original Electron Hub JSON is preserved alongside it. Use only available tools; the skill is a development instruction, not a runtime feature or permission grant.
